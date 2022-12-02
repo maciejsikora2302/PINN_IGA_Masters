@@ -1,3 +1,9 @@
+from PINN import PINN
+from differential_tools import dfdx, dfdt, f
+import torch
+import numpy as np
+from typing import Callable
+
 def train_model(
     nn_approximator: PINN,
     loss_fn: Callable,

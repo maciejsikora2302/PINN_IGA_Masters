@@ -1,3 +1,7 @@
+import torch
+import math
+import numpy as np
+
 def initial_condition(x) -> torch.Tensor:
     res = torch.sin(math.pi*x).reshape(-1,1)
     return res

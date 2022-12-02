@@ -1,4 +1,5 @@
-from torch import nn
+import torch
+import torch.nn as nn
 
 
 class PINN(nn.Module):

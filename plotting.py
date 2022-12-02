@@ -1,3 +1,10 @@
+from PINN import PINN
+from differential_tools import f
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+import torch
+
 def plot_solution(pinn: PINN, x: torch.Tensor, t: torch.Tensor, figsize=(8, 6), dpi=100):
 
     fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
