@@ -1,3 +1,6 @@
+import torch
+from PINN import PINN
+
 def f(pinn: PINN, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
     """Compute the value of the approximate solution from the NN model"""
     return pinn(x, t)

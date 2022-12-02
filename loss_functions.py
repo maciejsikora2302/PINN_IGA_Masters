@@ -1,8 +1,19 @@
-def interior_loss(pinn: PINN, x:torch.Tensor, t: torch.tensor, sp: B_Splines = splines):
-    global eps_interior
+from PINN import PINN
+import torch
+from differential_tools import dfdx, dfdt, f
+import numpy as np
+from B_Splines import B_Splines
+from general_parameters import general_parameters
+from utils import initial_condition
+
+
+def interior_loss(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None):
     #t here is x in Eriksson problem, x here is y in Erikkson problem
     # loss = dfdt(pinn, x, t, order=1) - eps*dfdt(pinn, x, t, order=2)-eps*dfdx(pinn, x, t, order=2)
+    eps_interior = general_parameters.eps_interior
 
+    if sp is None:
+        sp = B_Splines(np.linspace(0, 1, int(1/eps_interior * 5)))
 
     # degree_1, degree_2 = np.random.randint(low=0, high=3, size=2)
     degree_1, degree_2 = 2, 2
@@ -24,7 +35,7 @@ def interior_loss(pinn: PINN, x:torch.Tensor, t: torch.tensor, sp: B_Splines = s
 
     return loss.pow(2).mean()
 
-def boundary_loss(pinn: PINN, x:torch.Tensor, t: torch.tensor):
+def boundary_loss(pinn: PINN, x:torch.Tensor, t: torch.Tensor):
     t_raw = torch.unique(t).reshape(-1, 1).detach()
     t_raw.requires_grad = True
     
@@ -43,7 +54,7 @@ def boundary_loss(pinn: PINN, x:torch.Tensor, t: torch.tensor):
 
     return boundary_loss_left.pow(2).mean() + boundary_loss_right.pow(2).mean()
 
-def initial_loss(pinn: PINN, x:torch.Tensor, t: torch.tensor):
+def initial_loss(pinn: PINN, x:torch.Tensor, t: torch.Tensor):
     # initial condition loss on both the function and its
     # time first-order derivative
     x_raw = torch.unique(x).reshape(-1, 1).detach()
