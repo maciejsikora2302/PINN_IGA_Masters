@@ -10,6 +10,37 @@
 # NEURONS_PER_LAYER = 60
 # EPOCHS = 50_000
 # LEARNING_RATE = 0.0025
+import logging
+import datetime
+import os
+LOG_LEVEL = logging.INFO
+
+IMGS_FOLDER = './imgs/' + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+#create folder for images
+if not os.path.exists(IMGS_FOLDER):
+    os.makedirs(IMGS_FOLDER)
+
+# set up logging
+logger = logging.getLogger(__name__)
+logger.setLevel(LOG_LEVEL)
+#with loglevel
+formatter = logging.Formatter('%(levelname)s -- %(message)s')
+file_handler = logging.FileHandler(f'logs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+logging.basicConfig(level=LOG_LEVEL, format='%(levelname)s -- %(message)s')
+
+class Color:
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    MAGENTA = '\033[95m'
+    CYAN = '\033[96m'
+    WHITE = '\033[97m'
+    BLACK = '\033[98m'
+    RESET = '\033[0m'
 
 
 class GeneralParameters:

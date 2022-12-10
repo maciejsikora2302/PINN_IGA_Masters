@@ -3,6 +3,7 @@ from differential_tools import dfdx, dfdt, f
 import torch
 import numpy as np
 from typing import Callable
+from general_parameters import logger, Color
 
 def train_model(
     nn_approximator: PINN,
@@ -24,10 +25,11 @@ def train_model(
             optimizer.step()
 
             loss_values.append(loss.item())
-            if (epoch + 1) % 100 == 0:
-                print(f"Epoch: {epoch + 1} - Loss: {float(loss):>7f}")
+            if (epoch + 1) % 20 == 0:
+                logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>7f}{Color.RESET}")
 
         except KeyboardInterrupt:
+            logger.info(f"Training interrupted by user at epoch {Color.RED}{epoch + 1}{Color.RESET}")
             break
 
     return nn_approximator, np.array(loss_values)
