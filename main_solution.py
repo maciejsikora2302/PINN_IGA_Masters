@@ -6,11 +6,10 @@ import argparse
 import torch.nn as nn
 
 from PINN import PINN
-from general_parameters import general_parameters
-from utils import initial_condition, running_average
-from plotting import plot_solution, plot_color
+from general_parameters import general_parameters, logger, Color
+from utils import compute_losses_and_plot_solution
 from B_Splines import B_Splines
-from loss_functions import compute_loss
+from loss_functions import interior_loss_colocation, interior_loss_strong, interior_loss_weak, interior_loss_weak_and_strong, compute_loss, initial_condition
 from NN_tools import train_model
 
 # do sprawdzenia potem co to robi
@@ -21,7 +20,7 @@ import matplotlib.pyplot as plt
 from functools import partial
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Device: {device}")
+logger.info(f"Device: {device}")
 
 # parse arguments
 
@@ -66,6 +65,9 @@ NEURONS_PER_LAYER = general_parameters.neurons_per_layer
 EPOCHS = general_parameters.epochs
 LEARNING_RATE = general_parameters.learning_rate
 
+
+
+
 if __name__ == "__main__":
 
     x_domain = [0.0, LENGTH]
@@ -83,83 +85,60 @@ if __name__ == "__main__":
     x_init = x_init*LENGTH
     u_init = initial_condition(x_init)
 
-    fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
-    ax.set_title("Initial condition points")
-    ax.set_xlabel("x")
-    ax.set_ylabel("u")
-    ax.scatter(x_init, u_init, s=2)
+    # fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+    # ax.set_title("Initial condition points")
+    # ax.set_xlabel("x")
+    # ax.set_ylabel("u")
+    # ax.scatter(x_init, u_init, s=2)
 
+    logger.info("")
+    logger.info("="*80)
+    logger.info("Learning parameters")
+    logger.info(f"{'Length: ':<50}{Color.GREEN}{LENGTH}{Color.RESET}")
+    logger.info(f"{'Total time: ':<50}{Color.GREEN}{TOTAL_TIME}{Color.RESET}")
+    logger.info(f"{'Number of points in x: ':<50}{Color.GREEN}{N_POINTS_X}{Color.RESET}")
+    logger.info(f"{'Number of points in t: ':<50}{Color.GREEN}{N_POINTS_T}{Color.RESET}")
+    logger.info(f"{'Number of points in initial condition: ':<50}{Color.GREEN}{N_POINTS_INIT}{Color.RESET}")
+    logger.info(f"{'Weight for interior loss: ':<50}{Color.GREEN}{WEIGHT_INTERIOR}{Color.RESET}")
+    logger.info(f"{'Weight for initial condition loss: ':<50}{Color.GREEN}{WEIGHT_INITIAL}{Color.RESET}")
+    logger.info(f"{'Weight for boundary loss: ':<50}{Color.GREEN}{WEIGHT_BOUNDARY}{Color.RESET}")
+    logger.info(f"{'Layers: ':<50}{Color.GREEN}{LAYERS}{Color.RESET}")
+    logger.info(f"{'Neurons per layer: ':<50}{Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET}")
+    logger.info(f"{'Epochs: ':<50}{Color.GREEN}{EPOCHS}{Color.RESET}")
+    logger.info(f"{'Learning rate: ':<50}{Color.GREEN}{LEARNING_RATE}{Color.RESET}")
+    logger.info("="*80)
+    logger.info("")
 
+    logger.info(f"Creating PINN with {Color.GREEN}{LAYERS}{Color.RESET} layers and {Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET} neurons per layer")
     pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh()).to(device)
     # assert check_gradient(nn_approximator, x, t)
+    # to add new loss functions, add them to the list below and add the corresponding function to the array of functions in train pinn block below
+    loss_fn_weak = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak)
+    loss_fn_strong = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong)
+    loss_fn_weak_and_strong = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong)
+    loss_fn_colocation = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation)
 
-    compute_loss(pinn, x=x, t=t)
+    logger.info(f"Computing initial condition loss")
+    logger.info(f"{'Initial condition loss weak:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak):.5f}{Color.RESET}")
+    logger.info(f"{'Initial condition loss strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong):.5f}{Color.RESET}")
+    logger.info(f"{'Initial condition loss weak and strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong):.5f}{Color.RESET}")
+    logger.info(f"{'Initial condition loss colocation:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation):.5f}{Color.RESET}")
 
     # train the PINN
-    loss_fn = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY)
-    pinn_trained, loss_values = train_model(
-        pinn, loss_fn=loss_fn, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
+    for loss_fn, name in \
+        [
+            (loss_fn_weak, 'loss_fn_weak'), 
+            (loss_fn_strong, 'loss_fn_strong'), 
+            (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
+            (loss_fn_colocation, 'loss_fn_colocation')
+        ]:
+        logger.info(f"Training PINN for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
 
+        pinn_trained, loss_values = train_model(
+            pinn, loss_fn=loss_fn_weak, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
+        compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, t=t, device = device, \
+                                        loss_values=loss_values, x_init=x_init, u_init=u_init, \
+                                        N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
+                                        loss_fn_name=name)
 
-
-
-    losses = compute_loss(pinn.to(device), x=x, t=t, verbose=True)
-    print(f'Total loss: \t{losses[0]:.5f}    ({losses[0]:.3E})')
-    print(f'Interior loss: \t{losses[1]:.5f}    ({losses[1]:.3E})')
-    print(f'Initial loss: \t{losses[2]:.5f}    ({losses[2]:.3E})')
-    print(f'Bondary loss: \t{losses[3]:.5f}    ({losses[3]:.3E})')
-
-
-
-
-    average_loss = running_average(loss_values, window=100)
-    fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
-    ax.set_title("Loss function (runnig average)")
-    ax.set_xlabel("Epoch")
-    ax.set_ylabel("Loss")
-    ax.plot(average_loss)
-
-
-
-
-    z = f(pinn.to(device), x, t)
-    color = plot_color(z.cpu(), x.cpu(), t.cpu(), N_POINTS_X, N_POINTS_T)
-
-
-
-
-    # plt.plot(x_init, u_init, label="Initial condition")
-    # plt.plot(x_init, pinn_init.flatten().detach(), label="PINN solution")
-    # plt.legend()
-
-    pinn_init = f(pinn.cpu(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
-    fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
-    ax.set_title("Initial condition difference")
-    ax.set_xlabel("x")
-    ax.set_ylabel("u")
-    ax.plot(x_init, u_init, label="Initial condition")
-    ax.plot(x_init, pinn_init.flatten().detach(), label="PINN solution")
-    ax.legend()
-
-
-
-
-    # from IPython.display import HTML
-    # ani = plot_solution(pinn_trained.cpu(), x.cpu(), t.cpu())
-    # HTML(ani.to_html5_video())
-
-
-
-
-    # plt.plot(x_init, u_init, label="Initial condition")
-    # plt.plot(x_init, pinn_init.flatten().detach(), label="PINN solution")
-    # plt.legend()
-
-    pinn_init = f(pinn.cpu(), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
-    fig, ax = plt.subplots(figsize=(14, 10), dpi=100)
-    ax.set_title("Solution profile")
-    ax.set_xlabel("x")
-    ax.set_ylabel("u")
-    ax.plot(x_init, pinn_init.flatten().detach(), label="PINN solution")
-    ax.legend()
 
