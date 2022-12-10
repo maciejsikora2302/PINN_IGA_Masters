@@ -56,13 +56,13 @@ def compute_losses_and_plot_solution(pinn_trained, x, t, device, loss_values, x_
     # plt.legend()
     # plt.savefig("./imgs/initial_condition2.png")
 
-    pinn_init = f(pinn_trained.cpu(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
+    pinn_init = f(pinn_trained.cuda(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
     ax.set_title("Initial condition difference")
     ax.set_xlabel("x")
     ax.set_ylabel("u")
-    ax.plot(x_init, u_init, label="Initial condition")
-    ax.plot(x_init, pinn_init.flatten().detach(), label="PINN solution")
+    ax.plot(x_init.cpu(), u_init, label="Initial condition")
+    ax.plot(x_init.cpu(), pinn_init.cpu().flatten().detach(), label="PINN solution")
     ax.legend()
     plt.savefig(f"{path}/initial_condition.png")
 
@@ -74,12 +74,12 @@ def compute_losses_and_plot_solution(pinn_trained, x, t, device, loss_values, x_
     # plt.plot(x_init, pinn_init.flatten().detach(), label="PINN solution")
     # plt.legend()
 
-    pinn_init = f(pinn_trained.cpu(), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
+    pinn_init = f(pinn_trained.cuda(), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
     fig, ax = plt.subplots(figsize=(14, 10), dpi=100)
     ax.set_title("Solution profile")
     ax.set_xlabel("x")
     ax.set_ylabel("u")
-    ax.plot(x_init, pinn_init.flatten().detach(), label="PINN solution")
+    ax.plot(x_init, pinn_init.cpu().flatten().detach(), label="PINN solution")
     ax.legend()
     plt.savefig(f"{path}/solution_profile.png")
     with open(f"{path}/solution_profile.txt", "w") as file:

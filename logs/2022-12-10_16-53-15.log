@@ -1,0 +1,57 @@
+INFO -- Device: cpu
+INFO -- 
+INFO -- ================================================================================
+INFO -- Learning parameters
+INFO -- Length:                                           [92m1.0[0m
+INFO -- Total time:                                       [92m1.0[0m
+INFO -- Number of points in x:                            [92m150[0m
+INFO -- Number of points in t:                            [92m150[0m
+INFO -- Number of points in initial condition:            [92m300[0m
+INFO -- Weight for interior loss:                         [92m0.5[0m
+INFO -- Weight for initial condition loss:                [92m150.0[0m
+INFO -- Weight for boundary loss:                         [92m1.0[0m
+INFO -- Layers:                                           [92m2[0m
+INFO -- Neurons per layer:                                [92m60[0m
+INFO -- Epochs:                                           [92m50000[0m
+INFO -- Learning rate:                                    [92m0.0025[0m
+INFO -- ================================================================================
+INFO -- 
+INFO -- Creating PINN with [92m2[0m layers and [92m60[0m neurons per layer
+INFO -- Computing initial condition loss
+INFO -- Initial condition loss weak:                      [92m0.52282[0m
+INFO -- Initial condition loss strong:                    [92m0.52282[0m
+INFO -- Initial condition loss weak and strong:           [92m0.52282[0m
+INFO -- Initial condition loss colocation:                [92m0.52382[0m
+INFO -- Training PINN for [93m50000[0m epochs using [93mloss_fn_weak[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m0.189131[0m
+INFO -- Epoch: [95m40[0m - Loss: [93m0.184476[0m
+INFO -- Training interrupted by user at epoch [91m45[0m
+INFO -- Computing final loss
+INFO -- Total loss:                                       [92m0.32512[0m    (3.251E-01)
+INFO -- Interior loss:                                    [92m0.00000[0m    (0.000E+00)
+INFO -- Initial loss:                                     [92m0.28563[0m    (2.856E-01)
+INFO -- Bondary loss:                                     [92m0.03949[0m    (3.949E-02)
+INFO -- Training PINN for [93m50000[0m epochs using [93mloss_fn_strong[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m0.179798[0m
+INFO -- Training interrupted by user at epoch [91m24[0m
+INFO -- Computing final loss
+INFO -- Total loss:                                       [92m0.33591[0m    (3.359E-01)
+INFO -- Interior loss:                                    [92m0.00000[0m    (0.000E+00)
+INFO -- Initial loss:                                     [92m0.31411[0m    (3.141E-01)
+INFO -- Bondary loss:                                     [92m0.02180[0m    (2.180E-02)
+INFO -- Training PINN for [93m50000[0m epochs using [93mloss_fn_weak_and_strong[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m0.176052[0m
+INFO -- Training interrupted by user at epoch [91m24[0m
+INFO -- Computing final loss
+INFO -- Total loss:                                       [92m0.31007[0m    (3.101E-01)
+INFO -- Interior loss:                                    [92m0.00000[0m    (0.000E+00)
+INFO -- Initial loss:                                     [92m0.27574[0m    (2.757E-01)
+INFO -- Bondary loss:                                     [92m0.03433[0m    (3.433E-02)
+INFO -- Training PINN for [93m50000[0m epochs using [93mloss_fn_colocation[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m0.168359[0m
+INFO -- Training interrupted by user at epoch [91m24[0m
+INFO -- Computing final loss
+INFO -- Total loss:                                       [92m0.28603[0m    (2.860E-01)
+INFO -- Interior loss:                                    [92m0.00000[0m    (0.000E+00)
+INFO -- Initial loss:                                     [92m0.24614[0m    (2.461E-01)
+INFO -- Bondary loss:                                     [92m0.03988[0m    (3.988E-02)

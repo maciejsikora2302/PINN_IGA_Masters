@@ -17,13 +17,15 @@ def precalculations(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None):
     degree_1, degree_2 = 2, 2
     coef_float, coef_float_2 = np.random.rand(len(sp.knot_vector)), np.random.rand(len(sp.knot_vector))
     v = sp.calculate_BSpline_2D(x.detach(), t.detach(), degree_1, degree_2, coef_float, coef_float_2)
-
+    
     return eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, v
 
 
 def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None):
     #t here is x in Eriksson problem, x here is y in Erikkson problem
     # loss = dfdt(pinn, x, t, order=1) - eps*dfdt(pinn, x, t, order=2)-eps*dfdx(pinn, x, t, order=2)
+    x.cuda()
+    t.cuda()
 
     eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, v = precalculations(x, t, sp)
 
@@ -41,6 +43,9 @@ def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spline
 
 def interior_loss_colocation(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None):
 
+    x.cuda()
+    t.cuda()
+
     eps_interior, sp, degree_1, degree_2, _, _, _ = precalculations(x, t, sp)
     coef1 = np.random.randint(0, 2, len(sp.knot_vector))
     coef2 = np.random.randint(0, 2, len(sp.knot_vector))
@@ -52,6 +57,9 @@ def interior_loss_colocation(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_
 
 def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None):
 
+    x.cuda()
+    t.cuda()
+
     eps_interior, sp, _, _, _, _, v = precalculations(x, t, sp)
 
     loss = torch.trapezoid(torch.trapezoid((dfdt(pinn, x, t, order=1) - eps_interior*dfdt(pinn, x, t, order=2)-eps_interior*dfdx(pinn, x, t, order=2)))) * v
@@ -60,6 +68,9 @@ def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spli
 
 
 def interior_loss_weak_and_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None):
+
+    x.cuda()
+    t.cuda()
 
     eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, v = precalculations(x, t, sp)
 

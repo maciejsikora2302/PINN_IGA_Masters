@@ -10,7 +10,7 @@ def train_model(
     loss_fn: Callable,
     learning_rate: int = 0.01,
     max_epochs: int = 1_000,
-    device="cpu"
+    device="cuda"
 ) -> PINN:
 
     optimizer = torch.optim.Adam(nn_approximator.parameters(), lr=learning_rate)
@@ -26,7 +26,7 @@ def train_model(
 
             loss_values.append(loss.item())
             if (epoch + 1) % 20 == 0:
-                logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>7f}{Color.RESET}")
+                logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>12f}{Color.RESET}")
 
         except KeyboardInterrupt:
             logger.info(f"Training interrupted by user at epoch {Color.RED}{epoch + 1}{Color.RESET}")

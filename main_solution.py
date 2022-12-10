@@ -1,23 +1,15 @@
 
-import matplotlib.pyplot as plt
-import numpy as np
 import torch
 import argparse
 import torch.nn as nn
+from functools import partial
 
 from PINN import PINN
 from general_parameters import general_parameters, logger, Color
 from utils import compute_losses_and_plot_solution
-from B_Splines import B_Splines
 from loss_functions import interior_loss_colocation, interior_loss_strong, interior_loss_weak, interior_loss_weak_and_strong, compute_loss, initial_condition
 from NN_tools import train_model
 
-# do sprawdzenia potem co to robi
-from torch.utils.tensorboard import SummaryWriter
-
-
-import matplotlib.pyplot as plt
-from functools import partial
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f"Device: {device}")
@@ -119,10 +111,10 @@ if __name__ == "__main__":
     loss_fn_colocation = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation)
 
     logger.info(f"Computing initial condition loss")
-    logger.info(f"{'Initial condition loss weak:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak):.5f}{Color.RESET}")
-    logger.info(f"{'Initial condition loss strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong):.5f}{Color.RESET}")
-    logger.info(f"{'Initial condition loss weak and strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong):.5f}{Color.RESET}")
-    logger.info(f"{'Initial condition loss colocation:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation):.5f}{Color.RESET}")
+    logger.info(f"{'Initial condition loss weak:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak):.12f}{Color.RESET}")
+    logger.info(f"{'Initial condition loss strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong):.12f}{Color.RESET}")
+    logger.info(f"{'Initial condition loss weak and strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong):.12f}{Color.RESET}")
+    logger.info(f"{'Initial condition loss colocation:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation):.12f}{Color.RESET}")
 
     # train the PINN
     for loss_fn, name in \

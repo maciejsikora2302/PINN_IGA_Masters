@@ -3,7 +3,7 @@ from PINN import PINN
 
 def f(pinn: PINN, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
     """Compute the value of the approximate solution from the NN model"""
-    return pinn(x, t)
+    return pinn(x.cuda(), t.cuda())
 
 
 def df(output: torch.Tensor, input: torch.Tensor, order: int = 1) -> torch.Tensor:
@@ -18,7 +18,7 @@ def df(output: torch.Tensor, input: torch.Tensor, order: int = 1) -> torch.Tenso
             retain_graph=True,
         )[0]
 
-    return df_value
+    return df_value.cuda()
 
 
 def dfdt(pinn: PINN, x: torch.Tensor, t: torch.Tensor, order: int = 1):
