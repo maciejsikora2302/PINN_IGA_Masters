@@ -4,12 +4,12 @@ import glob
 import numpy as np
 
 list_of_files = glob.glob('.\imgs\*')
-print(list_of_files)
+# print(list_of_files)
 latest_folder = max(list_of_files, key=os.path.getctime)
 print(f"Latest folder: {latest_folder}")
 
 list_of_functions = glob.glob(f'{latest_folder}\*')
-print(list_of_functions)
+# print(list_of_functions)
 
 
 data = []

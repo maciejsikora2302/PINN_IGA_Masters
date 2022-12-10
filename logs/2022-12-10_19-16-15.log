@@ -1,0 +1,33 @@
+INFO -- Device: cuda
+INFO -- 
+INFO -- ================================================================================
+INFO -- Learning parameters
+INFO -- Length:                                           [92m1.0[0m
+INFO -- Total time:                                       [92m1.0[0m
+INFO -- Number of points in x:                            [92m150[0m
+INFO -- Number of points in t:                            [92m150[0m
+INFO -- Number of points in initial condition:            [92m300[0m
+INFO -- Weight for interior loss:                         [92m0.5[0m
+INFO -- Weight for initial condition loss:                [92m150.0[0m
+INFO -- Weight for boundary loss:                         [92m1.0[0m
+INFO -- Layers:                                           [92m2[0m
+INFO -- Neurons per layer:                                [92m60[0m
+INFO -- Epochs:                                           [92m50000[0m
+INFO -- Learning rate:                                    [92m0.0025[0m
+INFO -- ================================================================================
+INFO -- 
+INFO -- Creating PINN with [92m2[0m layers and [92m60[0m neurons per layer
+INFO -- Computing initial condition loss
+INFO -- Initial condition loss weak:                      [92m0.229688704014[0m
+INFO -- Initial condition loss strong:                    [92m0.229688704014[0m
+INFO -- Initial condition loss weak and strong:           [92m0.229688704014[0m
+INFO -- Initial condition loss colocation:                [92m0.230058312416[0m
+INFO -- Training PINN for [93m50000[0m epochs using [93mloss_fn_weak[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m    0.181621[0m
+INFO -- Epoch: [95m40[0m - Loss: [93m    0.171133[0m
+INFO -- Training interrupted by user at epoch [91m59[0m
+INFO -- Computing final loss
+INFO -- Total loss:                                       [92m0.27330[0m    (2.733E-01)
+INFO -- Interior loss:                                    [92m0.00000[0m    (0.000E+00)
+INFO -- Initial loss:                                     [92m0.23785[0m    (2.378E-01)
+INFO -- Bondary loss:                                     [92m0.03546[0m    (3.546E-02)

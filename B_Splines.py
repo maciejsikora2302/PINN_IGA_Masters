@@ -9,10 +9,10 @@ class B_Splines:
 
   # 1D case
   def calculate_BSpline_1D(self, x: torch.Tensor, coef: torch.Tensor, degree: int) -> torch.Tensor:
-    return spi.BSpline(self.knot_vector, coef, degree)(x)
+    return spi.BSpline(self.knot_vector, coef, degree)(x.cpu())
 
   def calculate_BSpline_1D_deriv(self, x: torch.Tensor, coef: torch.Tensor, degree: int, order: int) -> torch.Tensor:
-    return spi.splev(x, (self.knot_vector, coef, degree), order)
+    return spi.splev(x.cpu(), (self.knot_vector, coef, degree), order)
 
   # 2D case
   def calculate_BSpline_2D(self, 
@@ -23,9 +23,9 @@ class B_Splines:
                            coef_1: torch.Tensor,
                            coef_2: torch.Tensor) -> torch.Tensor:
 
-    first_spline = torch.Tensor(self.calculate_BSpline_1D(x1, coef_1, degree_1))
-    second_spline = torch.Tensor(self.calculate_BSpline_1D(x2, coef_2, degree_2))
-    return torch.mul(first_spline, second_spline)
+    first_spline = torch.Tensor(self.calculate_BSpline_1D(x1, coef_1, degree_1)).cuda()
+    second_spline = torch.Tensor(self.calculate_BSpline_1D(x2, coef_2, degree_2)).cuda()
+    return torch.mul(first_spline, second_spline).cuda()
 
       # 2D case
   def calculate_BSpline_2D_deriv_x(self, 
@@ -37,9 +37,9 @@ class B_Splines:
                            coef_t: torch.Tensor,
                            order: int) -> torch.Tensor:
 
-    first_spline = torch.Tensor(self.calculate_BSpline_1D_deriv(x, coef_x, degree_x, 1))
-    second_spline = torch.Tensor(self.calculate_BSpline_1D(t, coef_t, degree_t))
-    return torch.mul(first_spline, second_spline)
+    first_spline = torch.Tensor(self.calculate_BSpline_1D_deriv(x, coef_x, degree_x, 1)).cuda()
+    second_spline = torch.Tensor(self.calculate_BSpline_1D(t, coef_t, degree_t)).cuda()
+    return torch.mul(first_spline, second_spline).cuda()
 
   def calculate_BSpline_2D_deriv_t(self, 
                            x: torch.Tensor,
@@ -50,6 +50,6 @@ class B_Splines:
                            coef_t: torch.Tensor,
                            order: int) -> torch.Tensor:
 
-    first_spline = torch.Tensor(self.calculate_BSpline_1D(x, coef_x, degree_x))
-    second_spline = torch.Tensor(self.calculate_BSpline_1D_deriv(t, coef_t, degree_t, 1))
-    return torch.mul(first_spline, second_spline)
+    first_spline = torch.Tensor(self.calculate_BSpline_1D(x, coef_x, degree_x)).cuda()
+    second_spline = torch.Tensor(self.calculate_BSpline_1D_deriv(t, coef_t, degree_t, 1)).cuda()
+    return torch.mul(first_spline, second_spline).cuda()
