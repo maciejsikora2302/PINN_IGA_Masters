@@ -105,10 +105,10 @@ def boundary_loss(pinn: PINN, x:torch.Tensor, t: torch.Tensor):
     x_raw.requires_grad = True
 
     boundary_top = torch.ones_like(x_raw, requires_grad=True) * t[-1]
-    boundary_loss_right = f(pinn, boundary_top, x_raw)
+    boundary_loss_top = f(pinn, boundary_top, x_raw)
 
 
-    return boundary_loss_left.pow(2).mean() + boundary_loss_right.pow(2).mean()
+    return boundary_loss_left.pow(2).mean() + boundary_loss_right.pow(2).mean() + boundary_loss_top.pow(2).mean()
 
 def initial_loss(pinn: PINN, x:torch.Tensor, t: torch.Tensor):
     # initial condition loss on both the function and its

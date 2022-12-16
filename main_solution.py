@@ -1,11 +1,11 @@
-
+import os
 import torch
 import argparse
 import torch.nn as nn
 from functools import partial
 
 from PINN import PINN
-from general_parameters import general_parameters, logger, Color
+from general_parameters import general_parameters, logger, Color, TIMESTAMP
 from utils import compute_losses_and_plot_solution
 from loss_functions import interior_loss_colocation, interior_loss_strong, interior_loss_weak, interior_loss_weak_and_strong, compute_loss, initial_condition
 from NN_tools import train_model
@@ -29,6 +29,7 @@ parser.add_argument("--layers", type=int)
 parser.add_argument("--neurons_per_layer", type=int)
 parser.add_argument("--epochs", type=int)
 parser.add_argument("--learning_rate", type=float)
+parser.add_argument("--save", '-s', action="store_true")
 args = parser.parse_args()
 
 general_parameters.length = args.length if args.length is not None else general_parameters.length
@@ -43,6 +44,7 @@ general_parameters.layers = args.layers if args.layers is not None else general_
 general_parameters.neurons_per_layer = args.neurons_per_layer if args.neurons_per_layer is not None else general_parameters.neurons_per_layer
 general_parameters.epochs = args.epochs if args.epochs is not None else general_parameters.epochs
 general_parameters.learning_rate = args.learning_rate if args.learning_rate is not None else general_parameters.learning_rate
+general_parameters.save = args.save if args.save is not None else general_parameters.save
 
 LENGTH = general_parameters.length
 TOTAL_TIME = general_parameters.total_time
@@ -56,7 +58,7 @@ LAYERS = general_parameters.layers
 NEURONS_PER_LAYER = general_parameters.neurons_per_layer
 EPOCHS = general_parameters.epochs
 LEARNING_RATE = general_parameters.learning_rate
-
+SAVE = general_parameters.save
 
 
 
@@ -128,6 +130,14 @@ if __name__ == "__main__":
 
         pinn_trained, loss_values = train_model(
             pinn, loss_fn=loss_fn_weak, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
+        
+        if SAVE:
+            SAVE_PATH = f"models/{TIMESTAMP}/{name}.pt"
+            if not os.path.exists(f"models/{TIMESTAMP}"):
+                os.makedirs(f"models/{TIMESTAMP}")
+            logger.info(f"Saving model to {Color.YELLOW}{SAVE_PATH}{Color.RESET}")
+            torch.save(pinn_trained.state_dict(), SAVE_PATH)
+
         compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, t=t, device = device, \
                                         loss_values=loss_values, x_init=x_init, u_init=u_init, \
                                         N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
