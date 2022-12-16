@@ -14,8 +14,8 @@ import logging
 import datetime
 import os
 LOG_LEVEL = logging.INFO
-
-IMGS_FOLDER = './imgs/' + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+IMGS_FOLDER = './imgs/' + TIMESTAMP
 
 #create folder for images
 if not os.path.exists(IMGS_FOLDER):
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 #with loglevel
 formatter = logging.Formatter('%(levelname)s -- %(message)s')
-file_handler = logging.FileHandler(f'logs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.log')
+file_handler = logging.FileHandler(f'logs/{TIMESTAMP}.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logging.basicConfig(level=LOG_LEVEL, format='%(levelname)s -- %(message)s')
@@ -58,6 +58,7 @@ class GeneralParameters:
             epochs = None, \
             learning_rate = None, \
             eps_interior = None, \
+            save = None, \
             device = None):
         
         self.length = 1. if length is None else length
@@ -73,5 +74,6 @@ class GeneralParameters:
         self.epochs = 50_000 if epochs is None else epochs
         self.learning_rate = 0.0025 if learning_rate is None else learning_rate
         self.eps_interior = 1e-3 if eps_interior is None else eps_interior
+        self.save = False if save is None else save
 
 general_parameters = GeneralParameters()

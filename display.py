@@ -16,10 +16,12 @@ data = []
 for function in list_of_functions:
     with open(f"{function}/solution_profile.txt") as file:
         lines = file.readlines()
-        splitted = lines[0].split(',')
-        x = list(map(lambda x: float(x.replace('tensor(', '').replace(')','')), splitted))
-        splitted = lines[1].split(',')
-        y = list(map(lambda x: float(x.replace('tensor(', '').replace(')','')), splitted))
+        splitted = lines[0].replace('tensor','').replace('(','').replace(')','').replace('\n','').split(',')
+        x = list(map(lambda x: float(x), splitted))
+        splitted = lines[1].replace('tensor','').replace('(','').replace(')','').replace('\n','').split(',')
+        splitted = list(filter(lambda x: x != ' device=\'cuda:0\'', splitted))
+        # print(splitted)
+        y = list(map(lambda x: float(x), splitted))
         data.append((x, y))
 
 #display four graphs
