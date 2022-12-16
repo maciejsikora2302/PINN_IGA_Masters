@@ -25,6 +25,10 @@ class B_Splines:
 
     first_spline = torch.Tensor(self.calculate_BSpline_1D(x1, coef_1, degree_1)).cuda()
     second_spline = torch.Tensor(self.calculate_BSpline_1D(x2, coef_2, degree_2)).cuda()
+
+    first_spline = first_spline.unsqueeze(0).cuda()
+    second_spline = second_spline.unsqueeze(1).cuda()
+
     return torch.mul(first_spline, second_spline).cuda()
 
       # 2D case
@@ -39,6 +43,10 @@ class B_Splines:
 
     first_spline = torch.Tensor(self.calculate_BSpline_1D_deriv(x, coef_x, degree_x, 1)).cuda()
     second_spline = torch.Tensor(self.calculate_BSpline_1D(t, coef_t, degree_t)).cuda()
+
+    first_spline = first_spline.unsqueeze(0).cuda()
+    second_spline = second_spline.unsqueeze(1).cuda()
+    
     return torch.mul(first_spline, second_spline).cuda()
 
   def calculate_BSpline_2D_deriv_t(self, 
@@ -52,4 +60,8 @@ class B_Splines:
 
     first_spline = torch.Tensor(self.calculate_BSpline_1D(x, coef_x, degree_x)).cuda()
     second_spline = torch.Tensor(self.calculate_BSpline_1D_deriv(t, coef_t, degree_t, 1)).cuda()
+
+    first_spline = first_spline.unsqueeze(0).cuda()
+    second_spline = second_spline.unsqueeze(1).cuda()
+
     return torch.mul(first_spline, second_spline).cuda()
