@@ -65,14 +65,10 @@ SAVE = general_parameters.save
 if __name__ == "__main__":
 
     x_domain = [0.0, LENGTH]
-    t_domain = [0.0, TOTAL_TIME]
 
     x_raw = torch.linspace(x_domain[0], x_domain[1], steps=N_POINTS_X, requires_grad=True)
-    t_raw = torch.linspace(t_domain[0], t_domain[1], steps=N_POINTS_T, requires_grad=True)
-    grids = torch.meshgrid(x_raw, t_raw, indexing="ij")
 
-    x = grids[0].flatten().reshape(-1, 1).to(device)
-    t = grids[1].flatten().reshape(-1, 1).to(device)
+    x = x_raw.flatten().reshape(-1, 1).to(device)
 
     x_init = torch.linspace(0.0, 1.0, steps=N_POINTS_INIT)
     # x_init = 0.5*((x_init-0.5*LENGTH)*2)**3 + 0.5
@@ -91,7 +87,6 @@ if __name__ == "__main__":
     logger.info(f"{'Length: ':<50}{Color.GREEN}{LENGTH}{Color.RESET}")
     logger.info(f"{'Total time: ':<50}{Color.GREEN}{TOTAL_TIME}{Color.RESET}")
     logger.info(f"{'Number of points in x: ':<50}{Color.GREEN}{N_POINTS_X}{Color.RESET}")
-    logger.info(f"{'Number of points in t: ':<50}{Color.GREEN}{N_POINTS_T}{Color.RESET}")
     logger.info(f"{'Number of points in initial condition: ':<50}{Color.GREEN}{N_POINTS_INIT}{Color.RESET}")
     logger.info(f"{'Weight for interior loss: ':<50}{Color.GREEN}{WEIGHT_INTERIOR}{Color.RESET}")
     logger.info(f"{'Weight for initial condition loss: ':<50}{Color.GREEN}{WEIGHT_INITIAL}{Color.RESET}")
@@ -107,29 +102,29 @@ if __name__ == "__main__":
     pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh()).to(device)
     # assert check_gradient(nn_approximator, x, t)
     # to add new loss functions, add them to the list below and add the corresponding function to the array of functions in train pinn block below
-    loss_fn_weak = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak)
-    loss_fn_strong = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong)
-    loss_fn_weak_and_strong = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong)
-    loss_fn_colocation = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation)
+    loss_fn_weak = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak, dims = 1)
+    # loss_fn_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong, dims = 1)
+    # loss_fn_weak_and_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong, dims = 1)
+    loss_fn_colocation = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation, dims = 1)
 
     logger.info(f"Computing initial condition loss")
-    logger.info(f"{'Initial condition loss weak:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak):.12f}{Color.RESET}")
-    logger.info(f"{'Initial condition loss strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong):.12f}{Color.RESET}")
-    logger.info(f"{'Initial condition loss weak and strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong):.12f}{Color.RESET}")
-    logger.info(f"{'Initial condition loss colocation:':<50}{Color.GREEN}{compute_loss(pinn, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation):.12f}{Color.RESET}")
+    # logger.info(f"{'Initial condition loss weak:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak, dims = 1):.12f}{Color.RESET}")
+    # logger.info(f"{'Initial condition loss strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong, dims = 1):.12f}{Color.RESET}")
+    # logger.info(f"{'Initial condition loss weak and strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong, dims = 1):.12f}{Color.RESET}")
+    # logger.info(f"{'Initial condition loss colocation:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation, dims = 1):.12f}{Color.RESET}")
 
     # train the PINN
     for loss_fn, name in \
         [
-            # (loss_fn_weak, 'loss_fn_weak'), 
+            (loss_fn_weak, 'loss_fn_weak'), 
             # (loss_fn_strong, 'loss_fn_strong'), 
-            (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
-            # (loss_fn_colocation, 'loss_fn_colocation')
+            # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
+            (loss_fn_colocation, 'loss_fn_colocation')
         ]:
         logger.info(f"Training PINN for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
 
         pinn_trained, loss_values = train_model(
-            pinn, loss_fn=loss_fn_weak, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
+            pinn, loss_fn=loss_fn, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
         
         if SAVE:
             SAVE_PATH = f"models/{TIMESTAMP}/{name}.pt"
@@ -138,9 +133,9 @@ if __name__ == "__main__":
             logger.info(f"Saving model to {Color.YELLOW}{SAVE_PATH}{Color.RESET}")
             torch.save(pinn_trained.state_dict(), SAVE_PATH)
 
-        compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, t=t, device = device, \
+        compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, device = device, \
                                         loss_values=loss_values, x_init=x_init, u_init=u_init, \
                                         N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
-                                        loss_fn_name=name)
+                                        loss_fn_name=name, dims=1)
 
 

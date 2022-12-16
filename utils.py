@@ -11,9 +11,9 @@ def running_average(y, window=100):
     cumsum = np.cumsum(np.insert(y, 0, 0)) 
     return (cumsum[window:] - cumsum[:-window]) / float(window)
 
-def compute_losses_and_plot_solution(pinn_trained, x, t, device, loss_values, x_init, u_init, N_POINTS_X, N_POINTS_T, loss_fn_name):
+def compute_losses_and_plot_solution(pinn_trained, x, device, loss_values, x_init, u_init, N_POINTS_X, N_POINTS_T, loss_fn_name, t=None, dims:int = 2):
     # check if any of parameters is None
-    if pinn_trained is None or x is None or t is None or device is None or loss_values is None or x_init is None or u_init is None or N_POINTS_X is None or N_POINTS_T is None or loss_fn_name is None:
+    if pinn_trained is None or x is None or device is None or loss_values is None or x_init is None or u_init is None or N_POINTS_X is None or N_POINTS_T is None or loss_fn_name is None:
         logger.info(f"{Color.RED}One of the parameters is None{Color.RESET}")
         logger.info(f"{Color.RED}pinn_trained: {pinn_trained}{Color.RESET}")
         logger.info(f"{Color.RED}x: {x}{Color.RESET}")
@@ -25,20 +25,22 @@ def compute_losses_and_plot_solution(pinn_trained, x, t, device, loss_values, x_
         logger.info(f"{Color.RED}N_POINTS_X: {N_POINTS_X}{Color.RESET}")
         logger.info(f"{Color.RED}N_POINTS_T: {N_POINTS_T}{Color.RESET}")
         logger.info(f"{Color.RED}loss_fn_name: {loss_fn_name}{Color.RESET}")
-        raise ValueError("One of the parameters is None")
+        raise ValueError("One of the parameters is None, for 1D case t can be None")
 
     path = f"{IMGS_FOLDER}/{loss_fn_name}"
 
     if not os.path.exists(path):
         os.makedirs(path)
 
-    logger.info(f"Computing final loss")
+    logger.info(f"Creating plots and saving to files. Dimensions: {dims}")
 
-    losses = compute_loss(pinn_trained.to(device), x=x, t=t, verbose=True)
-    logger.info(f"{'Total loss:':<50}{Color.GREEN}{losses[0]:.5f}{Color.RESET}    ({losses[0]:.3E})")
-    logger.info(f"{'Interior loss:':<50}{Color.GREEN}{losses[1]:.5f}{Color.RESET}    ({losses[1]:.3E})")
-    logger.info(f"{'Initial loss:':<50}{Color.GREEN}{losses[2]:.5f}{Color.RESET}    ({losses[2]:.3E})")
-    logger.info(f"{'Bondary loss:':<50}{Color.GREEN}{losses[3]:.5f}{Color.RESET}    ({losses[3]:.3E})")
+    # logger.info(f"Computing final loss")
+
+    # losses = compute_loss(pinn_trained.to(device), x=x, t=t, verbose=True, dims=dims)
+    # logger.info(f"{'Total loss:':<50}{Color.GREEN}{losses[0]:.5f}{Color.RESET}    ({losses[0]:.3E})")
+    # logger.info(f"{'Interior loss:':<50}{Color.GREEN}{losses[1]:.5f}{Color.RESET}    ({losses[1]:.3E})")
+    # logger.info(f"{'Initial loss:':<50}{Color.GREEN}{losses[2]:.5f}{Color.RESET}    ({losses[2]:.3E})")
+    # logger.info(f"{'Bondary loss:':<50}{Color.GREEN}{losses[3]:.5f}{Color.RESET}    ({losses[3]:.3E})")
 
     average_loss = running_average(loss_values, window=100)
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)

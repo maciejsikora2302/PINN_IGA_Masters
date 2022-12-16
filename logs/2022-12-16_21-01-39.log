@@ -1,0 +1,74 @@
+INFO -- Device: cuda
+INFO -- 
+INFO -- ================================================================================
+INFO -- Learning parameters
+INFO -- Length:                                           [92m1.0[0m
+INFO -- Total time:                                       [92m1.0[0m
+INFO -- Number of points in x:                            [92m50[0m
+INFO -- Number of points in initial condition:            [92m150[0m
+INFO -- Weight for interior loss:                         [92m0.5[0m
+INFO -- Weight for initial condition loss:                [92m150.0[0m
+INFO -- Weight for boundary loss:                         [92m1.0[0m
+INFO -- Layers:                                           [92m2[0m
+INFO -- Neurons per layer:                                [92m60[0m
+INFO -- Epochs:                                           [92m50000[0m
+INFO -- Learning rate:                                    [92m0.0025[0m
+INFO -- ================================================================================
+INFO -- 
+INFO -- Creating PINN with [92m2[0m layers and [92m60[0m neurons per layer
+INFO -- Computing initial condition loss
+INFO -- Training PINN for [93m50000[0m epochs using [93mloss_fn_colocation[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m    0.185162[0m
+INFO -- Epoch: [95m40[0m - Loss: [93m    0.181249[0m
+INFO -- Epoch: [95m60[0m - Loss: [93m    0.179775[0m
+INFO -- Epoch: [95m80[0m - Loss: [93m    0.180035[0m
+INFO -- Epoch: [95m100[0m - Loss: [93m    0.179766[0m
+INFO -- Epoch: [95m120[0m - Loss: [93m    0.180150[0m
+INFO -- Epoch: [95m140[0m - Loss: [93m    0.180144[0m
+INFO -- Epoch: [95m160[0m - Loss: [93m    0.180025[0m
+INFO -- Epoch: [95m180[0m - Loss: [93m    0.179805[0m
+INFO -- Epoch: [95m200[0m - Loss: [93m    0.180079[0m
+INFO -- Epoch: [95m220[0m - Loss: [93m    0.179928[0m
+INFO -- Epoch: [95m240[0m - Loss: [93m    0.179803[0m
+INFO -- Epoch: [95m260[0m - Loss: [93m    0.179890[0m
+INFO -- Epoch: [95m280[0m - Loss: [93m    0.179687[0m
+INFO -- Epoch: [95m300[0m - Loss: [93m    0.180101[0m
+INFO -- Epoch: [95m320[0m - Loss: [93m    0.180050[0m
+INFO -- Epoch: [95m340[0m - Loss: [93m    0.179934[0m
+INFO -- Epoch: [95m360[0m - Loss: [93m    0.179865[0m
+INFO -- Epoch: [95m380[0m - Loss: [93m    0.179791[0m
+INFO -- Epoch: [95m400[0m - Loss: [93m    0.179776[0m
+INFO -- Epoch: [95m420[0m - Loss: [93m    0.179785[0m
+INFO -- Epoch: [95m440[0m - Loss: [93m    0.179892[0m
+INFO -- Epoch: [95m460[0m - Loss: [93m    0.179733[0m
+INFO -- Epoch: [95m480[0m - Loss: [93m    0.179762[0m
+INFO -- Epoch: [95m500[0m - Loss: [93m    0.179739[0m
+INFO -- Epoch: [95m520[0m - Loss: [93m    0.180133[0m
+INFO -- Epoch: [95m540[0m - Loss: [93m    0.180063[0m
+INFO -- Epoch: [95m560[0m - Loss: [93m    0.179874[0m
+INFO -- Epoch: [95m580[0m - Loss: [93m    0.179882[0m
+INFO -- Epoch: [95m600[0m - Loss: [93m    0.179950[0m
+INFO -- Epoch: [95m620[0m - Loss: [93m    0.179908[0m
+INFO -- Epoch: [95m640[0m - Loss: [93m    0.179706[0m
+INFO -- Epoch: [95m660[0m - Loss: [93m    0.179960[0m
+INFO -- Epoch: [95m680[0m - Loss: [93m    0.180209[0m
+INFO -- Epoch: [95m700[0m - Loss: [93m    0.179828[0m
+INFO -- Epoch: [95m720[0m - Loss: [93m    0.179788[0m
+INFO -- Epoch: [95m740[0m - Loss: [93m    0.180339[0m
+INFO -- Epoch: [95m760[0m - Loss: [93m    0.179772[0m
+INFO -- Epoch: [95m780[0m - Loss: [93m    0.180040[0m
+INFO -- Epoch: [95m800[0m - Loss: [93m    0.179883[0m
+INFO -- Epoch: [95m820[0m - Loss: [93m    0.179701[0m
+INFO -- Epoch: [95m840[0m - Loss: [93m    0.180214[0m
+INFO -- Epoch: [95m860[0m - Loss: [93m    0.180295[0m
+INFO -- Epoch: [95m880[0m - Loss: [93m    0.180048[0m
+INFO -- Epoch: [95m900[0m - Loss: [93m    0.180096[0m
+INFO -- Epoch: [95m920[0m - Loss: [93m    0.179787[0m
+INFO -- Epoch: [95m940[0m - Loss: [93m    0.180107[0m
+INFO -- Epoch: [95m960[0m - Loss: [93m    0.179738[0m
+INFO -- Epoch: [95m980[0m - Loss: [93m    0.179825[0m
+INFO -- Epoch: [95m1000[0m - Loss: [93m    0.180027[0m
+INFO -- Epoch: [95m1020[0m - Loss: [93m    0.179849[0m
+INFO -- Epoch: [95m1040[0m - Loss: [93m    0.180125[0m
+INFO -- Training interrupted by user at epoch [91m1049[0m
+INFO -- Creating plots and saving to files. Dimensions: 1
