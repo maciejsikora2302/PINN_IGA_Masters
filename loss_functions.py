@@ -11,11 +11,19 @@ def initial_condition(x) -> torch.Tensor:
     res = torch.sin(math.pi*x).reshape(-1,1)
     return res
 
-def precalculations(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None):
+def precalculations(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dense_right_end = False):
     eps_interior = general_parameters.eps_interior
-    sp = B_Splines(np.linspace(0, 1, int(1/eps_interior * 5))) if sp is None else sp
+    knot_vector_length = general_parameters.knot_vector_length
+    if dense_right_end:
+        knot_vector = np.hstack([
+            np.linspace(0, 1-eps_interior, int(knot_vector_length / 10)),
+            np.linspace(1-eps_interior, 1, int(knot_vector_length * 10))
+        ])
+        sp = B_Splines(0, 1, int(knot_vector_length)) if sp is None else sp
+    else:
+        sp = B_Splines(np.linspace(0, 1, int(1/eps_interior * 5))) if sp is None else sp
     degree_1, degree_2 = 2, 2
-    coef_float, coef_float_2 = np.random.rand(len(sp.knot_vector)), np.random.rand(len(sp.knot_vector))
+    coef_float, coef_float_2 = general_parameters.test_function_weight_x, general_parameters.test_function_weight_t
     v = sp.calculate_BSpline_2D(x.detach(), t.detach(), degree_1, degree_2, coef_float, coef_float_2)
     
     return eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, v
@@ -41,7 +49,7 @@ def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spline
 
     return loss.pow(2).mean()
 
-def interior_loss_colocation(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None):
+def interior_loss_colocation(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, extended = False):
 
     x.cuda()
     t.cuda()
@@ -53,6 +61,9 @@ def interior_loss_colocation(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_
     v = sp.calculate_BSpline_2D(x.detach(), t.detach(), degree_1, degree_2, coef1, coef2)
     loss = (dfdt(pinn, x, t, order=1) - eps_interior*dfdt(pinn, x, t, order=2)-eps_interior*dfdx(pinn, x, t, order=2)) * v
 
+    if extended:
+        return loss
+        
     return loss.pow(2).mean()
 
 def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None):
