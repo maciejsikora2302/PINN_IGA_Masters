@@ -29,7 +29,7 @@ class B_Splines:
     first_spline = first_spline.unsqueeze(0).cuda()
     second_spline = second_spline.unsqueeze(1).cuda()
 
-    return torch.mul(first_spline, second_spline).cuda()
+    return torch.mul(first_spline, second_spline)
 
       # 2D case
   def calculate_BSpline_2D_deriv_x(self, 

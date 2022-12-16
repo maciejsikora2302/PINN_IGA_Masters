@@ -16,7 +16,9 @@ import os
 import torch
 LOG_LEVEL = logging.INFO
 
-IMGS_FOLDER = './imgs/' + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+IMGS_FOLDER = './imgs/' + TIMESTAMP
 
 #create folder for images
 if not os.path.exists(IMGS_FOLDER):
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 #with loglevel
 formatter = logging.Formatter('%(levelname)s -- %(message)s')
-file_handler = logging.FileHandler(f'logs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.log')
+file_handler = logging.FileHandler(f'logs/{TIMESTAMP}.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logging.basicConfig(level=LOG_LEVEL, format='%(levelname)s -- %(message)s')
