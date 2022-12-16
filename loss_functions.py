@@ -89,7 +89,21 @@ def interior_loss_weak_and_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, s
 
     return loss_weak.pow(2).mean() + loss_strong.pow(2).mean()
 
+def iga_loss(sp: B_Splines, x: torch.Tensor, t: torch.Tensor): # It's just a classic version, w/o collocation
 
+    x.cuda()
+    t.cuda()
+
+    eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, _ = precalculations(x, t, sp)
+
+    spline_deriv_dx = sp.calculate_BSpline_2D_deriv_x(x.detach(), t.detach(), degree_1, degree_2, coef_float, coef_float_2, order=1)
+    spline_deriv_dxdx = sp.calculate_BSpline_2D_deriv_x(spline_deriv_dx, t.detach(), degree_1, degree_2, coef_float, coef_float_2, order=1)
+    spline_deriv_dt = sp.calculate_BSpline_2D_deriv_t(x.detach(), t.detach(), degree_1, degree_2, coef_float, coef_float_2, order=1)
+    spline_deriv_dtdt = sp.calculate_BSpline_2D_deriv_t(x.detach(), spline_deriv_dt, degree_1, degree_2, coef_float, coef_float_2, order=1)
+
+    loss_iga = spline_deriv_dx - eps_interior * (spline_deriv_dxdx + spline_deriv_dtdt)
+
+    return loss_iga.pow(2).mean()
 
 def boundary_loss(pinn: PINN, x:torch.Tensor, t: torch.Tensor):
     t_raw = torch.unique(t).reshape(-1, 1).detach()
