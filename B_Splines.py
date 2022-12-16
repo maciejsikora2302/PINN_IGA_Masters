@@ -8,7 +8,7 @@ class B_Splines:
     self.knot_vector = knot_vector
 
   # 1D case
-  def calculate_BSpline_1D(self, x: torch.Tensor, coef: torch.Tensor, degree: int) -> torch.Tensor:
+  def calculate_BSpline_1D(self, x: torch.Tensor, coef: torch.Tensor, degree: int, order: int = None) -> torch.Tensor:
     return spi.BSpline(self.knot_vector, coef, degree)(x.cpu())
 
   def calculate_BSpline_1D_deriv(self, x: torch.Tensor, coef: torch.Tensor, degree: int, order: int) -> torch.Tensor:

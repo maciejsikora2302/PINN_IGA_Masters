@@ -1,15 +1,3 @@
-# LENGTH = 1.
-# TOTAL_TIME = 1.
-# N_POINTS_X = 150
-# N_POINTS_T = 150
-# N_POINTS_INIT = 300
-# WEIGHT_INTERIOR = 0.5
-# WEIGHT_INITIAL = 150.0
-# WEIGHT_BOUNDARY = 1.0
-# LAYERS = 2
-# NEURONS_PER_LAYER = 60
-# EPOCHS = 50_000
-# LEARNING_RATE = 0.0025
 import logging
 import datetime
 import os

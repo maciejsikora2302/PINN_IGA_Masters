@@ -129,7 +129,7 @@ if __name__ == "__main__":
         logger.info(f"Training PINN for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
 
         pinn_trained, loss_values = train_model(
-            pinn, loss_fn=loss_fn_weak, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
+            pinn, loss_fn=loss_fn, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
         
         if SAVE:
             SAVE_PATH = f"models/{TIMESTAMP}/{name}.pt"

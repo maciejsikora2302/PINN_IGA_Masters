@@ -1,0 +1,84 @@
+INFO -- Device: cuda
+INFO -- 
+INFO -- ================================================================================
+INFO -- Learning parameters
+INFO -- Length:                                           [92m1.0[0m
+INFO -- Total time:                                       [92m1.0[0m
+INFO -- Number of points in x:                            [92m50[0m
+INFO -- Number of points in t:                            [92m50[0m
+INFO -- Number of points in initial condition:            [92m150[0m
+INFO -- Weight for interior loss:                         [92m0.5[0m
+INFO -- Weight for initial condition loss:                [92m150.0[0m
+INFO -- Weight for boundary loss:                         [92m1.0[0m
+INFO -- Layers:                                           [92m2[0m
+INFO -- Neurons per layer:                                [92m60[0m
+INFO -- Epochs:                                           [92m50000[0m
+INFO -- Learning rate:                                    [92m0.0025[0m
+INFO -- ================================================================================
+INFO -- 
+INFO -- Creating PINN with [92m2[0m layers and [92m60[0m neurons per layer
+INFO -- Computing initial condition loss
+INFO -- Initial condition loss weak:                      [92m0.339472502470[0m
+INFO -- Initial condition loss strong:                    [92m0.339472502470[0m
+INFO -- Initial condition loss weak and strong:           [92m0.339472502470[0m
+INFO -- Initial condition loss colocation:                [92m0.350396543741[0m
+INFO -- Training PINN for [93m50000[0m epochs using [93mloss_fn_weak_and_strong[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m    0.197141[0m
+INFO -- Epoch: [95m40[0m - Loss: [93m    0.188678[0m
+INFO -- Epoch: [95m60[0m - Loss: [93m    0.181933[0m
+INFO -- Epoch: [95m80[0m - Loss: [93m    0.170835[0m
+INFO -- Epoch: [95m100[0m - Loss: [93m    0.143333[0m
+INFO -- Epoch: [95m120[0m - Loss: [93m    0.069523[0m
+INFO -- Epoch: [95m140[0m - Loss: [93m    0.004920[0m
+INFO -- Epoch: [95m160[0m - Loss: [93m    0.001232[0m
+INFO -- Epoch: [95m180[0m - Loss: [93m    0.000407[0m
+INFO -- Epoch: [95m200[0m - Loss: [93m    0.000274[0m
+INFO -- Epoch: [95m220[0m - Loss: [93m    0.000480[0m
+INFO -- Epoch: [95m240[0m - Loss: [93m    0.000228[0m
+INFO -- Epoch: [95m260[0m - Loss: [93m    0.000159[0m
+INFO -- Epoch: [95m280[0m - Loss: [93m    0.000131[0m
+INFO -- Epoch: [95m300[0m - Loss: [93m    0.000113[0m
+INFO -- Epoch: [95m320[0m - Loss: [93m    0.000098[0m
+INFO -- Epoch: [95m340[0m - Loss: [93m    0.000096[0m
+INFO -- Epoch: [95m360[0m - Loss: [93m    0.000514[0m
+INFO -- Epoch: [95m380[0m - Loss: [93m    0.000129[0m
+INFO -- Epoch: [95m400[0m - Loss: [93m    0.000079[0m
+INFO -- Epoch: [95m420[0m - Loss: [93m    0.000061[0m
+INFO -- Epoch: [95m440[0m - Loss: [93m    0.000056[0m
+INFO -- Epoch: [95m460[0m - Loss: [93m    0.000051[0m
+INFO -- Epoch: [95m480[0m - Loss: [93m    0.000048[0m
+INFO -- Epoch: [95m500[0m - Loss: [93m    0.000044[0m
+INFO -- Epoch: [95m520[0m - Loss: [93m    0.000043[0m
+INFO -- Epoch: [95m540[0m - Loss: [93m    0.001842[0m
+INFO -- Epoch: [95m560[0m - Loss: [93m    0.000037[0m
+INFO -- Epoch: [95m580[0m - Loss: [93m    0.000057[0m
+INFO -- Epoch: [95m600[0m - Loss: [93m    0.000033[0m
+INFO -- Epoch: [95m620[0m - Loss: [93m    0.000031[0m
+INFO -- Epoch: [95m640[0m - Loss: [93m    0.000030[0m
+INFO -- Epoch: [95m660[0m - Loss: [93m    0.000028[0m
+INFO -- Epoch: [95m680[0m - Loss: [93m    0.000027[0m
+INFO -- Epoch: [95m700[0m - Loss: [93m    0.000026[0m
+INFO -- Epoch: [95m720[0m - Loss: [93m    0.000025[0m
+INFO -- Epoch: [95m740[0m - Loss: [93m    0.000073[0m
+INFO -- Epoch: [95m760[0m - Loss: [93m    0.001095[0m
+INFO -- Epoch: [95m780[0m - Loss: [93m    0.000171[0m
+INFO -- Epoch: [95m800[0m - Loss: [93m    0.000044[0m
+INFO -- Epoch: [95m820[0m - Loss: [93m    0.000023[0m
+INFO -- Epoch: [95m840[0m - Loss: [93m    0.000022[0m
+INFO -- Epoch: [95m860[0m - Loss: [93m    0.000021[0m
+INFO -- Epoch: [95m880[0m - Loss: [93m    0.000021[0m
+INFO -- Epoch: [95m900[0m - Loss: [93m    0.000021[0m
+INFO -- Epoch: [95m920[0m - Loss: [93m    0.000020[0m
+INFO -- Epoch: [95m940[0m - Loss: [93m    0.000020[0m
+INFO -- Epoch: [95m960[0m - Loss: [93m    0.000019[0m
+INFO -- Epoch: [95m980[0m - Loss: [93m    0.000019[0m
+INFO -- Epoch: [95m1000[0m - Loss: [93m    0.000019[0m
+INFO -- Epoch: [95m1020[0m - Loss: [93m    0.002333[0m
+INFO -- Epoch: [95m1040[0m - Loss: [93m    0.000365[0m
+INFO -- Epoch: [95m1060[0m - Loss: [93m    0.000038[0m
+INFO -- Training interrupted by user at epoch [91m1069[0m
+INFO -- Computing final loss
+INFO -- Total loss:                                       [92m0.00006[0m    (6.042E-05)
+INFO -- Interior loss:                                    [92m0.00000[0m    (0.000E+00)
+INFO -- Initial loss:                                     [92m0.00003[0m    (3.386E-05)
+INFO -- Bondary loss:                                     [92m0.00003[0m    (2.656E-05)
