@@ -4,6 +4,9 @@ import torch
 import numpy as np
 from typing import Callable
 from general_parameters import logger, Color
+from B_Splines import B_Splines
+from adam_solution import AdamOptim
+
 
 def train_model(
     nn_approximator: PINN,
@@ -25,6 +28,39 @@ def train_model(
             optimizer.step()
 
             loss_values.append(loss.item())
+            if (epoch + 1) % 20 == 0:
+                logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>12f}{Color.RESET}")
+
+        except KeyboardInterrupt:
+            logger.info(f"Training interrupted by user at epoch {Color.RED}{epoch + 1}{Color.RESET}")
+            break
+
+    return nn_approximator, np.array(loss_values)
+
+def train_model_spline(
+    spline: B_Splines,
+    loss_fn: Callable,
+    loss_fn_grad: Callable,
+    learning_rate: int = 0.01,
+    max_epochs: int = 1_000,
+    device="cuda"
+) -> B_Splines:
+
+    loss = initial_loss = loss_fn(spline)
+    adam = AdamOptim(learning_rate=learning_rate)
+    t = 1 
+    converged = False
+
+    loss_values = []
+    for epoch in range(max_epochs):
+
+        try:
+
+            dw:list[float] = loss_fn_grad(w_0)
+            w_0 = adam.update(t,w=w_0, dw=dw)
+
+            loss_values.append(w_0)
+
             if (epoch + 1) % 20 == 0:
                 logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>12f}{Color.RESET}")
 

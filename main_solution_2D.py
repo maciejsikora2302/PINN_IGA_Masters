@@ -28,6 +28,8 @@ parser.add_argument("--weight_boundary", type=float)
 parser.add_argument("--layers", type=int)
 parser.add_argument("--neurons_per_layer", type=int)
 parser.add_argument("--epochs", type=int)
+parser.add_argument("--eps_interior", type=float)
+parser.add_argument("--spline_degree", type=int)
 parser.add_argument("--learning_rate", type=float)
 parser.add_argument("--save", '-s', action="store_true")
 args = parser.parse_args()
@@ -45,6 +47,8 @@ general_parameters.neurons_per_layer = args.neurons_per_layer if args.neurons_pe
 general_parameters.epochs = args.epochs if args.epochs is not None else general_parameters.epochs
 general_parameters.learning_rate = args.learning_rate if args.learning_rate is not None else general_parameters.learning_rate
 general_parameters.save = args.save if args.save is not None else general_parameters.save
+general_parameters.eps_interior = args.eps_interior if args.eps_interior is not None else general_parameters.eps_interior
+general_parameters.spline_degree = args.spline_degree if args.spline_degree is not None else general_parameters.spline_degree
 
 LENGTH = general_parameters.length
 TOTAL_TIME = general_parameters.total_time

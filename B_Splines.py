@@ -4,8 +4,10 @@ import torch
 
 class B_Splines:
 
-  def __init__(self, knot_vector: list):
+  def __init__(self, knot_vector: list, coef: list[float] = None, degree: int = None):
     self.knot_vector = knot_vector
+    self.coef = coef
+    self.degree = degree
 
   # 1D case
   def calculate_BSpline_1D(self, x: torch.Tensor, coef: torch.Tensor, degree: int, order: int = None) -> torch.Tensor:

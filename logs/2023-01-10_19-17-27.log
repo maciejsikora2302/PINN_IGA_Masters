@@ -1,0 +1,47 @@
+INFO -- Device: cuda
+INFO -- 
+INFO -- ================================================================================
+INFO -- Learning parameters
+INFO -- Length:                                           [92m1.0[0m
+INFO -- Total time:                                       [92m1.0[0m
+INFO -- Number of points in x:                            [92m150[0m
+INFO -- Number of points in initial condition:            [92m300[0m
+INFO -- Weight for interior loss:                         [92m0.5[0m
+INFO -- Weight for initial condition loss:                [92m150.0[0m
+INFO -- Weight for boundary loss:                         [92m1.0[0m
+INFO -- Layers:                                           [92m10[0m
+INFO -- Neurons per layer:                                [92m15[0m
+INFO -- Epochs:                                           [92m100[0m
+INFO -- Learning rate:                                    [92m0.0025[0m
+INFO -- ================================================================================
+INFO -- 
+INFO -- Creating PINN with [92m10[0m layers and [92m15[0m neurons per layer
+INFO -- Computing initial condition loss
+INFO -- Training PINN for [93m100[0m epochs using [93mloss_fn_weak[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m    0.555532[0m
+INFO -- Epoch: [95m40[0m - Loss: [93m    0.488683[0m
+INFO -- Epoch: [95m60[0m - Loss: [93m    0.470543[0m
+INFO -- Epoch: [95m80[0m - Loss: [93m    0.470131[0m
+INFO -- Epoch: [95m100[0m - Loss: [93m    0.469187[0m
+INFO -- Creating plots and saving to files. Dimensions: 1
+INFO -- Training PINN for [93m100[0m epochs using [93mloss_fn_strong[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m    0.469768[0m
+INFO -- Epoch: [95m40[0m - Loss: [93m    0.468862[0m
+INFO -- Epoch: [95m60[0m - Loss: [93m    0.468711[0m
+INFO -- Epoch: [95m80[0m - Loss: [93m    0.468598[0m
+INFO -- Epoch: [95m100[0m - Loss: [93m    0.468538[0m
+INFO -- Creating plots and saving to files. Dimensions: 1
+INFO -- Training PINN for [93m100[0m epochs using [93mloss_fn_weak_and_strong[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m    0.482073[0m
+INFO -- Epoch: [95m40[0m - Loss: [93m    0.483899[0m
+INFO -- Epoch: [95m60[0m - Loss: [93m    0.483682[0m
+INFO -- Epoch: [95m80[0m - Loss: [93m    0.492488[0m
+INFO -- Epoch: [95m100[0m - Loss: [93m    0.483607[0m
+INFO -- Creating plots and saving to files. Dimensions: 1
+INFO -- Training PINN for [93m100[0m epochs using [93mloss_fn_colocation[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m    0.495469[0m
+INFO -- Epoch: [95m40[0m - Loss: [93m    0.496426[0m
+INFO -- Epoch: [95m60[0m - Loss: [93m    0.489362[0m
+INFO -- Epoch: [95m80[0m - Loss: [93m    0.486719[0m
+INFO -- Epoch: [95m100[0m - Loss: [93m    0.490963[0m
+INFO -- Creating plots and saving to files. Dimensions: 1

@@ -29,6 +29,8 @@ parser.add_argument("--layers", type=int)
 parser.add_argument("--neurons_per_layer", type=int)
 parser.add_argument("--epochs", type=int)
 parser.add_argument("--learning_rate", type=float)
+parser.add_argument("--eps_interior", type=float)
+parser.add_argument("--spline_degree", type=int)
 parser.add_argument("--save", '-s', action="store_true")
 args = parser.parse_args()
 
@@ -44,6 +46,8 @@ general_parameters.layers = args.layers if args.layers is not None else general_
 general_parameters.neurons_per_layer = args.neurons_per_layer if args.neurons_per_layer is not None else general_parameters.neurons_per_layer
 general_parameters.epochs = args.epochs if args.epochs is not None else general_parameters.epochs
 general_parameters.learning_rate = args.learning_rate if args.learning_rate is not None else general_parameters.learning_rate
+general_parameters.eps_interior = args.eps_interior if args.eps_interior is not None else general_parameters.eps_interior
+general_parameters.spline_degree = args.spline_degree if args.spline_degree is not None else general_parameters.spline_degree
 general_parameters.save = args.save if args.save is not None else general_parameters.save
 
 LENGTH = general_parameters.length
@@ -103,8 +107,8 @@ if __name__ == "__main__":
     # assert check_gradient(nn_approximator, x, t)
     # to add new loss functions, add them to the list below and add the corresponding function to the array of functions in train pinn block below
     loss_fn_weak = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak, dims = 1)
-    # loss_fn_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong, dims = 1)
-    # loss_fn_weak_and_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong, dims = 1)
+    loss_fn_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong, dims = 1)
+    loss_fn_weak_and_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong, dims = 1)
     loss_fn_colocation = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation, dims = 1)
 
     logger.info(f"Computing initial condition loss")
@@ -117,8 +121,8 @@ if __name__ == "__main__":
     for loss_fn, name in \
         [
             (loss_fn_weak, 'loss_fn_weak'), 
-            # (loss_fn_strong, 'loss_fn_strong'), 
-            # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
+            (loss_fn_strong, 'loss_fn_strong'), 
+            (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
             (loss_fn_colocation, 'loss_fn_colocation')
         ]:
         logger.info(f"Training PINN for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
