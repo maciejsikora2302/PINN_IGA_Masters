@@ -49,6 +49,7 @@ class GeneralParameters:
             epochs = None, \
             learning_rate = None, \
             eps_interior = None, \
+            spline_degree = None, \
             device = None):
         
         self.length = 1. if length is None else length
@@ -64,7 +65,8 @@ class GeneralParameters:
         self.epochs = 50_000 if epochs is None else epochs
         self.learning_rate = 0.0025 if learning_rate is None else learning_rate
         self.eps_interior = 1e-3 if eps_interior is None else eps_interior
-        self.knot_vector_length = int(5 / self.eps_interior)
+        self.spline_degree = 3 if spline_degree is None else spline_degree
+        self.knot_vector_length = int(20 / self.eps_interior)
         self.test_function_weight_x = torch.ones(self.knot_vector_length)
         self.test_function_weight_t = torch.ones(self.knot_vector_length)
 

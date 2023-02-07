@@ -1,0 +1,31 @@
+class DecompositionLinear(nn.Module):
+    def __init__(self, n_features, r):
+        super(DecompositionLinear, self).__init__()
+        
+        self.n_features = n_features
+        self.r = r
+        
+        self.u = nn.Parameter(torch.empty(n_features, r))
+        self.v = nn.Parameter(torch.empty(r, n_features))
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        stdv = 1. / math.sqrt(self.n_features)
+        self.u.data.uniform_(-stdv, stdv)
+        self.v.data.uniform_(-stdv, stdv)
+
+    def forward(self, x):
+        return self.u @ self.v @ x
+
+
+https://stackoverflow.com/questions/71332437/is-there-a-pytorch-equivalent-of-tf-custom-gradient
+https://pytorch.org/tutorials/beginner/examples_autograd/two_layer_net_custom_function.html
+
+nn.Parameter(torch.empty(n_features, r))
+
+https://einops.rocks
+
+https://github.com/arogozhnikov/einops/blob/master/docs/1-einops-basics.ipynb
+
+https://gist.github.com/Carbon225/d6ea4cd9bb4e72b1ea6803f8a322840b
