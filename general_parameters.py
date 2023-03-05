@@ -6,18 +6,18 @@ LOG_LEVEL = logging.INFO
 
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-IMGS_FOLDER = './imgs/' + TIMESTAMP
+OUT_DATA_FOLDER = './out_data/' + TIMESTAMP
 
 #create folder for images
-if not os.path.exists(IMGS_FOLDER):
-    os.makedirs(IMGS_FOLDER)
+if not os.path.exists(OUT_DATA_FOLDER):
+    os.makedirs(OUT_DATA_FOLDER)
 
 # set up logging
 logger = logging.getLogger(__name__)
 logger.setLevel(LOG_LEVEL)
 #with loglevel
 formatter = logging.Formatter('%(levelname)s -- %(message)s')
-file_handler = logging.FileHandler(f'logs/{TIMESTAMP}.log')
+file_handler = logging.FileHandler(f'{OUT_DATA_FOLDER}/text_log_{TIMESTAMP}.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logging.basicConfig(level=LOG_LEVEL, format='%(levelname)s -- %(message)s')

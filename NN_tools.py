@@ -5,7 +5,6 @@ import numpy as np
 from typing import Callable
 from general_parameters import logger, Color
 from B_Splines import B_Splines
-from adam_solution import AdamOptim
 
 
 def train_model(
@@ -28,8 +27,9 @@ def train_model(
             optimizer.step()
 
             loss_values.append(loss.item())
-            if (epoch + 1) % 20 == 0:
-                logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>12f}{Color.RESET}")
+            # if (epoch + 1) % 20 == 0:
+            logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>12f}{Color.RESET}")
+            
 
         except KeyboardInterrupt:
             logger.info(f"Training interrupted by user at epoch {Color.RED}{epoch + 1}{Color.RESET}")
