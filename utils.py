@@ -1,7 +1,7 @@
 import torch
 import os
 import numpy as np
-from general_parameters import logger, Color, IMGS_FOLDER
+from general_parameters import logger, Color, OUT_DATA_FOLDER
 from loss_functions import compute_loss
 import matplotlib.pyplot as plt
 from NN_tools import f
@@ -27,7 +27,7 @@ def compute_losses_and_plot_solution(pinn_trained, x, device, loss_values, x_ini
         logger.info(f"{Color.RED}loss_fn_name: {loss_fn_name}{Color.RESET}")
         raise ValueError("One of the parameters is None, for 1D case t can be None")
 
-    path = f"{IMGS_FOLDER}/{loss_fn_name}"
+    path = f"{OUT_DATA_FOLDER}/{loss_fn_name}"
 
     if not os.path.exists(path):
         os.makedirs(path)
@@ -58,7 +58,11 @@ def compute_losses_and_plot_solution(pinn_trained, x, device, loss_values, x_ini
     # plt.legend()
     # plt.savefig("./imgs/initial_condition2.png")
 
-    pinn_init = f(pinn_trained.cuda(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
+    if device == 'cuda':
+        pinn_init = f(pinn_trained.cuda(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
+    else:
+        pinn_init = f(pinn_trained.cpu(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
+
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
     ax.set_title("Initial condition difference")
     ax.set_xlabel("x")

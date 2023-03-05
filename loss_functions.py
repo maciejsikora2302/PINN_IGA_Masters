@@ -11,48 +11,36 @@ def initial_condition(x) -> torch.Tensor:
     res = torch.sin(math.pi*x).reshape(-1,1)
     return res
 
-def precalculations_2D(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dense_right_end = False):
+def precalculations_2D(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None):
     eps_interior = general_parameters.eps_interior
-    knot_vector_length = general_parameters.knot_vector_length
-    if dense_right_end:
-        knot_vector = np.hstack([
-            np.linspace(0, 1-eps_interior, int(knot_vector_length / 10)),
-            np.linspace(1-eps_interior, 1, int(knot_vector_length * 10))
-        ])
-        sp = B_Splines(0, 1, int(knot_vector_length)) if sp is None else sp
-    else:
-        sp = B_Splines(np.linspace(0, 1, int(1/eps_interior * 5))) if sp is None else sp
-    degree_1, degree_2 = general_parameters.spline_degree, general_parameters.spline_degree
-    # coef_float, coef_float_2 = general_parameters.test_function_weight_x, general_parameters.test_function_weight_t
-    coef_float, coef_float_2 = np.random.rand(len(sp.knot_vector)), np.random.rand(len(sp.knot_vector))
-    v = sp.calculate_BSpline_2D(x.detach(), t.detach(), degree_1, degree_2, coef_float, coef_float_2)
+
+    degree, knot_vector_length = general_parameters.spline_degree, general_parameters.knot_vector_length
+    linspace = torch.linspace(0, 1, int(knot_vector_length))
+    sp = B_Splines(linspace, degree, dims=2) if sp is None else sp
+    v = sp.calculate_BSpline_2D(x, t)
     
-    return eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, v.cuda()
+    return eps_interior, sp, sp.degree, sp.coefs, v
 
-def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, dense_right_end: bool = False, colocation: bool = False):
+def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = False):
     eps_interior = general_parameters.eps_interior
     knot_vector_length = general_parameters.knot_vector_length
-
-    if dense_right_end:
-        knot_vector = np.hstack([
-            np.linspace(0, 1-eps_interior, int(knot_vector_length / 10)),
-            np.linspace(1-eps_interior, 1, int(knot_vector_length * 10))
-        ])
-        sp = B_Splines(0, 1, int(knot_vector_length)) if sp is None else sp
-    else:
-        sp = B_Splines(np.linspace(0, 1, int(1/eps_interior * 5))) if sp is None else sp
     degree = general_parameters.spline_degree
-    coef_float = np.random.rand(len(sp.knot_vector))
-    coef_int = np.random.randint(0, 2, len(sp.knot_vector))
-    v = torch.Tensor(sp.calculate_BSpline_1D(x.detach(), coef_float, degree)).cuda()
-    v_coloc = torch.Tensor(sp.calculate_BSpline_1D(x.detach(), coef_int, degree)).cuda()
+
+    linspace = torch.linspace(0, 1, int(knot_vector_length)) if sp is None else sp
+    sp = B_Splines(linspace, degree)
+
+    coef_int = torch.Tensor(np.random.randint(0, 2, (len(sp.knot_vector), )))
+    # sp_coloc = B_Splines(linspace, degree, coefs=coef_int)
+
+    v = sp.calculate_BSpline_1D(x)
+    # v_coloc = sp_coloc.calculate_BSpline_1D(x)
 
     # print(v_coloc.shape, v.shape)
     
     if not colocation:
-        return eps_interior, sp, degree, coef_float, v
+        return eps_interior, sp, sp.degree, sp.coefs, v
     else:
-        return eps_interior, sp, degree, coef_float, v_coloc
+        return eps_interior, sp, sp.degree, sp.coefs#, v_coloc
 
 
 def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 2, extended: bool = False):
@@ -63,18 +51,18 @@ def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spline
 
 
     if dims == 1:
-        eps_interior, sp, degree, coef_float, v = precalculations_1D(x, sp)
-        v_deriv_x = torch.Tensor(sp.calculate_BSpline_1D_deriv(x.detach(), coef_float, degree, order=1)).cuda()
+        eps_interior, sp, _, coef_float, v = precalculations_1D(x, sp)
+        v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
         loss = torch.trapezoid(
             dfdx(pinn, x, t, order=1).cuda() * v
             + eps_interior*dfdx(pinn, x, t, order=2) * v_deriv_x
             , dx = 0.01)
 
     elif dims == 2:
-        eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, v = precalculations_2D(x, t, sp)
+        eps_interior, sp, _, _, v = precalculations_2D(x, t, sp)
 
-        v_deriv_x = sp.calculate_BSpline_2D_deriv_x(x.detach(), t.detach(), degree_1, degree_2, coef_float, coef_float_2, order=1).cuda()
-        v_deriv_t = sp.calculate_BSpline_2D_deriv_t(x.detach(), t.detach(), degree_1, degree_2, coef_float, coef_float_2, order=1).cuda()
+        v_deriv_x = sp.calculate_BSpline_2D_deriv_dx(x, t).cuda()
+        v_deriv_t = sp.calculate_BSpline_2D_deriv_dt(x, t).cuda()
         loss = torch.trapezoid(torch.trapezoid(
             
             dfdx(pinn, x, t, order=1).cuda() * v
@@ -85,7 +73,7 @@ def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spline
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
 
-    return loss if extended else loss.pow(2).mean()
+    return loss.pow(2).mean()
 
 def interior_loss_colocation(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, extended: bool = False, dims: int = 2):
 

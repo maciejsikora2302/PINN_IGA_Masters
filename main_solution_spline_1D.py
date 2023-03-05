@@ -105,7 +105,7 @@ if __name__ == "__main__":
     logger.info("")
 
     logger.info(f"Creating B_Spline with {N_POINTS_X} points and degree {general_parameters.spline_degree}")
-    b_spline = B_Splines(np.linspace(0, 1, int(1/general_parameters.eps_interior * 5)), [np.random.uniform(0, 1) for _ in range(N_POINTS_X)], general_parameters.spline_degree)
+    b_spline = B_Splines(torch.linspace(0, 1, int(1/general_parameters.eps_interior * 5)), general_parameters.spline_degree)
     # assert check_gradient(nn_approximator, x, t)
     # to add new loss functions, add them to the list below and add the corresponding function to the array of functions in train pinn block below
     loss_iga = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = iga_loss, dims = 1)

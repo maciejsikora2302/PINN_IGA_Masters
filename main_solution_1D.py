@@ -5,7 +5,7 @@ import torch.nn as nn
 from functools import partial
 
 from PINN import PINN
-from general_parameters import general_parameters, logger, Color, TIMESTAMP
+from general_parameters import general_parameters, logger, Color, TIMESTAMP, OUT_DATA_FOLDER
 from utils import compute_losses_and_plot_solution
 from loss_functions import interior_loss_colocation, interior_loss_strong, interior_loss_weak, interior_loss_weak_and_strong, compute_loss, initial_condition
 from NN_tools import train_model
@@ -125,15 +125,14 @@ if __name__ == "__main__":
             (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
             (loss_fn_colocation, 'loss_fn_colocation')
         ]:
+
         logger.info(f"Training PINN for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
 
         pinn_trained, loss_values = train_model(
             pinn, loss_fn=loss_fn, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
         
         if SAVE:
-            SAVE_PATH = f"models/{TIMESTAMP}/{name}.pt"
-            if not os.path.exists(f"models/{TIMESTAMP}"):
-                os.makedirs(f"models/{TIMESTAMP}")
+            SAVE_PATH = f"{OUT_DATA_FOLDER}/model_{name}.pt"
             logger.info(f"Saving model to {Color.YELLOW}{SAVE_PATH}{Color.RESET}")
             torch.save(pinn_trained.state_dict(), SAVE_PATH)
 
@@ -141,5 +140,15 @@ if __name__ == "__main__":
                                         loss_values=loss_values, x_init=x_init, u_init=u_init, \
                                         N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
                                         loss_fn_name=name, dims=1)
+
+    for loss_fn, name in \
+        [
+            (loss_fn_weak, 'loss_fn_weak'), 
+            (loss_fn_strong, 'loss_fn_strong'), 
+            (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
+            (loss_fn_colocation, 'loss_fn_colocation')
+        ]:
+
+        logger.info(f"Using ADAM to streach BSplines to solution with {Color.YELLOW}{name}{Color.RESET} loss function")
 
 
