@@ -60,8 +60,8 @@ class GeneralParameters:
         self.weight_interior = 0.5 if weight_interior is None else weight_interior
         self.weight_initial = 150.0 if weight_initial is None else weight_initial
         self.weight_boundary = 1.0 if weight_boundary is None else weight_boundary
-        self.layers = 2 if layers is None else layers
-        self.neurons_per_layer = 60 if neurons_per_layer is None else neurons_per_layer
+        self.layers = 8 if layers is None else layers
+        self.neurons_per_layer = 20 if neurons_per_layer is None else neurons_per_layer
         self.epochs = 50_000 if epochs is None else epochs
         self.learning_rate = 0.0025 if learning_rate is None else learning_rate
         self.eps_interior = 1e-3 if eps_interior is None else eps_interior
