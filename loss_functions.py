@@ -27,20 +27,21 @@ def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = 
     degree = general_parameters.spline_degree
 
     linspace = torch.linspace(0, 1, int(knot_vector_length)) if sp is None else sp
-    sp = B_Splines(linspace, degree)
+    coefs = torch.ones(len(linspace) - degree - 1)
+    sp = B_Splines(linspace, degree, coefs=coefs) if sp is None else sp
 
     coef_int = torch.Tensor(np.random.randint(0, 2, (len(sp.knot_vector), )))
-    # sp_coloc = B_Splines(linspace, degree, coefs=coef_int)
+    sp_coloc = B_Splines(linspace, degree, coefs=coef_int)
 
     v = sp.calculate_BSpline_1D(x)
-    # v_coloc = sp_coloc.calculate_BSpline_1D(x)
+    v_coloc = sp_coloc.calculate_BSpline_1D(x)
 
     # print(v_coloc.shape, v.shape)
     
     if not colocation:
         return eps_interior, sp, sp.degree, sp.coefs, v
     else:
-        return eps_interior, sp, sp.degree, sp.coefs#, v_coloc
+        return eps_interior, sp, sp.degree, sp.coefs, v_coloc
 
 
 def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 2, extended: bool = False):
@@ -51,7 +52,7 @@ def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spline
 
 
     if dims == 1:
-        eps_interior, sp, _, coef_float, v = precalculations_1D(x, sp)
+        eps_interior, sp, _, _, v = precalculations_1D(x, sp)
         v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
         loss = torch.trapezoid(
             dfdx(pinn, x, t, order=1).cuda() * v
@@ -99,7 +100,7 @@ def interior_loss_colocation(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_
     return loss if extended else loss.pow(2).mean()
 
         
-def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, extended: bool = False, dims: int = 2):
+def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 1):
 
     x = x.cuda()
     t = t.cuda() if dims == 2 else None
@@ -107,12 +108,11 @@ def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spli
 
     if dims == 1:
         eps_interior, sp, _, _, v = precalculations_1D(x, sp)
-
-
-        loss = torch.trapezoid((
+        tensor_to_integrate = (
             - eps_interior*dfdx(pinn, x, order=2)
             + dfdx(pinn, x, order=1) 
-            )) * v
+            ) * v
+        loss = torch.trapezoid(tensor_to_integrate, dx = 0.01)
 
     elif dims == 2:
 
@@ -126,7 +126,7 @@ def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spli
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
 
-    return loss if extended else loss.pow(2).mean()
+    return loss.pow(2).mean()
 
 
 def interior_loss_weak_and_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 2):
@@ -139,13 +139,17 @@ def interior_loss_weak_and_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, s
 
         eps_interior, sp, _, _, v = precalculations_1D(x, sp)
 
+        v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
 
-        loss_weak = (dfdx(pinn, x, order=1) - eps_interior*dfdx(pinn, x, order=2)) * v
+        loss_weak = torch.trapezoid(
+            dfdx(pinn, x, t, order=1).cuda() * v
+            + eps_interior*dfdx(pinn, x, t, order=2) * v_deriv_x
+            , dx = 0.01)
 
         loss_strong = torch.trapezoid((
             - eps_interior*dfdx(pinn, x, order=2)
             + dfdx(pinn, x, order=1) 
-            )) * v
+            ) * v)
 
     elif dims == 2:
         eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, v = precalculations_2D(x, t, sp)
@@ -165,7 +169,7 @@ def interior_loss_weak_and_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, s
         raise ValueError("Wrong dimensionality, must be 1 or 2")
 
 
-    return loss_weak.pow(2).mean() + loss_strong.pow(2).mean()
+    return (loss_weak + loss_strong).pow(2).mean()
 
 # TODO: Ogarnąć IGA loss function
 def iga_loss(sp: B_Splines, x: torch.Tensor, t: torch.Tensor, dims: int = 2): # It's just a classic version, w/o collocation
