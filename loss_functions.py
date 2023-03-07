@@ -72,7 +72,7 @@ def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spline
         tensor_to_integrate = dfdx(pinn, x, t, order=1).cuda() * v \
             + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x
         n = x.shape[0]
-        loss = torch.trapezoid(tensor_to_integrate) / n
+        loss = torch.trapezoid(tensor_to_integrate, dx = 1/n)
 
     elif dims == 2:
         eps_interior, sp, _, _, v = precalculations_2D(x, t, sp)
@@ -129,7 +129,7 @@ def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spli
             ) * v
         
         n = x.shape[0]
-        loss = torch.trapezoid(tensor_to_integrate) / n
+        loss = torch.trapezoid(tensor_to_integrate, dx = 1/n)
 
     elif dims == 2:
 
@@ -161,16 +161,13 @@ def interior_loss_weak_and_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, s
 
         loss_weak = torch.trapezoid(
             dfdx(pinn, x, t, order=1).cuda() * v
-            + eps_interior*dfdx(pinn, x, t, order=2) * v_deriv_x
+            + eps_interior*dfdx(pinn, x, t, order=2) * v_deriv_x, dx=1/n
             )
 
         loss_strong = torch.trapezoid((
             - eps_interior*dfdx(pinn, x, order=2)
             + dfdx(pinn, x, order=1) 
-            ) * v)
-        
-        loss_weak /= n
-        loss_strong /= n
+            ) * v, dx=1/n)
         
 
     elif dims == 2:

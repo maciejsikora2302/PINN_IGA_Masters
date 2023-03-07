@@ -62,7 +62,7 @@ class B_Splines(torch.nn.Module):
          tck = (self.knot_vector.detach(), self.coefs.detach(), self.degree)
          return torch.Tensor(spi.splev(x.cpu().detach(), tck, der=0)).cuda()
    
-   def calculate_BSpline_2D(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+   def calculate_BSpline_2D(self, x: torch.Tensor, t: torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
       Funtion calculates value of a linear combination of 2D splines basis functions
       """
@@ -70,10 +70,10 @@ class B_Splines(torch.nn.Module):
       x = x.cuda()
       t = t.cuda()
 
-      spline_x = self.calculate_BSpline_1D(x)
-      spline_t = self.calculate_BSpline_1D(t)
+      spline_x = self.calculate_BSpline_1D(x, mode=mode)
+      spline_t = self.calculate_BSpline_1D(t, mode=mode)
 
-      return spline_x * spline_t
+      return torch.outer(spline_x, spline_t)
    
    def calculate_BSpline_1D_deriv_dx(self, x: torch.Tensor) -> torch.Tensor:
       """
