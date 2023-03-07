@@ -145,7 +145,7 @@ if __name__ == "__main__":
         [
             # (loss_fn_weak, 'loss_fn_weak'), 
             # (loss_fn_strong, 'loss_fn_strong'), 
-            # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
+            (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
             # (loss_fn_colocation, 'loss_fn_colocation')
         ]:
 
