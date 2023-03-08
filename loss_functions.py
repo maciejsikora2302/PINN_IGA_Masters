@@ -33,6 +33,8 @@ def precalculations_2D(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, co
     else:
         return eps_interior, sp, sp.degree, sp.coefs, v_coloc
     
+    # eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, v = precalculations_2D(x, t, sp)
+    
 
 def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = False):
     eps_interior = general_parameters.eps_interior
