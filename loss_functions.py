@@ -32,7 +32,6 @@ def precalculations_2D(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, co
     else:
         return eps_interior, sp, sp.degree, sp.coefs, v_coloc
     
-    # eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, v = precalculations_2D(x, t, sp)
     
 
 def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = False):
@@ -104,11 +103,8 @@ def interior_loss_colocation(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_
         loss = (dfdx(pinn, x, order=1) - eps_interior*dfdx(pinn, x, order=2)) * v
 
     elif dims == 2:
-        eps_interior, sp, degree_1, degree_2, _, _, _ = precalculations_2D(x, t, sp)
-        coef1 = np.random.randint(0, 2, len(sp.knot_vector))
-        coef2 = np.random.randint(0, 2, len(sp.knot_vector))
+        eps_interior, sp, _, _, v = precalculations_2D(x, t, sp, colocation=True)
 
-        v = sp.calculate_BSpline_2D(x.detach(), t.detach(), degree_1, degree_2, coef1, coef2)
         loss = (dfdt(pinn, x, t, order=1) - eps_interior*dfdt(pinn, x, t, order=2)-eps_interior*dfdx(pinn, x, t, order=2)) * v
 
     else:
@@ -135,7 +131,7 @@ def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spli
 
     elif dims == 2:
 
-        eps_interior, sp, _, _, _, _, v = precalculations_2D(x, t, sp)
+        eps_interior, sp, _, _, v = precalculations_2D(x, t, sp)
         n_x = x.shape[0]
         n_t = t.shape[0]
 
