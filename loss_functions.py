@@ -13,7 +13,6 @@ def initial_condition(x) -> torch.Tensor:
 
 def precalculations_2D(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, colocation: bool = False):
     eps_interior = general_parameters.eps_interior
-
     degree = general_parameters.spline_degree
     knot_vector_length = general_parameters.knot_vector_length
     coefs_vector_length = general_parameters.coefs_vector_length
@@ -49,8 +48,6 @@ def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = 
 
     v = sp.calculate_BSpline_1D(x)
     v_coloc = sp_coloc.calculate_BSpline_1D(x)
-
-    # print(v_coloc.shape, v.shape)
     
     if not colocation:
         return eps_interior, sp, sp.degree, sp.coefs, v
@@ -58,7 +55,7 @@ def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = 
         return eps_interior, sp, sp.degree, sp.coefs, v_coloc
 
 
-def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 2, extended: bool = False):
+def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 2):
     #t here is x in Eriksson problem, x here is y in Erikkson problem
     # loss = dfdt(pinn, x, t, order=1) - eps*dfdt(pinn, x, t, order=2)-eps*dfdx(pinn, x, t, order=2)
     x = x.cuda()
@@ -79,13 +76,16 @@ def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spline
 
         v_deriv_x = sp.calculate_BSpline_2D_deriv_dx(x, t).cuda()
         v_deriv_t = sp.calculate_BSpline_2D_deriv_dt(x, t).cuda()
+
+        n_x = x.shape[0]
+        n_t = t.shape[0]
         loss = torch.trapezoid(torch.trapezoid(
             
-            dfdx(pinn, x, t, order=1).cuda() * v
+            dfdt(pinn, x, t, order=1).cuda() * v
             + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x
             + eps_interior*dfdt(pinn, x, t, order=1) * v_deriv_t
             
-            , dx = 0.01), dx = 0.01)
+            , dx = n_x), dx = n_t)
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
 
@@ -134,11 +134,16 @@ def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spli
     elif dims == 2:
 
         eps_interior, sp, _, _, _, _, v = precalculations_2D(x, t, sp)
+        n_x = x.shape[0]
+        n_t = t.shape[0]
 
-        loss = torch.trapezoid(torch.trapezoid((
-            dfdt(pinn, x, t, order=1) 
-            - eps_interior*dfdt(pinn, x, t, order=2)
-            - eps_interior*dfdx(pinn, x, t, order=2)))) * v
+        loss = torch.trapezoid(torch.trapezoid(
+
+            (dfdt(pinn, x, t, order=1) 
+                            - eps_interior*dfdt(pinn, x, t, order=2)
+                            - eps_interior*dfdx(pinn, x, t, order=2)) * v
+
+                            , dx=1/n_x), dx=1/n_t)
 
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
@@ -171,24 +176,34 @@ def interior_loss_weak_and_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, s
         
 
     elif dims == 2:
-        eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, v = precalculations_2D(x, t, sp)
+        eps_interior, sp, _, _, v = precalculations_2D(x, t, sp)
 
-        v_deriv_x = sp.calculate_BSpline_2D_deriv_x(x.detach(), t.detach(), degree_1, degree_2, coef_float, coef_float_2, order=1)
-        v_deriv_t = sp.calculate_BSpline_2D_deriv_t(x.detach(), t.detach(), degree_1, degree_2, coef_float, coef_float_2, order=1)
+        v_deriv_x = sp.calculate_BSpline_2D_deriv_dx(x, t).cuda()
+        v_deriv_t = sp.calculate_BSpline_2D_deriv_dt(x, t).cuda()
+        
+        n_x = x.shape[0]
+        n_t = t.shape[0]
+
         loss_weak = torch.trapezoid(torch.trapezoid(
             
-            dfdx(pinn, x, t, order=1) * v
-            + eps_interior*dfdx(pinn, x, t, order=2) * v_deriv_x
-            + eps_interior*dfdt(pinn, x, t, order=2) * v_deriv_t
-            
-            , dx = 0.01), dx = 0.01)
+            dfdt(pinn, x, t, order=1).cuda() * v
+            + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x
+            + eps_interior*dfdt(pinn, x, t, order=1) * v_deriv_t
+
+            , dx = n_x), dx = n_t)
         
-        loss_strong = torch.trapezoid(torch.trapezoid((dfdt(pinn, x, t, order=1) - eps_interior*dfdt(pinn, x, t, order=2)-eps_interior*dfdx(pinn, x, t, order=2)))) * v
+        loss_strong = torch.trapezoid(torch.trapezoid(
+
+            (dfdt(pinn, x, t, order=1) 
+                            - eps_interior*dfdt(pinn, x, t, order=2)
+                            - eps_interior*dfdx(pinn, x, t, order=2)) * v
+
+                            , dx=1/n_x), dx=1/n_t)
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
 
 
-    return (loss_weak + loss_strong).pow(2).mean()
+    return (loss_weak.pow(2) + loss_strong.pow(2)).mean()
 
 # TODO: Ogarnąć IGA loss function
 def iga_loss(sp: B_Splines, x: torch.Tensor, t: torch.Tensor, dims: int = 2): # It's just a classic version, w/o collocation

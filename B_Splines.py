@@ -19,7 +19,7 @@ class B_Splines(torch.nn.Module):
       self.saved_splines = {} # x, k, i, t -> Tensor
 
 
-   def calculate_BSpline_1D(self, x: torch.Tensor, mode = 'NN') -> torch.Tensor:
+   def calculate_BSpline_1D(self, x: torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
       Funtion calculates value of a linear combination of 1D splines basis functions
       """
@@ -95,14 +95,14 @@ class B_Splines(torch.nn.Module):
       Function returns value of derivtive of BSpline function in 2D case wrt x
       """
 
-      return self.calculate_BSpline_1D_deriv_dx(x) * self.calculate_BSpline_1D(t)
+      return torch.outer(self.calculate_BSpline_1D_deriv_dx(x) * self.calculate_BSpline_1D(t))
    
    def calculate_BSpline_2D_deriv_dt(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
       """
       Function returns value of derivtive of BSpline function in 2D case wrt t
       """
 
-      return self.calculate_BSpline_1D(x) * self.calculate_BSpline_1D_deriv_dx(t)
+      return torch.outer(self.calculate_BSpline_1D(x), self.calculate_BSpline_1D_deriv_dx(t))
    
    def calculate_BSpline_2D_deriv_dxdt(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
       """
@@ -111,7 +111,7 @@ class B_Splines(torch.nn.Module):
       The order of variables doesn't matter.
       """
 
-      return self.calculate_BSpline_1D_deriv_dx(x) * self.calculate_BSpline_1D_deriv_dx(t)
+      return torch.outer(self.calculate_BSpline_1D_deriv_dx(x), self.calculate_BSpline_1D_deriv_dx(t))
    
    def forward(self, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
 
