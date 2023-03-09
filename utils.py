@@ -6,12 +6,35 @@ from loss_functions import compute_loss
 import matplotlib.pyplot as plt
 from NN_tools import f
 from plotting import plot_color
+from PINN import PINN
 
 def running_average(y, window=100):
     cumsum = np.cumsum(np.insert(y, 0, 0)) 
     return (cumsum[window:] - cumsum[:-window]) / float(window)
 
-def compute_losses_and_plot_solution(pinn_trained, x, device, loss_values, x_init, u_init, N_POINTS_X, N_POINTS_T, loss_fn_name, t=None, dims:int = 2):
+def compute_losses_and_plot_solution(
+        pinn_trained: PINN,
+        x: torch.Tensor,
+        device: torch.device, 
+        loss_values: np.ndarray, 
+        x_init: torch.Tensor, 
+        u_init: torch.Tensor, 
+        N_POINTS_X: int, 
+        N_POINTS_T: int, 
+        loss_fn_name: str, 
+        t: torch.Tensor = None, 
+        dims: int = 2
+    ):
+    # print(f"type of pinn_trained is {type(pinn_trained)}")
+    # print(f"type of x is {type(x)}")
+    # print(f"type of device is {type(device)}")
+    # print(f"type of loss_values is {type(loss_values)}")
+    # print(f"type of x_init is {type(x_init)}")
+    # print(f"type of u_init is {type(u_init)}")
+    # print(f"type of N_POINTS_X is {type(N_POINTS_X)}")
+    # print(f"type of N_POINTS_T is {type(N_POINTS_T)}")
+    # print(f"type of loss_fn_name is {type(loss_fn_name)}")
+    # print(f"type of t is {type(t)}")
     # check if any of parameters is None
     if pinn_trained is None or x is None or device is None or loss_values is None or x_init is None or u_init is None or N_POINTS_X is None or N_POINTS_T is None or loss_fn_name is None:
         logger.info(f"{Color.RED}One of the parameters is None{Color.RESET}")
@@ -58,10 +81,7 @@ def compute_losses_and_plot_solution(pinn_trained, x, device, loss_values, x_ini
     # plt.legend()
     # plt.savefig("./imgs/initial_condition2.png")
 
-    if device == 'cuda':
-        pinn_init = f(pinn_trained.cuda(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
-    else:
-        pinn_init = f(pinn_trained.cpu(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
+    pinn_init = f(pinn_trained.cuda(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
 
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
     ax.set_title("Initial condition difference")
@@ -93,3 +113,16 @@ def compute_losses_and_plot_solution(pinn_trained, x, device, loss_values, x_ini
         file.write('\n')
         y = pinn_init.flatten().detach()
         file.write(','.join([str(x) for x in y]))
+    
+    if t is not None:
+        # Assuming x and t are PyTorch Tensor objects, and pinn_innit contains the solution tensor in 2D
+        # Convert PyTorch Tensor to NumPy array
+        pinn_innit = pinn_innit.detach().numpy()
+
+        # Plot the image using Matplotlib
+        plt.imshow(pinn_innit, cmap='jet', origin='lower', extent=[t.min(), t.max(), x.min(), x.max()])
+        plt.colorbar()
+        plt.xlabel('Time')
+        plt.ylabel('Position')
+        plt.title('Solution')
+        plt.show()

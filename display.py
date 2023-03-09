@@ -3,6 +3,7 @@ import os
 import glob
 import numpy as np
 import argparse
+from general_parameters import OUT_DATA_NAME
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-f','--folder', type=str, default=None, help='Folder to display')
@@ -13,7 +14,7 @@ given_folder = args.folder
 if given_folder is not None and os.path.exists(given_folder):
     list_of_functions = glob.glob(f'{given_folder}\*')
 else:
-    list_of_files = glob.glob('.\imgs\*')
+    list_of_files = glob.glob(f'.\{OUT_DATA_NAME}\*')
     # print(list_of_files)
     latest_folder = max(list_of_files, key=os.path.getctime)
     print(f"Latest folder: {latest_folder}")

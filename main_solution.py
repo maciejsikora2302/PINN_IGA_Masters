@@ -70,7 +70,7 @@ SAVE = general_parameters.save
 if __name__ == "__main__":
 
     if args.one_dimention:
-        logger.info("One dimentional problem")
+        logger.info(f"{Color.GREEN}One dimentional problem{Color.RESET}")
         x_domain = [0.0, LENGTH]
 
         x_raw = torch.linspace(x_domain[0], x_domain[1], steps=N_POINTS_X, requires_grad=True)
@@ -82,7 +82,7 @@ if __name__ == "__main__":
         x_init = x_init*LENGTH
         u_init = initial_condition(x_init)
     else:
-        logger.info("Two dimentional problem")
+        logger.info(f"{Color.GREEN}Two dimentional problem{Color.RESET}")
         x_domain = [0.0, LENGTH]
         t_domain = [0.0, TOTAL_TIME]
 
