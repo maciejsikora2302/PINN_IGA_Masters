@@ -3,6 +3,7 @@ import torch
 import argparse
 import torch.nn as nn
 from functools import partial
+from time import time, time_ns
 
 from PINN import PINN
 from general_parameters import general_parameters, logger, Color, TIMESTAMP, OUT_DATA_FOLDER
@@ -154,24 +155,28 @@ if __name__ == "__main__":
 
         logger.info(f"Training PINN for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
 
+
+        start_time = time()
         pinn_trained, loss_values = train_model(
-            pinn, loss_fn=loss_fn, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
-        
-        if SAVE:
-            SAVE_PATH = f"{OUT_DATA_FOLDER}/model_{name}.pt"
-            logger.info(f"Saving model to {Color.YELLOW}{SAVE_PATH}{Color.RESET}")
-            torch.save(pinn_trained.state_dict(), SAVE_PATH)
+            pinn, loss_fn=loss_fn, loss_fn_name=name, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
+        end_time = time()
+
+        training_time = end_time - start_time
+
+        logger.info(f"Training took {Color.GREEN}{training_time:.2f}{Color.RESET} seconds")
 
         if args.one_dimention:
             compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, device = device, \
                                             loss_values=loss_values, x_init=x_init, u_init=u_init, \
                                             N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
-                                            loss_fn_name=name, dims=1)
+                                            loss_fn_name=name, training_time=training_time, \
+                                            dims=1)
         else:
             compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, t=t, device = device, \
                                 loss_values=loss_values, x_init=x_init, u_init=u_init, \
                                 N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
-                                loss_fn_name=name, dims=2)
+                                loss_fn_name=name, training_time=training_time, \
+                                dims=2)
 
     # for loss_fn, name in \
     #     [

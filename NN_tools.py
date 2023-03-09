@@ -2,21 +2,25 @@ from PINN import PINN
 from differential_tools import dfdx, dfdt, f
 import torch
 import numpy as np
-from typing import Callable
-from general_parameters import logger, Color
+from typing import Callable, Tuple
+from general_parameters import logger, Color, general_parameters, OUT_DATA_FOLDER
 from B_Splines import B_Splines
+
 
 
 def train_model(
     nn_approximator: PINN,
     loss_fn: Callable,
+    loss_fn_name: str,
     learning_rate: int = 0.01,
     max_epochs: int = 1_000,
+    how_often_to_display: int = 20,
     device="cuda"
-) -> PINN:
+) -> Tuple[PINN, np.ndarray]:
 
     optimizer = torch.optim.Adam(nn_approximator.parameters(), lr=learning_rate)
     loss_values = []
+    lowest_current_loss = float("inf")
     for epoch in range(max_epochs):
 
         try:
@@ -27,8 +31,15 @@ def train_model(
             optimizer.step()
 
             loss_values.append(loss.item())
-            # if (epoch + 1) % 20 == 0:
-            logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>12f}{Color.RESET}")
+
+            if loss_values[-1] < lowest_current_loss:
+                lowest_current_loss = loss_values[-1]
+                if general_parameters.save:
+                    SAVE_PATH = f"{OUT_DATA_FOLDER}/model_{loss_fn_name}.pt"
+                    logger.debug(f"Saving model to {Color.YELLOW}{SAVE_PATH}{Color.RESET}")
+                    torch.save(nn_approximator.state_dict(), SAVE_PATH)
+            if (epoch + 1) % how_often_to_display == 0:
+                logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>12f}{Color.RESET}")
             
 
         except KeyboardInterrupt:
