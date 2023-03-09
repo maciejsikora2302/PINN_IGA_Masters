@@ -25,7 +25,11 @@ class B_Splines(torch.nn.Module):
       """
       n = len(self.knot_vector) - self.degree - 1
       assert len(self.coefs) >= n
-      x = x.flatten().cuda()
+
+      if self.dims == 1:
+         x = x.flatten().cuda()
+      elif self.dims == 2:
+         x = x.flatten()
       
       if mode == 'adam':
 
@@ -60,15 +64,19 @@ class B_Splines(torch.nn.Module):
       else:
 
          tck = (self.knot_vector.detach(), self.coefs.detach(), self.degree)
-         return torch.Tensor(spi.splev(x.cpu().detach(), tck, der=0)).cuda()
+
+         if self.dims == 1:
+            return torch.Tensor(spi.splev(x.cpu().detach(), tck, der=0)).cuda()
+         elif self.dims == 2:
+            return torch.Tensor(spi.splev(x.cpu().detach(), tck, der=0))
    
    def calculate_BSpline_2D(self, x: torch.Tensor, t: torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
       Funtion calculates value of a linear combination of 2D splines basis functions
       """
 
-      x = x.cuda()
-      t = t.cuda()
+      # x = x.cuda()
+      # t = t.cuda()
 
       spline_x = self.calculate_BSpline_1D(x, mode=mode)
       spline_t = self.calculate_BSpline_1D(t, mode=mode)
@@ -94,15 +102,19 @@ class B_Splines(torch.nn.Module):
       """
       Function returns value of derivtive of BSpline function in 2D case wrt x
       """
+      x = x.flatten()
+      t = t.flatten()
 
-      return torch.outer(self.calculate_BSpline_1D_deriv_dx(x) * self.calculate_BSpline_1D(t))
+      return torch.outer(self.calculate_BSpline_1D_deriv_dx(x).cpu(), self.calculate_BSpline_1D(t).cpu())
    
    def calculate_BSpline_2D_deriv_dt(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
       """
       Function returns value of derivtive of BSpline function in 2D case wrt t
       """
-
-      return torch.outer(self.calculate_BSpline_1D(x), self.calculate_BSpline_1D_deriv_dx(t))
+      x = x.flatten()
+      t = t.flatten()
+      
+      return torch.outer(self.calculate_BSpline_1D(x).cpu(), self.calculate_BSpline_1D_deriv_dx(t).cpu())
    
    def calculate_BSpline_2D_deriv_dxdt(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
       """
