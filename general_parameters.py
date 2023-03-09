@@ -6,7 +6,8 @@ LOG_LEVEL = logging.INFO
 
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-OUT_DATA_FOLDER = './out_data/' + TIMESTAMP
+OUT_DATA_NAME = 'out_data'
+OUT_DATA_FOLDER = f'./{OUT_DATA_NAME}/' + TIMESTAMP
 
 #create folder for images
 if not os.path.exists(OUT_DATA_FOLDER):

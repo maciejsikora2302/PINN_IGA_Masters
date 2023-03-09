@@ -4,8 +4,8 @@ from B_Splines import B_Splines
 
 def f(pinn: PINN, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
     """Compute the value of the approximate solution from the NN model"""
-    # return pinn(x.cuda(), t.cuda() if t is not None else torch.zeros_like(x).cuda())
-    return pinn(x, t if t is not None else torch.zeros_like(x))
+    return pinn(x.cuda(), t.cuda() if t is not None else torch.zeros_like(x.cuda()).cuda())
+    # return pinn(x, t if t is not None else torch.zeros_like(x))
 
 def f_spline(spline: B_Splines, x: torch.Tensor) -> torch.Tensor:
     """Compute the value of the approximate solution from the spline model"""
