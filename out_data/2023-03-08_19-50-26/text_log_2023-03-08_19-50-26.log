@@ -1,0 +1,31 @@
+INFO -- Device: cuda
+INFO -- [92mOne dimentional problem[0m
+INFO -- 
+INFO -- ================================================================================
+INFO -- Learning parameters
+INFO -- Length:                                           [92m1.0[0m
+INFO -- Total time:                                       [92m1.0[0m
+INFO -- Number of points in x:                            [92m150[0m
+INFO -- Number of points in t:                            [92m150[0m
+INFO -- Number of points in initial condition:            [92m300[0m
+INFO -- Weight for interior loss:                         [92m0.5[0m
+INFO -- Weight for initial condition loss:                [92m150.0[0m
+INFO -- Weight for boundary loss:                         [92m1.0[0m
+INFO -- Layers:                                           [92m4[0m
+INFO -- Neurons per layer:                                [92m20[0m
+INFO -- Epochs:                                           [92m150[0m
+INFO -- Learning rate:                                    [92m0.1[0m
+INFO -- ================================================================================
+INFO -- 
+INFO -- Creating PINN with [92m4[0m layers and [92m20[0m neurons per layer
+INFO -- Computing initial condition loss
+INFO -- Training PINN for [93m150[0m epochs using [93mloss_fn_weak_and_strong[0m loss function
+INFO -- Epoch: [95m20[0m - Loss: [93m    0.683423[0m
+INFO -- Epoch: [95m40[0m - Loss: [93m    0.555686[0m
+INFO -- Epoch: [95m60[0m - Loss: [93m    0.556419[0m
+INFO -- Epoch: [95m80[0m - Loss: [93m    0.555471[0m
+INFO -- Epoch: [95m100[0m - Loss: [93m    0.555406[0m
+INFO -- Epoch: [95m120[0m - Loss: [93m    0.555407[0m
+INFO -- Epoch: [95m140[0m - Loss: [93m    0.555405[0m
+INFO -- Training took [92m4.63[0m seconds
+INFO -- Creating plots and saving to files. Dimensions: 1
