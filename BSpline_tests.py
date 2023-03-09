@@ -9,10 +9,10 @@ bs = B_Splines(torch.linspace(0,1,1000), 2)
 opt = torch.optim.Adam(bs.parameters(), lr=0.001)
 
 dtype = torch.float
-device = torch.device("cuda")
+device = torch.device("cpu")
 x = torch.Tensor([0.33, 0.5, 0.774, 0.97])
 t = torch.Tensor([0.33, 0.5, 0.774, 0.97])
-print(bs.calculate_BSpline_2D(x, t))
+print(bs.calculate_BSpline_2D_deriv_dt(x, t))
 # GT data
 y = torch.sin(x)
 # print(bs.calculate_BSpline_1D(x))
