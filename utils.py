@@ -22,6 +22,7 @@ def compute_losses_and_plot_solution(
         N_POINTS_X: int, 
         N_POINTS_T: int, 
         loss_fn_name: str, 
+        training_time: float,
         t: torch.Tensor = None, 
         dims: int = 2
     ):
@@ -57,6 +58,10 @@ def compute_losses_and_plot_solution(
 
     logger.info(f"Creating plots and saving to files. Dimensions: {dims}")
 
+    #save time to file
+    with open(f"{path}/time.txt", "w") as time_file:
+        time_file.write(f"{training_time:.2f}")
+
     # logger.info(f"Computing final loss")
 
     # losses = compute_loss(pinn_trained.to(device), x=x, t=t, verbose=True, dims=dims)
@@ -67,13 +72,14 @@ def compute_losses_and_plot_solution(
 
     average_loss = running_average(loss_values, window=100)
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
-    ax.set_title("Loss function (runnig average)")
-    ax.set_xlabel("Epoch")
-    ax.set_ylabel("Loss")
+    ax.set_title("Loss function convergence")
+    ax.set_xlabel("Epoch number")
+    ax.set_ylabel("Loss function value")
     ax.plot(average_loss)
 
-    plt.savefig(f"{path}/loss.png")
+    plt.savefig(f"{path}/loss_convergence.png")
 
+    
     # z = f(pinn_trained.to(device), x, t)
     # color = plot_color(z.cpu(), x.cpu(), t.cpu(), N_POINTS_X, N_POINTS_T)
     # plt.plot(x_init, u_init, label="Initial condition")
@@ -108,12 +114,28 @@ def compute_losses_and_plot_solution(
     ax.plot(x_init, pinn_init.cpu().flatten().detach(), label="PINN solution")
     ax.legend()
     plt.savefig(f"{path}/solution_profile.png")
+
+
+    fig, ax = plt.subplots(figsize=(14, 10), dpi=100)
+    ax.set_title("Solution profile (normalized)")
+    ax.set_xlabel("x")
+    ax.set_ylabel("u")
+    ax.set_ylim(-0.1, 1.1)
+    ax.plot(x_init, pinn_init.cpu().flatten().detach(), label="PINN solution")
+    ax.legend()
+    plt.savefig(f"{path}/solution_profile_normalized.png")
+    
+    
     with open(f"{path}/solution_profile.txt", "w") as file:
         file.write(','.join([str(x) for x in x_init]))
         file.write('\n')
         y = pinn_init.flatten().detach()
         file.write(','.join([str(x) for x in y]))
     
+
+
+
+
     if t is not None:
         # Assuming x and t are PyTorch Tensor objects, and pinn_innit contains the solution tensor in 2D
         # Convert PyTorch Tensor to NumPy array
