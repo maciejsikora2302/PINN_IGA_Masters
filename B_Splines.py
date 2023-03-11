@@ -82,20 +82,55 @@ class B_Splines(torch.nn.Module):
 
       return torch.outer(spline_x, spline_t)
    
-   def calculate_BSpline_1D_deriv_dx(self, x: torch.Tensor) -> torch.Tensor:
+   def calculate_BSpline_1D_deriv_dx(self, x: torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
       Function returns value of derivative of BSpline function in 1D case wrt. x
       """
-      x = x.cpu().detach()
-      knot_vector = deepcopy(self.knot_vector)
-      coefs = deepcopy(self.coefs)
-      tck = (
-            knot_vector.detach(),
-            coefs.detach(),
-            self.degree
-         )
+
+
+      def _de_Boor_derivative(x: torch.Tensor, t: torch.Tensor, c: torch.Tensor, p: int):
+         """
+         Evaluates S(x).
+
+         Args
+         ----
+         x: position
+         t: array of knot positions, needs to be padded as described above
+         c: array of control points
+         p: degree of B-spline
+         """
+
+         result = torch.zeros_like(x)
+
+         for idx, elem in enumerate(x):
+
+            k = torch.searchsorted(t, x[idx], side='right') - 1
+
+            q = [p * (c[j+k-p+1] - c[j+k-p]) / (t[j+k+1] - t[j+k-p+1]) for j in range(0, p)]
+
+            for r in range(1, p):
+               for j in range(p-1, r-1, -1):
+                     right = j+1+k-r
+                     left = j+k-(p-1)
+                     alpha = (elem - t[left]) / (t[right] - t[left])
+                     q[j] = (1.0 - alpha) * q[j-1] + alpha * q[j]
+            result[idx] = q[p-1]
+
+         return result
       
-      return torch.Tensor(spi.splev(x, tck, der=1))
+      if mode == 'NN':
+         x = x.cpu().detach()
+         knot_vector = deepcopy(self.knot_vector)
+         coefs = deepcopy(self.coefs)
+         tck = (
+               knot_vector.detach(),
+               coefs.detach(),
+               self.degree
+            )
+         
+         return torch.Tensor(spi.splev(x, tck, der=1))
+      elif mode == 'Adam':
+         return torch.Tensor(_de_Boor_derivative(x, self.knot_vector, self.coefs, self.degree))
    
    def calculate_BSpline_1D_deriv_dxdx(self, x:torch.Tensor) -> torch.Tensor:
       """
