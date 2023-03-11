@@ -103,6 +103,7 @@ if __name__ == "__main__":
     else:
         x_init = torch.linspace(0.0, 1.0, steps=N_POINTS_INIT)
     # x_init = 0.5*((x_init-0.5*LENGTH)*2)**3 + 0.5
+    print(x_init, x_init.shape)
     x_init = x_init*LENGTH
     u_init = initial_condition(x_init)
 
