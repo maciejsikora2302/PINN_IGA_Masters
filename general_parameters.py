@@ -51,6 +51,9 @@ class GeneralParameters:
             learning_rate = None, \
             eps_interior = None, \
             spline_degree = None, \
+            save = None, \
+            one_dimension = None, \
+            uneven_distribution = None, \
             device = None):
         
         self.length = 1. if length is None else length
@@ -70,5 +73,9 @@ class GeneralParameters:
         self.knot_vector_length = int(20 / self.eps_interior)
         self.coefs_vector_length = int(self.knot_vector_length - self.spline_degree - 1)
         self.knot_vector = torch.ones(self.knot_vector_length)
+        self.save = False if save is None else save
+        self.one_dimension = False if one_dimension is None else one_dimension
+        self.uneven_distribution = False if uneven_distribution is None else uneven_distribution
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if device is None else device
 
 general_parameters = GeneralParameters()
