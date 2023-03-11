@@ -525,7 +525,7 @@ def compute_loss(
 def compute_loss_spline(
     spline: B_Splines, x: torch.Tensor = None, t: torch.Tensor = None, 
     weight_f = 1.0, weight_b = 1.0, weight_i = 1.0, 
-    verbose = False, interior_loss_function: Callable = iga_loss,
+    verbose = False, interior_loss_function: Callable = interior_loss_weak_and_strong,
     dims: int = 2
 ) -> torch.float:
     """Compute the full loss function as interior loss + boundary loss
