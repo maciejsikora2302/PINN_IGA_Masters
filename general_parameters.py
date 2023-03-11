@@ -69,7 +69,6 @@ class GeneralParameters:
         self.spline_degree = 3 if spline_degree is None else spline_degree
         self.knot_vector_length = int(20 / self.eps_interior)
         self.coefs_vector_length = int(self.knot_vector_length - self.spline_degree - 1)
-        self.test_function_weight_x = torch.ones(self.knot_vector_length)
-        self.test_function_weight_t = torch.ones(self.knot_vector_length)
+        self.knot_vector = torch.ones(self.knot_vector_length)
 
 general_parameters = GeneralParameters()

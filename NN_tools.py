@@ -2,14 +2,14 @@ from PINN import PINN
 from differential_tools import dfdx, dfdt, f
 import torch
 import numpy as np
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Union
 from general_parameters import logger, Color, general_parameters, OUT_DATA_FOLDER
 from B_Splines import B_Splines
 
 
 
 def train_model(
-    nn_approximator: PINN,
+    nn_approximator: Union[PINN,B_Splines],
     loss_fn: Callable,
     loss_fn_name: str,
     learning_rate: int = 0.01,
@@ -41,39 +41,6 @@ def train_model(
             if (epoch + 1) % how_often_to_display == 0:
                 logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>12f}{Color.RESET}")
             
-
-        except KeyboardInterrupt:
-            logger.info(f"Training interrupted by user at epoch {Color.RED}{epoch + 1}{Color.RESET}")
-            break
-
-    return nn_approximator, np.array(loss_values)
-
-def train_model_spline(
-    spline: B_Splines,
-    loss_fn: Callable,
-    loss_fn_grad: Callable,
-    learning_rate: int = 0.01,
-    max_epochs: int = 1_000,
-    device="cuda"
-) -> B_Splines:
-
-    loss = initial_loss = loss_fn(spline)
-    adam = AdamOptim(learning_rate=learning_rate)
-    t = 1 
-    converged = False
-
-    loss_values = []
-    for epoch in range(max_epochs):
-
-        try:
-
-            dw:list[float] = loss_fn_grad(w_0)
-            w_0 = adam.update(t,w=w_0, dw=dw)
-
-            loss_values.append(w_0)
-
-            if (epoch + 1) % 20 == 0:
-                logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>12f}{Color.RESET}")
 
         except KeyboardInterrupt:
             logger.info(f"Training interrupted by user at epoch {Color.RED}{epoch + 1}{Color.RESET}")
