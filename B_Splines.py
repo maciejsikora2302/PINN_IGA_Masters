@@ -1,6 +1,5 @@
 import scipy.interpolate as spi
 import torch
-from torch.autograd import Variable
 from copy import deepcopy
 
 
@@ -98,6 +97,21 @@ class B_Splines(torch.nn.Module):
       
       return torch.Tensor(spi.splev(x, tck, der=1))
    
+   def calculate_BSpline_1D_deriv_dxdx(self, x:torch.Tensor) -> torch.Tensor:
+      """
+      Function returns value of second derivative of BSpline function in 1D case wrt. x
+      """
+      x = x.cpu().detach()
+      knot_vector = deepcopy(self.knot_vector)
+      coefs = deepcopy(self.coefs)
+      tck = (
+            knot_vector.detach(),
+            coefs.detach(),
+            self.degree
+         )
+      
+      return torch.Tensor(spi.splev(x, tck, der=2))
+   
    def calculate_BSpline_2D_deriv_dx(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
       """
       Function returns value of derivtive of BSpline function in 2D case wrt x
@@ -107,6 +121,33 @@ class B_Splines(torch.nn.Module):
 
       return torch.outer(self.calculate_BSpline_1D_deriv_dx(x).cpu(), self.calculate_BSpline_1D(t).cpu())
    
+   def calculate_BSpline_2D_deriv_dxdx(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+      """
+      Function returns value of second derivtive of BSpline function in 2D case wrt x
+      """
+      x = x.flatten()
+      t = t.flatten()
+
+      spline_2D_deriv_dx = self.calculate_BSpline_2D_deriv_dx(x, t).cpu()
+      spline_2D_deriv_dxdx = self.calculate_BSpline_2D_deriv_dx(spline_2D_deriv_dx).cpu()
+      spline_2D_t = self.calculate_BSpline_1D(t).cpu()
+
+      return torch.outer(spline_2D_deriv_dxdx, spline_2D_t).cpu()
+
+
+   def calculate_BSpline_2D_deriv_dtdt(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+      """
+      Function returns value of second derivtive of BSpline function in 2D case wrt t
+      """
+      x = x.flatten()
+      t = t.flatten()
+
+      spline_2D_deriv_dt = self.calculate_BSpline_2D_deriv_dt(x, t).cpu()
+      spline_2D_deriv_dtdt = self.calculate_BSpline_2D_deriv_dt(spline_2D_deriv_dt).cpu()
+      spline_2D_x = self.calculate_BSpline_1D(x).cpu()
+
+      return torch.outer(spline_2D_deriv_dtdt, spline_2D_x).cpu()
+
    def calculate_BSpline_2D_deriv_dt(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
       """
       Function returns value of derivtive of BSpline function in 2D case wrt t
@@ -131,11 +172,3 @@ class B_Splines(torch.nn.Module):
          return self.calculate_BSpline_1D(x)
       elif self.dims == 2:
          return self.calculate_BSpline_2D(x, t)
-   
-   def do_train_step(self, loss: torch.Tensor, optimizer: torch.optim.Adam) -> None:
-
-      loss.backward(retain_graph=True)
-      optimizer.step()
-      optimizer.zero_grad()
-      self.losses.append(loss)
-      

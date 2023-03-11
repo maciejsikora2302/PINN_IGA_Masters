@@ -207,61 +207,155 @@ def interior_loss_weak_and_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, s
 
     return (loss_weak.pow(2) + loss_strong.pow(2)).mean()
 
-# TODO: Ogarnąć IGA loss function
-def iga_loss(sp: B_Splines, x: torch.Tensor, t: torch.Tensor, dims: int = 2): # It's just a classic version, w/o collocation
 
-    x = x.cuda()
-    t = t.cuda() if dims == 2 else None
+def interior_loss_weak_spline(spline: B_Splines, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 2):
+    #t here is x in Eriksson problem, x here is y in Erikkson problem
+    # loss = dfdt(pinn, x, t, order=1) - eps*dfdt(pinn, x, t, order=2)-eps*dfdx(pinn, x, t, order=2)
+    
+    if dims == 1:
+        x = x.cuda()
 
     if dims == 1:
+        eps_interior, sp, _, _, v = precalculations_1D(x, sp)
+        v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
 
-        eps_interior, sp, degree, coef_float, v = precalculations_1D(x, sp)
-
-
-        spline_deriv_dx = torch.Tensor(sp.calculate_BSpline_1D_deriv(x.detach(), coef_float, degree, order=1))
-        spline_deriv_dxdx = torch.Tensor(sp.calculate_BSpline_1D_deriv(x.detach(), coef_float, degree, order=2))
-
-        loss_iga = spline_deriv_dx - eps_interior * spline_deriv_dxdx
-
+        tensor_to_integrate = spline.calculate_BSpline_1D_deriv_dx(x).cuda() * v \
+            + eps_interior*spline.calculate_BSpline_1D_deriv_dx(x).cuda() * v_deriv_x
+        n = x.shape[0]
+        loss = torch.trapezoid(tensor_to_integrate, dx = 1/n)
     elif dims == 2:
-        eps_interior, sp, degree_1, degree_2, coef_float, coef_float_2, _ = precalculations_2D(x, t, sp)
+        eps_interior, sp, _, _, v = precalculations_2D(x, t, sp)
 
-        spline_deriv_dx = sp.calculate_BSpline_2D_deriv_x(x.detach(), t.detach(), degree_1, degree_2, coef_float, coef_float_2, order=1)
-        spline_deriv_dxdx = sp.calculate_BSpline_2D_deriv_x(spline_deriv_dx, t.detach(), degree_1, degree_2, coef_float, coef_float_2, order=2)
-        spline_deriv_dt = sp.calculate_BSpline_2D_deriv_t(x.detach(), t.detach(), degree_1, degree_2, coef_float, coef_float_2, order=1)
-        spline_deriv_dtdt = sp.calculate_BSpline_2D_deriv_t(x.detach(), spline_deriv_dt, degree_1, degree_2, coef_float, coef_float_2, order=2)
+        v_deriv_x = sp.calculate_BSpline_2D_deriv_dx(x, t) #.cuda()
+        v_deriv_t = sp.calculate_BSpline_2D_deriv_dt(x, t) # .cuda()
 
-        loss_iga = spline_deriv_dx - eps_interior * (spline_deriv_dxdx + spline_deriv_dtdt)
+        n_x = x.shape[0]
+        n_t = t.shape[0]
+
+        loss = torch.trapezoid(torch.trapezoid(
+            
+            spline.calculate_BSpline_2D_deriv_dt(x, t).cpu() * v.cpu()
+            + eps_interior*spline.calculate_BSpline_2D_deriv_dx(x, t).cpu() * v_deriv_x.cpu()
+            + eps_interior*spline.calculate_BSpline_2D_deriv_dt(x, t).cpu() * v_deriv_t.cpu()
+            
+            , dx = 1/n_x), dx = 1/n_t)
+        
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
 
-    return loss_iga.pow(2).mean()
+    return loss.pow(2).mean()
 
-def iga_loss_deriv(sp: B_Splines, x: torch.Tensor, t: torch.Tensor, dims: int = 2): # It's just a classic version, w/o collocation
-
-    x = x.cuda()
-    t = t.cuda() if dims == 2 else None
+def interior_loss_colocation_spline(spline: B_Splines, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 2):
 
     if dims == 1:
+        x = x.cuda()
 
-        eps_interior, sp, degree, coef_float, v = precalculations_1D(x, sp)
+    if dims == 1:
+        eps_interior, sp, _, _, v = precalculations_1D(x, sp, colocation = True)
 
-        if degree < 3:
-            raise ValueError("Degree must be at least 3 to calculate 3rd derivative")
-
-
-        spline_deriv_dxdx = torch.Tensor(sp.calculate_BSpline_1D_deriv(x.detach(), coef_float, degree, order=2))
-        spline_deriv_dxdxdx = torch.Tensor(sp.calculate_BSpline_1D_deriv(x.detach(), coef_float, degree, order=3))
-
-        loss_iga = spline_deriv_dxdx - eps_interior * spline_deriv_dxdxdx
+        loss = (spline.calculate_BSpline_1D_deriv_dx(x) - eps_interior*spline.calculate_BSpline_1D_deriv_dxdx(x)) * v
 
     elif dims == 2:
-        #TODO implement later
-        raise NotImplementedError("Not implemented yet")
+        eps_interior, sp, _, _, v = precalculations_2D(x, t, sp, colocation=True)
+
+        loss = (spline.calculate_BSpline_2D_deriv_dt(x,t).cpu() - 
+                eps_interior*spline.calculate_BSpline_2D_deriv_dtdt(x,t).cpu()
+                -eps_interior*spline.calculate_BSpline_2D_deriv_dxdx(x,t).cpu()) * v.cpu()
+
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
 
-    return loss_iga.pow(2).mean()
+    return loss.pow(2).mean()
+
+        
+def interior_loss_strong_spline(spline: B_Splines, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 1):
+
+    if dims == 1:
+        x = x.cuda()
+
+    if dims == 1:
+        eps_interior, sp, _, _, v = precalculations_1D(x, sp)
+        tensor_to_integrate = (
+            - eps_interior*spline.calculate_BSpline_1D_deriv_dxdx(x)
+            + spline.calculate_BSpline_1D_deriv_dx(x)
+            ) * v
+        
+        n = x.shape[0]
+        loss = torch.trapezoid(tensor_to_integrate, dx = 1/n)
+
+    elif dims == 2:
+
+        eps_interior, sp, _, _, v = precalculations_2D(x, t, sp)
+        n_x = x.shape[0]
+        n_t = t.shape[0]
+
+        loss = torch.trapezoid(torch.trapezoid(
+
+            (spline.calculate_BSpline_2D_deriv_dt(x,t).cpu() 
+                            - eps_interior*spline.calculate_BSpline_2D_deriv_dtdt(x,t).cpu()
+                            - eps_interior*spline.calculate_BSpline_2D_deriv_dxdx(x,t).cpu()) * v.cpu()
+
+                            , dx=1/n_x), dx=1/n_t)
+
+    else:
+        raise ValueError("Wrong dimensionality, must be 1 or 2")
+
+    return loss.pow(2).mean()
+
+
+def interior_loss_weak_and_strong_spline(spline: B_Splines, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 2):
+
+    if dims == 1:
+        x = x.cuda()
+
+    if dims == 1:
+
+        eps_interior, sp, _, _, v = precalculations_1D(x, sp)
+
+        v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
+        n = x.shape[0]
+
+        loss_weak = torch.trapezoid(
+            spline.calculate_BSpline_1D_deriv_dx(x).cuda() * v
+            + eps_interior*spline.calculate_BSpline_1D_deriv_dxdx(x) * v_deriv_x, dx=1/n
+            )
+
+        loss_strong = torch.trapezoid((
+            - eps_interior*spline.calculate_BSpline_1D_deriv_dxdx(x)
+            + spline.calculate_BSpline_1D_deriv_dx(x) 
+            ) * v, dx=1/n)
+        
+
+    elif dims == 2:
+        eps_interior, sp, _, _, v = precalculations_2D(x, t, sp)
+
+        v_deriv_x = sp.calculate_BSpline_2D_deriv_dx(x, t)
+        v_deriv_t = sp.calculate_BSpline_2D_deriv_dt(x, t)
+        
+        n_x = x.shape[0]
+        n_t = t.shape[0]
+
+        loss_weak = torch.trapezoid(torch.trapezoid(
+            
+            spline.calculate_BSpline_2D_deriv_dt(x,t).cpu() * v.cpu()
+            + eps_interior*spline.calculate_BSpline_2D_deriv_dx(x,t).cpu() * v_deriv_x.cpu()
+            + eps_interior*spline.calculate_BSpline_2D_deriv_dt(x,t).cpu() * v_deriv_t.cpu()
+
+            , dx = 1/n_x), dx = 1/n_t)
+        
+        loss_strong = torch.trapezoid(torch.trapezoid(
+
+            (spline.calculate_BSpline_2D_deriv_dt(x,t).cpu() 
+                            - eps_interior*spline.calculate_BSpline_2D_deriv_dtdt(x,t).cpu()
+                            - eps_interior*spline.calculate_BSpline_2D_deriv_dxdx(x,t).cpu()) * v.cpu()
+
+                            , dx=1/n_x), dx=1/n_t)
+    else:
+        raise ValueError("Wrong dimensionality, must be 1 or 2")
+
+
+    return (loss_weak.pow(2) + loss_strong.pow(2)).mean()
+
 
 def boundary_loss_spline(spline: B_Splines, x:torch.Tensor, t: torch.Tensor, dims: int = 2):
 
