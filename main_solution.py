@@ -8,7 +8,7 @@ from time import time, time_ns
 from PINN import PINN
 from B_Splines import B_Splines
 from general_parameters import general_parameters, logger, Color, TIMESTAMP, OUT_DATA_FOLDER
-from utils import compute_losses_and_plot_solution
+from utils import compute_losses_and_plot_solution, get_unequaly_distribution_points
 from loss_functions import interior_loss_colocation, interior_loss_strong, interior_loss_weak, interior_loss_weak_and_strong, compute_loss, initial_condition, interior_loss_weak_spline, interior_loss_weak_and_strong_spline, interior_loss_colocation_spline, interior_loss_strong_spline
 from NN_tools import train_model
 
@@ -84,10 +84,7 @@ if __name__ == "__main__":
 
         x = x_raw.flatten().reshape(-1, 1).to(device)
 
-        x_init = torch.linspace(0.0, 1.0, steps=N_POINTS_INIT)
-        # x_init = 0.5*((x_init-0.5*LENGTH)*2)**3 + 0.5
-        x_init = x_init*LENGTH
-        u_init = initial_condition(x_init)
+
     else:
         logger.info(f"{Color.GREEN}Two dimentional problem{Color.RESET}")
         x_domain = [0.0, LENGTH]
@@ -100,10 +97,14 @@ if __name__ == "__main__":
         x = grids[0].flatten().reshape(-1, 1).to(device)
         t = grids[1].flatten().reshape(-1, 1).to(device)
 
+
+    if general_parameters.uneven_distribution:
+        x_init = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = N_POINTS_INIT, density_range=0.2, device=device)
+    else:
         x_init = torch.linspace(0.0, 1.0, steps=N_POINTS_INIT)
-        # x_init = 0.5*((x_init-0.5*LENGTH)*2)**3 + 0.5
-        x_init = x_init*LENGTH
-        u_init = initial_condition(x_init)
+    # x_init = 0.5*((x_init-0.5*LENGTH)*2)**3 + 0.5
+    x_init = x_init*LENGTH
+    u_init = initial_condition(x_init)
 
     # fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
     # ax.set_title("Initial condition points")
