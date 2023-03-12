@@ -78,5 +78,6 @@ class GeneralParameters:
         self.one_dimension = False if one_dimension is None else one_dimension
         self.uneven_distribution = False if uneven_distribution is None else uneven_distribution
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if device is None else device
+        self.splines = False
 
 general_parameters = GeneralParameters()
