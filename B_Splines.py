@@ -122,11 +122,24 @@ class B_Splines(torch.nn.Module):
          x = x.cpu().detach()
          knot_vector = deepcopy(self.knot_vector)
          coefs = deepcopy(self.coefs)
+
+         #repeat and add first and last element of knot_vector twice
+         knot_vector = torch.cat((knot_vector[0].repeat(2), knot_vector, knot_vector[-1].repeat(2)))
+
          tck = (
                knot_vector.detach(),
                coefs.detach(),
                self.degree
             )
+         
+         # print("="*100)
+         # print("tck elements")
+         # torch.set_printoptions(edgeitems=6)
+         # print(tck[0])
+         # print(tck[1])
+         # print(tck[2])
+         # print(spi.splev(x, tck, der=1))
+         # print("="*100)
          
          return torch.Tensor(spi.splev(x, tck, der=1))
       elif mode == 'Adam':
