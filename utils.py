@@ -1,7 +1,7 @@
 import torch
 import os
 import numpy as np
-from general_parameters import logger, Color, OUT_DATA_FOLDER
+from general_parameters import logger, Color, OUT_DATA_FOLDER, general_parameters
 from loss_functions import compute_loss
 import matplotlib.pyplot as plt
 from NN_tools import f
@@ -18,11 +18,12 @@ def get_unequaly_distribution_points(eps: float = 0.1, density_range: float = .2
     range_dr_ep = eps_prim - (density_range * eps)
 
     # Initializing the points as a NumPy array
-    points_np = np.zeros(n, dtype=np.float64)
+    points_np = np.zeros(n, dtype=np.float32)
 
     # Setting the first two points
     points_np[0] = 0.0
     points_np[1] = 0.5
+    start_index_for_next_step = 1
 
     # Calculating the points using the given formula up to range_dr_ep
     for i in range(2, n):
@@ -118,13 +119,21 @@ def compute_losses_and_plot_solution(
     # plt.legend()
     # plt.savefig("./imgs/initial_condition2.png")
 
-    pinn_init = f(pinn_trained.cuda(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
+    # print(pinn_trained.cuda())
+    # print(x_init.reshape(-1, 1))
+    # print(torch.zeros_like(x_init))
+
+
+    if dims == 1:
+        pinn_init = f(pinn_trained.cuda(), x_init.reshape(-1, 1))
+    else:
+        pinn_init = f(pinn_trained.cuda(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
 
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
     ax.set_title("Initial condition difference")
     ax.set_xlabel("x")
     ax.set_ylabel("u")
-    ax.plot(x_init.cpu(), u_init, label="Initial condition")
+    ax.plot(x_init.cpu(), u_init.cpu(), label="Initial condition")
     ax.plot(x_init.cpu(), pinn_init.cpu().flatten().detach(), label="PINN solution")
     ax.legend()
     plt.savefig(f"{path}/initial_condition.png")
@@ -138,11 +147,14 @@ def compute_losses_and_plot_solution(
     # plt.legend()
 
     pinn_init = f(pinn_trained.cuda(), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
+
+    # print(pinn_init.cpu().flatten().detach())
+
     fig, ax = plt.subplots(figsize=(14, 10), dpi=100)
     ax.set_title("Solution profile")
     ax.set_xlabel("x")
     ax.set_ylabel("u")
-    ax.plot(x_init, pinn_init.cpu().flatten().detach(), label="PINN solution")
+    ax.plot(x_init.cpu(), pinn_init.cpu().flatten().detach(), label="PINN solution")
     ax.legend()
     plt.savefig(f"{path}/solution_profile.png")
 
@@ -152,7 +164,7 @@ def compute_losses_and_plot_solution(
     ax.set_xlabel("x")
     ax.set_ylabel("u")
     ax.set_ylim(-0.1, 1.1)
-    ax.plot(x_init, pinn_init.cpu().flatten().detach(), label="PINN solution")
+    ax.plot(x_init.cpu(), pinn_init.cpu().flatten().detach(), label="PINN solution")
     ax.legend()
     plt.savefig(f"{path}/solution_profile_normalized.png")
     
@@ -162,20 +174,35 @@ def compute_losses_and_plot_solution(
         file.write('\n')
         y = pinn_init.flatten().detach()
         file.write(','.join([str(x) for x in y]))
-    
+
+    # with open(f"{path}/solution_profile2.txt", "w") as file:
+    #     X = x_init.reshape(-1, 1).cpu().numpy()
+    #     Y = pinn_init.flatten().detach()
+    #     print(X)    
+    #     print(Y)
 
 
 
 
-    if t is not None:
+    if dims == 2:
+        pass
         # Assuming x and t are PyTorch Tensor objects, and pinn_innit contains the solution tensor in 2D
         # Convert PyTorch Tensor to NumPy array
-        pinn_innit = pinn_innit.detach().numpy()
+        # pinn_innit = pinn_init.cpu().detach().numpy()
+        print(x.shape, t.shape)
+        print(pinn_trained)
+        pinn_values = f(pinn_trained.cuda(), x, t)
+        print(pinn_values.shape)
+        print(pinn_values)
+        # x, t = x.cpu().detach().numpy(), t.cpu().detach().numpy()
+        # print(x.shape, t.shape)
 
-        # Plot the image using Matplotlib
-        plt.imshow(pinn_innit, cmap='jet', origin='lower', extent=[t.min(), t.max(), x.min(), x.max()])
-        plt.colorbar()
-        plt.xlabel('Time')
-        plt.ylabel('Position')
-        plt.title('Solution')
-        plt.show()
+        
+        # # Plot the image using Matplotlib
+        # plt.imshow(pinn_innit, cmap='jet', origin='lower', extent=[t.min(), t.max(), x.min(), x.max()])
+        # plt.colorbar()
+        # plt.xlabel('X')
+        # plt.ylabel('Y')
+        # plt.title('Solution')
+        # plt.savefig(f"{path}/solution_2d.png")
+        # plt.show()

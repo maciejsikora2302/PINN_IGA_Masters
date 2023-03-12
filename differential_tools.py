@@ -4,6 +4,8 @@ from B_Splines import B_Splines
 
 def f(pinn: PINN, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
     """Compute the value of the approximate solution from the NN model"""
+    # print(f"pinn(x, t) is {pinn(x, t)}")
+    # print data sypes of x and t
     return pinn(x.cuda(), t.cuda() if t is not None else torch.zeros_like(x.cuda()).cuda())
     # return pinn(x, t if t is not None else torch.zeros_like(x))
 

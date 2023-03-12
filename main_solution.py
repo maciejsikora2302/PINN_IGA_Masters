@@ -76,22 +76,29 @@ SAVE = general_parameters.save
 
 if __name__ == "__main__":
 
+
+    x_domain = [0.0, LENGTH]
+
+
+    if general_parameters.uneven_distribution:
+        x_raw = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = N_POINTS_X, density_range=0.2, device=device)
+        x_raw = x_raw.requires_grad_(True)
+    else:
+        x_raw = torch.linspace(x_domain[0], x_domain[1], steps=N_POINTS_X, requires_grad=True)
+
     if general_parameters.one_dimention:
         logger.info(f"{Color.GREEN}One dimentional problem{Color.RESET}")
-        x_domain = [0.0, LENGTH]
-
-        x_raw = torch.linspace(x_domain[0], x_domain[1], steps=N_POINTS_X, requires_grad=True)
 
         x = x_raw.flatten().reshape(-1, 1).to(device)
 
 
     else:
         logger.info(f"{Color.GREEN}Two dimentional problem{Color.RESET}")
-        x_domain = [0.0, LENGTH]
+
         t_domain = [0.0, TOTAL_TIME]
 
-        x_raw = torch.linspace(x_domain[0], x_domain[1], steps=N_POINTS_X, requires_grad=True)
-        t_raw = torch.linspace(t_domain[0], t_domain[1], steps=N_POINTS_T, requires_grad=True)
+        # x_raw = torch.linspace(x_domain[0], x_domain[1], steps=N_POINTS_X, requires_grad=True)
+        t_raw = torch.linspace(t_domain[0], t_domain[1], steps=N_POINTS_T, requires_grad=True, device=device)
         grids = torch.meshgrid(x_raw, t_raw, indexing="ij")
 
         x = grids[0].flatten().reshape(-1, 1).to(device)
@@ -103,7 +110,6 @@ if __name__ == "__main__":
     else:
         x_init = torch.linspace(0.0, 1.0, steps=N_POINTS_INIT)
     # x_init = 0.5*((x_init-0.5*LENGTH)*2)**3 + 0.5
-    print(x_init, x_init.shape)
     x_init = x_init*LENGTH
     u_init = initial_condition(x_init)
 
@@ -119,7 +125,7 @@ if __name__ == "__main__":
     logger.info(f"{'Length: ':<50}{Color.GREEN}{LENGTH}{Color.RESET}")
     logger.info(f"{'Total time: ':<50}{Color.GREEN}{TOTAL_TIME}{Color.RESET}")
     logger.info(f"{'Number of points in x: ':<50}{Color.GREEN}{N_POINTS_X}{Color.RESET}")
-    if general_parameters.one_dimention: logger.info(f"{'Number of points in t: ':<50}{Color.GREEN}{N_POINTS_T}{Color.RESET}")
+    if not general_parameters.one_dimention: logger.info(f"{'Number of points in t: ':<50}{Color.GREEN}{N_POINTS_T}{Color.RESET}")
     logger.info(f"{'Number of points in initial condition: ':<50}{Color.GREEN}{N_POINTS_INIT}{Color.RESET}")
     logger.info(f"{'Weight for interior loss: ':<50}{Color.GREEN}{WEIGHT_INTERIOR}{Color.RESET}")
     logger.info(f"{'Weight for initial condition loss: ':<50}{Color.GREEN}{WEIGHT_INITIAL}{Color.RESET}")
