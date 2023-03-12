@@ -90,7 +90,7 @@ class B_Splines(torch.nn.Module):
 
       def _de_Boor_derivative(x: torch.Tensor, t: torch.Tensor, c: torch.Tensor, p: int):
          """
-         Evaluates S(x).
+         Evaluates first order derivative of a linear com.
 
          Args
          ----
