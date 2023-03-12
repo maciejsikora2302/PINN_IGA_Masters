@@ -24,14 +24,14 @@ parser.add_argument("--total_time", type=float)
 parser.add_argument("--n_points_x", type=int)
 parser.add_argument("--n_points_t", type=int)
 parser.add_argument("--n_points_init", type=int)
-parser.add_argument("--weight_interior", type=float)
-parser.add_argument("--weight_initial", type=float)
-parser.add_argument("--weight_boundary", type=float)
-parser.add_argument("--layers", type=int)
-parser.add_argument("--neurons_per_layer", type=int)
-parser.add_argument("--epochs", type=int)
-parser.add_argument("--learning_rate", type=float)
-parser.add_argument("--eps_interior", type=float)
+parser.add_argument("--weight_interior", '--wi', type=float)
+parser.add_argument("--weight_initial", '--winit', type=float)
+parser.add_argument("--weight_boundary", '--wb', type=float)
+parser.add_argument("--layers", '-l', type=int)
+parser.add_argument("--neurons_per_layer", '--npl', type=int)
+parser.add_argument("--epochs", '-e', type=int)
+parser.add_argument("--learning_rate", '--lr', type=float)
+parser.add_argument("--eps_interior", '--eps_inter', type=float)
 parser.add_argument("--spline_degree", type=int)
 parser.add_argument("--save", '-s', action="store_true")
 parser.add_argument("--one_dimention", '-o', action="store_true")
@@ -106,11 +106,11 @@ if __name__ == "__main__":
 
 
     if general_parameters.uneven_distribution:
-        x_init = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = N_POINTS_INIT, density_range=0.2, device=device)
+        x_init = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = N_POINTS_X, density_range=0.2, device=device)
     else:
-        x_init = torch.linspace(0.0, 1.0, steps=N_POINTS_INIT)
+        x_init = torch.linspace(0.0, 1.0, steps=N_POINTS_X)
     # x_init = 0.5*((x_init-0.5*LENGTH)*2)**3 + 0.5
-    x_init = x_init*LENGTH
+    # x_init = x_init*LENGTH
     u_init = initial_condition(x_init)
 
     # fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
@@ -138,23 +138,17 @@ if __name__ == "__main__":
     logger.info("")
 
     logger.info(f"Creating PINN with {Color.GREEN}{LAYERS}{Color.RESET} layers and {Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET} neurons per layer")
-    pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh()).to(device)
+    pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), N_X_POINTS=N_POINTS_X, N_T_POINTS=N_POINTS_T).to(device)
     spline_1D = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=1)
     spline_2D = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=2)
 
     # assert check_gradient(nn_approximator, x, t)
     # to add new loss functions, add them to the list below and add the corresponding function to the array of functions in train pinn block below
-    if general_parameters.one_dimention:
-        loss_fn_weak = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak, dims = 1)
-        loss_fn_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong, dims = 1)
-        loss_fn_weak_and_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong, dims = 1)
-        loss_fn_colocation = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation, dims = 1)
 
-    else:
-        loss_fn_weak = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak, dims=2)
-        loss_fn_strong = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong, dims=2)
-        loss_fn_weak_and_strong = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong, dims=2)
-        loss_fn_colocation = partial(compute_loss, x=x, t=t, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation, dims=2)
+    loss_fn_weak = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak, dims = 1 if general_parameters.one_dimention else 2)
+    loss_fn_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong, dims = 1 if general_parameters.one_dimention else 2)
+    loss_fn_weak_and_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong, dims = 1 if general_parameters.one_dimention else 2)
+    loss_fn_colocation = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation, dims = 1 if general_parameters.one_dimention else 2)
 
 
     logger.info(f"Computing initial condition loss")
@@ -166,9 +160,9 @@ if __name__ == "__main__":
     # train the PINN
     for loss_fn, name in \
         [
-            # (loss_fn_weak, 'loss_fn_weak'),
+            (loss_fn_weak, 'loss_fn_weak'),
             # (loss_fn_strong, 'loss_fn_strong'), 
-            (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
+            # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
             # (loss_fn_colocation, 'loss_fn_colocation')
         ]:
         logger.info(f"Training PINN for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
@@ -183,18 +177,19 @@ if __name__ == "__main__":
 
         logger.info(f"Training took {Color.GREEN}{training_time:.2f}{Color.RESET} seconds")
 
-        if general_parameters.one_dimention:
-            compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, device = device, \
-                                            loss_values=loss_values, x_init=x_init, u_init=u_init, \
-                                            N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
-                                            loss_fn_name=name, training_time=training_time, \
-                                            dims=1)
-        else:
-            compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, t=t, device = device, \
-                                loss_values=loss_values, x_init=x_init, u_init=u_init, \
-                                N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
-                                loss_fn_name=name, training_time=training_time, \
-                                dims=2)
+        compute_losses_and_plot_solution(
+            pinn_trained=pinn_trained,\
+            x=x,\
+            device = device, \
+            loss_values=loss_values, \
+            x_init=x_init, \
+            u_init=u_init, \
+            N_POINTS_X=N_POINTS_X, \
+            N_POINTS_T=N_POINTS_T, \
+            loss_fn_name=name, \
+            training_time=training_time, \
+            dims=1 if general_parameters.one_dimention else 2
+        )
 #    # train the BSplines_
 #     for loss_fn, name in \
 #         [

@@ -1,36 +1,22 @@
 import numpy as np
-import torch
+from scipy.interpolate import splev
 
-def get_unequaly_distribution_points(eps: float = 0.1, density_range: float = .2, n: int = 100) -> torch.Tensor:
-    # Calculating the range of the density function
-    eps_prim = 1 - eps
-    range_dr_ep = eps_prim - (density_range * eps)
+# Define a set of control points and knot vector for a cubic B-spline
+control_points = [(0, 0), (0, 1, 0, 1, .5), (2, -1, 3), (3, 0)]
+knots = [0, 0, 0, 1, 2, 3, 3, 3]
+knots = np.array(knots)/3.0
 
-    # Initializing the points as a NumPy array
-    points_np = np.zeros(n, dtype=np.float32)
+# Evaluate the B-spline at a set of points
+t = np.linspace(0, 1, 101)
+out = splev(t, (knots, control_points, 3), der=1)
 
-    # Setting the first two points
-    points_np[0] = 0.0
-    points_np[1] = 0.5
+print(out)
 
-    # Calculating the points using the given formula up to range_dr_ep
-    for i in range(2, n):
-        tmp = points_np[i-1] + (points_np[i-1] - points_np[i-2])/2.0
-        if tmp > range_dr_ep:
-            start_index_for_next_step = i
-            break
-        points_np[i] = tmp
-
-
-    # Equally spreading the remaining points in the range
-    linspace = np.linspace(points_np[start_index_for_next_step-1], 1.0, n - start_index_for_next_step + 1)
-
-    points_np[start_index_for_next_step-1:] = linspace
-
-    # Converting the NumPy array to a PyTorch tensor
-    points = torch.from_numpy(points_np)
-
-    # Printing the points
-    print(points)
-
-
+# Plot the B-spline curve
+import matplotlib.pyplot as plt
+plt.plot(t, out[0], 'b', lw=2, label=f'B-spline curve, control points {control_points[0]}')
+plt.plot(t, out[1], 'r', lw=2, label=f'B-spline curve, control points {control_points[1]}')
+plt.plot(t, out[2], 'g', lw=2, label=f'B-spline curve, control points {control_points[2]}')
+plt.grid()
+plt.legend()
+plt.show()
