@@ -64,7 +64,7 @@ class GeneralParameters:
         self.n_points_init = 300 if n_points_init is None else n_points_init
         self.weight_interior = 50.0 if weight_interior is None else weight_interior
         self.weight_initial = .5 if weight_initial is None else weight_initial
-        self.weight_boundary = 1.0 if weight_boundary is None else weight_boundary
+        self.weight_boundary = 5.0 if weight_boundary is None else weight_boundary
         self.layers = 4 if layers is None else layers
         self.neurons_per_layer = 20 if neurons_per_layer is None else neurons_per_layer
         self.epochs = 50_000 if epochs is None else epochs

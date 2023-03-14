@@ -8,15 +8,24 @@ def f(pinn: PINN, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
     # print data sypes of x and t
     # return pinn(x.cuda(), t.cuda() if t is not None else torch.zeros_like(x.cuda()).cuda())
     return pinn(x.cuda(), t)
+   
     # return pinn(x, t if t is not None else torch.zeros_like(x))
 
-def f_spline(spline: B_Splines, x: torch.Tensor) -> torch.Tensor:
+def f_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor = None, dims: int = 1, mode: str = 'Adam') -> torch.Tensor:
     """Compute the value of the approximate solution from the spline model"""
-    return spline.calculate_BSpline_1D(x)
 
-def dfdx_spline(spline: B_Splines, x: torch.Tensor) -> torch.Tensor:
+    if dims == 1:
+        return spline.calculate_BSpline_1D(x, mode=mode)
+    elif dims == 2:
+        return spline.calculate_BSpline_2D(x, t, mode='Adam')
+
+def dfdx_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor = None, dims: int = 1, mode: str = 'Adam') -> torch.Tensor:
     """Compute the value of the approximate derivative solution from the spline model"""
-    return spline.calculate_BSpline_1D_deriv_dx(x)
+
+    if dims == 1:
+        return spline.calculate_BSpline_1D_deriv_dx(x, mode=mode)
+    elif dims == 2:
+        return spline.calculate_BSpline_2D_deriv_dx(x, t, mode=mode)
 
 def df(output: torch.Tensor, input: torch.Tensor, order: int = 1) -> torch.Tensor:
     """Compute neural network derivative with respect to input features using PyTorch autograd engine"""
