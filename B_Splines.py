@@ -30,7 +30,7 @@ class B_Splines(torch.nn.Module):
       elif self.dims == 2:
          x = x.flatten()
       
-      if mode == 'adam':
+      if mode == 'Adam':
 
          def _B(x: torch.Tensor, k: int, i: int, t: torch.Tensor) -> torch.Tensor:
             """
@@ -99,22 +99,26 @@ class B_Splines(torch.nn.Module):
          c: array of control points
          p: degree of B-spline
          """
+         
+         x = x.flatten()
 
          result = torch.zeros_like(x)
 
          for idx, elem in enumerate(x):
+            try:
+               k = torch.searchsorted(t, x[idx], side='left') - 1
+               
+               q = [p * (c[j+k-p+1] - c[j+k-p]) / (t[j+k+1] - t[j+k-p+1]) for j in range(0, p)]
 
-            k = torch.searchsorted(t, x[idx], side='right') - 1
-
-            q = [p * (c[j+k-p+1] - c[j+k-p]) / (t[j+k+1] - t[j+k-p+1]) for j in range(0, p)]
-
-            for r in range(1, p):
-               for j in range(p-1, r-1, -1):
-                     right = j+1+k-r
-                     left = j+k-(p-1)
-                     alpha = (elem - t[left]) / (t[right] - t[left])
-                     q[j] = (1.0 - alpha) * q[j-1] + alpha * q[j]
-            result[idx] = q[p-1]
+               for r in range(1, p):
+                  for j in range(p-1, r-1, -1):
+                        right = j+1+k-r
+                        left = j+k-(p-1)
+                        alpha = (elem - t[left]) / (t[right] - t[left])
+                        q[j] = (1.0 - alpha) * q[j-1] + alpha * q[j]
+               result[idx] = q[p-1]
+            except:
+               result[idx] = 0
 
          return result
       
@@ -124,7 +128,7 @@ class B_Splines(torch.nn.Module):
          coefs = deepcopy(self.coefs)
 
          #repeat and add first and last element of knot_vector twice
-         knot_vector = torch.cat((knot_vector[0].repeat(2), knot_vector, knot_vector[-1].repeat(2)))
+         # knot_vector = torch.cat((knot_vector[0].repeat(2), knot_vector, knot_vector[-1].repeat(2)))
 
          tck = (
                knot_vector.detach(),
@@ -135,7 +139,9 @@ class B_Splines(torch.nn.Module):
          return torch.Tensor(spi.splev(x, tck, der=1))
       
       elif mode == 'Adam':
-         return torch.Tensor(_de_Boor_derivative(x, self.knot_vector, self.coefs, self.degree))
+         x = x.flatten()
+
+         return torch.Tensor(_de_Boor_derivative(x.cpu(), self.knot_vector, self.coefs, self.degree))
    
    def calculate_BSpline_1D_deriv_dxdx(self, x:torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
@@ -192,19 +198,19 @@ class B_Splines(torch.nn.Module):
       t = t.flatten()
 
       spline_1D_deriv_dt = self.calculate_BSpline_1D_deriv_dx(x, mode=mode).cpu()
-      spline_1D_deriv_dtdt = self.calculate_BSpline_1D_deriv_dx(spline_2D_deriv_dt, mode=mode).cpu()
+      spline_1D_deriv_dtdt = self.calculate_BSpline_1D_deriv_dx(spline_1D_deriv_dt, mode=mode).cpu()
       spline_1D_x = self.calculate_BSpline_1D(x, mode=mode).cpu()
 
       return torch.outer(spline_1D_deriv_dtdt, spline_1D_x).cpu()
 
-   def calculate_BSpline_2D_deriv_dt(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+   def calculate_BSpline_2D_deriv_dt(self, x: torch.Tensor, t: torch.Tensor, mode: str = 'Adam') -> torch.Tensor:
       """
       Function returns value of derivtive of BSpline function in 2D case wrt t
       """
       x = x.flatten()
       t = t.flatten()
       
-      return torch.outer(self.calculate_BSpline_1D(x).cpu(), self.calculate_BSpline_1D_deriv_dx(t).cpu())
+      return torch.outer(self.calculate_BSpline_1D(x, mode=mode).cpu(), self.calculate_BSpline_1D_deriv_dx(t, mode=mode).cpu())
    
    def calculate_BSpline_2D_deriv_dxdt(self, x: torch.Tensor, t: torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
