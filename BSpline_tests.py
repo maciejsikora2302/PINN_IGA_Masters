@@ -46,5 +46,7 @@ bs = B_Splines(
     knot_vector=torch.linspace(0, 1, 10000),
     degree=3,
 )
-x = torch.Tensor([0.1, 0.323, 0.6, 0.98])
+x = torch.Tensor([0, 0.323, 0.6, 1.0])
+# print(x.shape)
 print(bs.calculate_BSpline_1D_deriv_dx(x, mode='Adam'))
+print(bs.calculate_BSpline_1D_deriv_dx(x, mode='NN'))
