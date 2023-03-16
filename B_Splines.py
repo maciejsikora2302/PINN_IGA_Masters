@@ -30,7 +30,7 @@ class B_Splines(torch.nn.Module):
       elif self.dims == 2:
          x = x.flatten()
       
-      if mode == 'adam':
+      if mode == 'Adam':
 
          def _B(x: torch.Tensor, k: int, i: int, t: torch.Tensor) -> torch.Tensor:
             """
@@ -90,7 +90,7 @@ class B_Splines(torch.nn.Module):
 
       def _de_Boor_derivative(x: torch.Tensor, t: torch.Tensor, c: torch.Tensor, p: int):
          """
-         Evaluates S(x).
+         Evaluates first order derivative of a linear combination of B-Splines basis functions
 
          Args
          ----
@@ -99,22 +99,26 @@ class B_Splines(torch.nn.Module):
          c: array of control points
          p: degree of B-spline
          """
+         
+         x = x.flatten()
 
          result = torch.zeros_like(x)
 
          for idx, elem in enumerate(x):
+            try:
+               k = torch.searchsorted(t, x[idx], side='left') - 1
+               
+               q = [p * (c[j+k-p+1] - c[j+k-p]) / (t[j+k+1] - t[j+k-p+1]) for j in range(0, p)]
 
-            k = torch.searchsorted(t, x[idx], side='right') - 1
-
-            q = [p * (c[j+k-p+1] - c[j+k-p]) / (t[j+k+1] - t[j+k-p+1]) for j in range(0, p)]
-
-            for r in range(1, p):
-               for j in range(p-1, r-1, -1):
-                     right = j+1+k-r
-                     left = j+k-(p-1)
-                     alpha = (elem - t[left]) / (t[right] - t[left])
-                     q[j] = (1.0 - alpha) * q[j-1] + alpha * q[j]
-            result[idx] = q[p-1]
+               for r in range(1, p):
+                  for j in range(p-1, r-1, -1):
+                        right = j+1+k-r
+                        left = j+k-(p-1)
+                        alpha = (elem - t[left]) / (t[right] - t[left])
+                        q[j] = (1.0 - alpha) * q[j-1] + alpha * q[j]
+               result[idx] = q[p-1]
+            except:
+               result[idx] = 0
 
          return result
       
@@ -124,7 +128,7 @@ class B_Splines(torch.nn.Module):
          coefs = deepcopy(self.coefs)
 
          #repeat and add first and last element of knot_vector twice
-         knot_vector = torch.cat((knot_vector[0].repeat(2), knot_vector, knot_vector[-1].repeat(2)))
+         # knot_vector = torch.cat((knot_vector[0].repeat(2), knot_vector, knot_vector[-1].repeat(2)))
 
          tck = (
                knot_vector.detach(),
@@ -132,87 +136,90 @@ class B_Splines(torch.nn.Module):
                self.degree
             )
          
-         # print("="*100)
-         # print("tck elements")
-         # torch.set_printoptions(edgeitems=6)
-         # print(tck[0])
-         # print(tck[1])
-         # print(tck[2])
-         # print(spi.splev(x, tck, der=1))
-         # print("="*100)
-         
          return torch.Tensor(spi.splev(x, tck, der=1))
+      
       elif mode == 'Adam':
-         return torch.Tensor(_de_Boor_derivative(x, self.knot_vector, self.coefs, self.degree))
+         x = x.flatten()
+
+         return torch.Tensor(_de_Boor_derivative(x.cpu(), self.knot_vector, self.coefs, self.degree))
    
-   def calculate_BSpline_1D_deriv_dxdx(self, x:torch.Tensor) -> torch.Tensor:
+   def calculate_BSpline_1D_deriv_dxdx(self, x:torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
       Function returns value of second derivative of BSpline function in 1D case wrt. x
       """
-      x = x.cpu().detach()
-      knot_vector = deepcopy(self.knot_vector)
-      coefs = deepcopy(self.coefs)
-      tck = (
-            knot_vector.detach(),
-            coefs.detach(),
-            self.degree
-         )
+
+      if mode == 'NN':
+         x = x.cpu().detach()
+         knot_vector = deepcopy(self.knot_vector)
+         coefs = deepcopy(self.coefs)
+         tck = (
+               knot_vector.detach(),
+               coefs.detach(),
+               self.degree
+            )
+         return torch.Tensor(spi.splev(x, tck, der=2))
       
-      return torch.Tensor(spi.splev(x, tck, der=2))
+      elif mode == 'Adam':
+         f_dx = self.calculate_BSpline_1D_deriv_dx(x, mode=mode)
+         f_dxdx = self.calculate_BSpline_1D_deriv_dx(f_dx, mode=mode)
+
+         return f_dxdx
+      
+      
    
-   def calculate_BSpline_2D_deriv_dx(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+   def calculate_BSpline_2D_deriv_dx(self, x: torch.Tensor, t: torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
       Function returns value of derivtive of BSpline function in 2D case wrt x
       """
       x = x.flatten()
       t = t.flatten()
 
-      return torch.outer(self.calculate_BSpline_1D_deriv_dx(x).cpu(), self.calculate_BSpline_1D(t).cpu())
+      return torch.outer(self.calculate_BSpline_1D_deriv_dx(x, mode=mode).cpu(), self.calculate_BSpline_1D(t, mode=mode).cpu())
    
-   def calculate_BSpline_2D_deriv_dxdx(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+   def calculate_BSpline_2D_deriv_dxdx(self, x: torch.Tensor, t: torch.Tensor, mode: str = None) -> torch.Tensor:
       """
       Function returns value of second derivtive of BSpline function in 2D case wrt x
       """
       x = x.flatten()
       t = t.flatten()
 
-      spline_2D_deriv_dx = self.calculate_BSpline_2D_deriv_dx(x, t).cpu()
-      spline_2D_deriv_dxdx = self.calculate_BSpline_2D_deriv_dx(spline_2D_deriv_dx).cpu()
-      spline_2D_t = self.calculate_BSpline_1D(t).cpu()
+      spline_1D_deriv_dx = self.calculate_BSpline_1D_deriv_dx(x, mode=mode).cpu()
+      spline_1D_deriv_dxdx = self.calculate_BSpline_1D_deriv_dx(spline_1D_deriv_dx, mode=mode).cpu()
+      spline_1D_t = self.calculate_BSpline_1D(t, mode=mode).cpu()
 
-      return torch.outer(spline_2D_deriv_dxdx, spline_2D_t).cpu()
+      return torch.outer(spline_1D_deriv_dxdx, spline_1D_t).cpu()
 
 
-   def calculate_BSpline_2D_deriv_dtdt(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+   def calculate_BSpline_2D_deriv_dtdt(self, x: torch.Tensor, t: torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
       Function returns value of second derivtive of BSpline function in 2D case wrt t
       """
       x = x.flatten()
       t = t.flatten()
 
-      spline_2D_deriv_dt = self.calculate_BSpline_2D_deriv_dt(x, t).cpu()
-      spline_2D_deriv_dtdt = self.calculate_BSpline_2D_deriv_dt(spline_2D_deriv_dt).cpu()
-      spline_2D_x = self.calculate_BSpline_1D(x).cpu()
+      spline_1D_deriv_dt = self.calculate_BSpline_1D_deriv_dx(x, mode=mode).cpu()
+      spline_1D_deriv_dtdt = self.calculate_BSpline_1D_deriv_dx(spline_1D_deriv_dt, mode=mode).cpu()
+      spline_1D_x = self.calculate_BSpline_1D(x, mode=mode).cpu()
 
-      return torch.outer(spline_2D_deriv_dtdt, spline_2D_x).cpu()
+      return torch.outer(spline_1D_deriv_dtdt, spline_1D_x).cpu()
 
-   def calculate_BSpline_2D_deriv_dt(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+   def calculate_BSpline_2D_deriv_dt(self, x: torch.Tensor, t: torch.Tensor, mode: str = 'Adam') -> torch.Tensor:
       """
       Function returns value of derivtive of BSpline function in 2D case wrt t
       """
       x = x.flatten()
       t = t.flatten()
       
-      return torch.outer(self.calculate_BSpline_1D(x).cpu(), self.calculate_BSpline_1D_deriv_dx(t).cpu())
+      return torch.outer(self.calculate_BSpline_1D(x, mode=mode).cpu(), self.calculate_BSpline_1D_deriv_dx(t, mode=mode).cpu())
    
-   def calculate_BSpline_2D_deriv_dxdt(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+   def calculate_BSpline_2D_deriv_dxdt(self, x: torch.Tensor, t: torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
       Function returns value of second order derivative of BSpline function in 2D case wrt x and t. Please
       note that this the same what derivative of BSpline function in 2D case wrt t and y respectively.
       The order of variables doesn't matter.
       """
 
-      return torch.outer(self.calculate_BSpline_1D_deriv_dx(x), self.calculate_BSpline_1D_deriv_dx(t))
+      return torch.outer(self.calculate_BSpline_1D_deriv_dx(x,mode=mode), self.calculate_BSpline_1D_deriv_dx(t, mode=mode))
    
    def forward(self, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
 

@@ -8,15 +8,24 @@ def f(pinn: PINN, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
     # print data sypes of x and t
     # return pinn(x.cuda(), t.cuda() if t is not None else torch.zeros_like(x.cuda()).cuda())
     return pinn(x.cuda(), t)
+   
     # return pinn(x, t if t is not None else torch.zeros_like(x))
 
-def f_spline(spline: B_Splines, x: torch.Tensor) -> torch.Tensor:
+def f_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor = None, mode: str = 'Adam') -> torch.Tensor:
     """Compute the value of the approximate solution from the spline model"""
-    return spline.calculate_BSpline_1D(x)
 
-def dfdx_spline(spline: B_Splines, x: torch.Tensor) -> torch.Tensor:
-    """Compute the value of the approximate derivative solution from the spline model"""
-    return spline.calculate_BSpline_1D_deriv_dx(x)
+    if spline.dims == 1:
+        return spline.calculate_BSpline_1D(x, mode=mode)
+    elif spline.dims == 2:
+        return spline.calculate_BSpline_2D(x, t, mode=mode)
+
+def dfdx_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor = None, mode: str = 'Adam') -> torch.Tensor:
+    """Compute the value of the approximate derivative solution from the spline model w.r.t. x"""
+
+    if spline.dims == 1:
+        return spline.calculate_BSpline_1D_deriv_dx(x, mode=mode)
+    elif spline.dims == 2:
+        return spline.calculate_BSpline_2D_deriv_dx(x, t, mode=mode)
 
 def df(output: torch.Tensor, input: torch.Tensor, order: int = 1) -> torch.Tensor:
     """Compute neural network derivative with respect to input features using PyTorch autograd engine"""
@@ -40,6 +49,11 @@ def dfdt(pinn: PINN, x: torch.Tensor, t: torch.Tensor, order: int = 1):
     """Derivative with respect to the time variable of arbitrary order"""
     f_value = f(pinn, x, t)
     return df(f_value, t, order=order)
+
+def dfdt_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor, mode: str = 'Adam'):
+    """Derivative of spline with respect to the time variable of the first order"""
+    
+    return spline.calculate_BSpline_2D_deriv_dt(x, t, mode=mode)
 
 
 def dfdx(pinn: PINN, x: torch.Tensor, t: torch.Tensor = None, order: int = 1):

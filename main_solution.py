@@ -9,7 +9,7 @@ from PINN import PINN
 from B_Splines import B_Splines
 from general_parameters import general_parameters, logger, Color, TIMESTAMP, OUT_DATA_FOLDER
 from utils import compute_losses_and_plot_solution, get_unequaly_distribution_points
-from loss_functions import interior_loss_colocation, interior_loss_strong, interior_loss_weak, interior_loss_weak_and_strong, compute_loss, initial_condition, interior_loss_weak_spline, interior_loss_weak_and_strong_spline, interior_loss_colocation_spline, interior_loss_strong_spline
+from loss_functions import interior_loss_colocation, interior_loss_strong, interior_loss_weak, interior_loss_weak_and_strong, compute_loss, initial_condition, interior_loss_weak_spline, interior_loss_weak_and_strong_spline, interior_loss_colocation_spline, interior_loss_strong_spline, compute_loss_spline
 from NN_tools import train_model
 
 
@@ -139,10 +139,17 @@ if __name__ == "__main__":
     logger.info("="*80)
     logger.info("")
 
-    logger.info(f"Creating PINN with {Color.GREEN}{LAYERS}{Color.RESET} layers and {Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET} neurons per layer")
-    pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), N_X_POINTS=N_POINTS_X, N_T_POINTS=N_POINTS_T).to(device)
-    spline_1D = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=1)
-    spline_2D = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=2)
+    if USE_SPLINE:
+
+        if general_parameters.one_dimention:
+            logger.info(f"Creating {Color.GREEN}1D{Color.RESET} BSpline")
+            spline_1D = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=1)
+        elif not general_parameters.one_dimention:
+            logger.info(f"Creating {Color.GREEN}2D{Color.RESET} BSpline")
+            spline_2D = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=2)
+    else:
+        logger.info(f"Creating PINN with {Color.GREEN}{LAYERS}{Color.RESET} layers and {Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET} neurons per layer")
+        pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), N_X_POINTS=N_POINTS_X, N_T_POINTS=N_POINTS_T).to(device)
 
     # assert check_gradient(nn_approximator, x, t)
     # to add new loss functions, add them to the list below and add the corresponding function to the array of functions in train pinn block below
@@ -152,6 +159,10 @@ if __name__ == "__main__":
     loss_fn_weak_and_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong, dims = 1 if general_parameters.one_dimention else 2)
     loss_fn_colocation = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation, dims = 1 if general_parameters.one_dimention else 2)
 
+    loss_fn_weak_spline = partial(compute_loss_spline, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_spline)
+    loss_fn_strong_spline = partial(compute_loss_spline, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong_spline)
+    loss_fn_weak_and_strong_spline = partial(compute_loss_spline, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong_spline)
+    loss_fn_colocation_spline = partial(compute_loss_spline, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation_spline)
 
     if not USE_SPLINE:
         # logger.info(f"Computing initial condition loss")
@@ -195,13 +206,13 @@ if __name__ == "__main__":
             )
     else:
         
-    # train the BSplines_
+    # train the BSplines
         for loss_fn, name in \
             [
-                (loss_fn_weak, 'loss_fn_weak'),
-                # (loss_fn_strong, 'loss_fn_strong'), 
-                # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
-                # (loss_fn_colocation, 'loss_fn_colocation')
+                (loss_fn_weak_spline, 'loss_fn_weak'),
+                # (loss_fn_strong_spline, 'loss_fn_strong'), 
+                # (loss_fn_weak_and_strong_spline, 'loss_fn_weak_and_strong'), 
+                # (loss_fn_colocation_spline, 'loss_fn_colocation')
             ]:
             logger.info(f"Training splines for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
 
