@@ -8,9 +8,11 @@ from time import time, time_ns
 from PINN import PINN
 from B_Splines import B_Splines
 from general_parameters import general_parameters, logger, Color, TIMESTAMP, OUT_DATA_FOLDER
-from utils import compute_losses_and_plot_solution, get_unequaly_distribution_points
+from utils import compute_losses_and_plot_solution
+from additional_utils import get_unequaly_distribution_points
 from loss_functions import interior_loss_colocation, interior_loss_strong, interior_loss_weak, interior_loss_weak_and_strong, compute_loss, initial_condition, interior_loss_weak_spline, interior_loss_weak_and_strong_spline, interior_loss_colocation_spline, interior_loss_strong_spline, compute_loss_spline
 from NN_tools import train_model
+from pprint import pprint
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -44,6 +46,10 @@ args = parser.parse_args()
 
 
 
+pprint(vars(args))
+
+
+
 general_parameters.length = args.length if args.length is not None else general_parameters.length
 general_parameters.total_time = args.total_time if args.total_time is not None else general_parameters.total_time
 general_parameters.n_points_x = args.n_points_x if args.n_points_x is not None else general_parameters.n_points_x
@@ -65,6 +71,8 @@ general_parameters.splines = args.splines if args.splines is not None else gener
 general_parameters.pinn_is_solution = args.pinn_is_solution if args.pinn_is_solution is not None else general_parameters.pinn_is_solution
 general_parameters.pinn_learns_coeff = args.pinn_learns_coeff if args.pinn_learns_coeff is not None else general_parameters.pinn_learns_coeff
 
+general_parameters.precalculate()
+pprint(vars(general_parameters))
 
 LENGTH = general_parameters.length
 TOTAL_TIME = general_parameters.total_time
@@ -92,6 +100,9 @@ if __name__ == "__main__":
 
 
     if general_parameters.uneven_distribution:
+        # ATTENTION, UNEVEN DISTRIBUTION WILL NOT WORK WHEN PINN IS A SOLUTION FLAG IS PROVIDED
+        # SINCE I MADE ASSUMPTION THAT WHEN WE ARE LEARNING SOLUTION WE ARE USING RANDOM POINTS 
+        # FROM ALL OVER THE RANGE THIS IS STILL SUBJECT TO CHANGE
         x_raw = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = N_POINTS_X, density_range=0.2, device=device)
         x_raw = x_raw.requires_grad_(True)
     else:
@@ -157,13 +168,13 @@ if __name__ == "__main__":
         logger.info(f"Creating PINN with {Color.GREEN}{LAYERS}{Color.RESET} layers and {Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET} neurons per layer")
 
         if general_parameters.one_dimension:
-            if general_parameters.pinn_is_solution:
-                pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=1, output_layer_dims=1).to(device)
-            elif general_parameters.pinn_learns_coeff:
-                pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=N_POINTS_X, output_layer_dims=N_POINTS_X).to(device)
-            else:
-                logger.error(f"{Color.RED}Unknown pinn type{Color.RESET}")
-                exit(1)
+            pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=N_POINTS_X, output_layer_dims=N_POINTS_X).to(device)
+            # if general_parameters.pinn_is_solution:
+            #     pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=1, output_layer_dims=1).to(device)
+            # elif general_parameters.pinn_learns_coeff:
+            # else:
+            #     logger.error(f"{Color.RED}Unknown pinn type{Color.RESET}")
+            #     exit(1)
         elif not general_parameters.one_dimension:
             raise NotImplementedError("2D PINN not implemented yet :<")
         else:

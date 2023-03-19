@@ -1,0 +1,2 @@
+tensor(0.),tensor(0.2000),tensor(0.4000),tensor(0.6000),tensor(0.8000),tensor(1.)
+tensor(nan, device='cuda:0'),tensor(nan, device='cuda:0'),tensor(nan, device='cuda:0'),tensor(nan, device='cuda:0'),tensor(nan, device='cuda:0'),tensor(nan, device='cuda:0')
