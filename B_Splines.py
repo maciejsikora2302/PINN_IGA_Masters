@@ -1,7 +1,7 @@
 import scipy.interpolate as spi
 import torch
 from copy import deepcopy
-
+from general_parameters import general_parameters
 
 class B_Splines(torch.nn.Module):
 
@@ -11,7 +11,7 @@ class B_Splines(torch.nn.Module):
       self.knot_vector = knot_vector
       # self.coefs = Variable(10.0 * torch.rand(len(knot_vector) - degree - 1), requires_grad=True) if coefs is None else coefs # We want to differentiate function wrt BSplines coefficient
       self.degree = degree
-      self.coefs = torch.nn.Parameter(10.0 * torch.rand(len(knot_vector) - degree - 1) if coefs is None else coefs)
+      self.coefs = torch.nn.Parameter(10.0 * torch.rand(len(self.knot_vector) - self.degree - 1) if coefs is None else coefs)
       self.dims = dims
       self.losses = []
 
@@ -22,7 +22,9 @@ class B_Splines(torch.nn.Module):
       """
       Funtion calculates value of a linear combination of 1D splines basis functions
       """
-      n = len(self.knot_vector) - self.degree - 1
+      n = general_parameters.n_coefs
+
+      
       assert len(self.coefs) >= n
 
       if self.dims == 1:

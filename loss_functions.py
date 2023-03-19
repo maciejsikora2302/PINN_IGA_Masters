@@ -15,9 +15,9 @@ def initial_condition(x) -> torch.Tensor:
 
 def precalculations_2D(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, colocation: bool = False):
     eps_interior = general_parameters.eps_interior
+    knot_vector_length = len(general_parameters.knot_vector)
     degree = general_parameters.spline_degree
-    knot_vector_length = general_parameters.knot_vector_length
-    coefs_vector_length = general_parameters.coefs_vector_length
+    coefs_vector_length = general_parameters.n_coefs
 
     linspace = torch.linspace(0, 1, knot_vector_length)
     coefs = torch.ones(coefs_vector_length)
@@ -37,13 +37,19 @@ def precalculations_2D(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, co
     
 
 def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = False):
-    eps_interior = general_parameters.eps_interior
-    knot_vector_length = general_parameters.knot_vector_length
-    degree = general_parameters.spline_degree
-    coefs_vector_length = general_parameters.coefs_vector_length
 
-    linspace = torch.linspace(0, 1, knot_vector_length)
-    coefs = torch.ones(coefs_vector_length)
+    if general_parameters.pinn_is_solution:
+        x = torch.rand_like(x)
+        x = torch.sort(x)[0]
+
+
+    eps_interior = general_parameters.eps_interior
+    knot_vector_length = len(general_parameters.knot_vector)
+    degree = general_parameters.spline_degree
+    coefs_vector_length = general_parameters.n_coefs
+
+    linspace = general_parameters.knot_vector
+    # coefs = torch.ones(coefs_vector_length)
     #coefs random floats between 0 and 1 as a tensor
     coefs = torch.Tensor(np.random.rand(coefs_vector_length))
     sp = B_Splines(linspace, degree, coefs=coefs) if sp is None else sp
@@ -64,11 +70,10 @@ def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spline
     #t here is x in Eriksson problem, x here is y in Erikkson problem
     # loss = dfdt(pinn, x, t, order=1) - eps*dfdt(pinn, x, t, order=2)-eps*dfdx(pinn, x, t, order=2)
     
-    if dims == 1:
-        x = x.cuda()
 
     if dims == 1:
         
+        x = x.cuda()
         eps_interior, sp, _, _, v = precalculations_1D(x, sp)
         v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
 
@@ -122,8 +127,6 @@ def interior_loss_colocation(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_
 
     if dims == 1:
         x = x.cuda()
-
-    if dims == 1:
         eps_interior, sp, _, _, v = precalculations_1D(x, sp, colocation = True)
 
         loss = (dfdx(pinn, x, order=1) - eps_interior*dfdx(pinn, x, order=2)) * v

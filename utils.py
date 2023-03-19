@@ -7,42 +7,11 @@ import matplotlib.pyplot as plt
 from NN_tools import f
 from plotting import plot_color
 from PINN import PINN
+from scipy.interpolate import BSpline
 
 def running_average(y, window=100):
     cumsum = np.cumsum(np.insert(y, 0, 0)) 
     return (cumsum[window:] - cumsum[:-window]) / float(window)
-
-def get_unequaly_distribution_points(eps: float = 0.1, density_range: float = .2, n: int = 100, device: torch.device = 'cuda') -> torch.Tensor:
-    # Calculating the range of the density function
-    eps_prim = 1 - eps
-    range_dr_ep = eps_prim - (density_range * eps)
-
-    # Initializing the points as a NumPy array
-    points_np = np.zeros(n, dtype=np.float32)
-
-    # Setting the first two points
-    points_np[0] = 0.0
-    points_np[1] = 0.5
-    start_index_for_next_step = 1
-
-    # Calculating the points using the given formula up to range_dr_ep
-    for i in range(2, n):
-        tmp = points_np[i-1] + (points_np[i-1] - points_np[i-2])/2.0
-        if tmp > range_dr_ep:
-            start_index_for_next_step = i
-            break
-        points_np[i] = tmp
-
-
-    # Equally spreading the remaining points in the range
-    linspace = np.linspace(points_np[start_index_for_next_step-1], 1.0, n - start_index_for_next_step + 1)
-
-    points_np[start_index_for_next_step-1:] = linspace
-
-    # Converting the NumPy array to a PyTorch tensor
-    points = torch.from_numpy(points_np).to(device)
-
-    return points
 
 def compute_losses_and_plot_solution(
         pinn_trained: PINN,
@@ -149,7 +118,13 @@ def compute_losses_and_plot_solution(
     # pinn_values = f(pinn_trained.cuda(), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
     # pinn_values = f(pinn_trained.cuda(), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
     if dims == 1:
-        pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1))
+        if general_parameters.pinn_is_solution:
+            pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1)).cpu().flatten().detach()
+        elif general_parameters.pinn_learns_coeff:
+            pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1))
+            spline = BSpline(general_parameters.knot_vector, pinn_values.cpu().flatten().detach(), general_parameters.spline_degree)
+            pinn_values = spline(x.cpu().detach())
+
     else:
         pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1), t.reshape(-1,1))
     # print(pinn_values.cpu().flatten().detach())
@@ -158,7 +133,7 @@ def compute_losses_and_plot_solution(
     ax.set_title("Solution profile")
     ax.set_xlabel("x")
     ax.set_ylabel("u")
-    ax.plot(x_init.cpu(), pinn_values.cpu().flatten().detach(), label="PINN solution")
+    ax.plot(x_init.cpu(), pinn_values, label="PINN solution")
     ax.legend()
     plt.savefig(f"{path}/solution_profile.png")
 
@@ -168,7 +143,7 @@ def compute_losses_and_plot_solution(
     ax.set_xlabel("x")
     ax.set_ylabel("u")
     ax.set_ylim(-0.1, 1.1)
-    ax.plot(x_init.cpu(), pinn_values.cpu().flatten().detach(), label="PINN solution")
+    ax.plot(x_init.cpu(), pinn_values, label="PINN solution")
     ax.legend()
     plt.savefig(f"{path}/solution_profile_normalized.png")
     
@@ -176,7 +151,7 @@ def compute_losses_and_plot_solution(
     with open(f"{path}/solution_profile.txt", "w") as file:
         file.write(','.join([str(x) for x in x_init]))
         file.write('\n')
-        y = pinn_values.flatten().detach()
+        y = pinn_values
         file.write(','.join([str(x) for x in y]))
 
     # with open(f"{path}/solution_profile2.txt", "w") as file:

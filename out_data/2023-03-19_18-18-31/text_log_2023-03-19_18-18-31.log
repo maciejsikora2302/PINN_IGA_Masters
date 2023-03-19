@@ -1,0 +1,21 @@
+INFO -- Device: cuda
+INFO -- Arguments: Namespace(length=None, total_time=None, n_points_x=6, n_points_t=None, n_points_init=None, weight_interior=None, weight_initial=1.5, weight_boundary=None, layers=None, neurons_per_layer=None, epochs=10, learning_rate=0.01, eps_interior=None, spline_degree=None, save=False, one_dimension=True, uneven_distribution=False, splines=False, pinn_is_solution=False, pinn_learns_coeff=True)
+INFO -- [92mOne dimentional problem[0m
+INFO -- 
+INFO -- ================================================================================
+INFO -- Learning parameters
+INFO -- Length:                                           [92m1.0[0m
+INFO -- Total time:                                       [92m1.0[0m
+INFO -- Number of points in x:                            [92m6[0m
+INFO -- Number of points in initial condition:            [92m300[0m
+INFO -- Weight for interior loss:                         [92m50.0[0m
+INFO -- Weight for initial condition loss:                [92m1.5[0m
+INFO -- Weight for boundary loss:                         [92m5.0[0m
+INFO -- Layers:                                           [92m4[0m
+INFO -- Neurons per layer:                                [92m20[0m
+INFO -- Epochs:                                           [92m10[0m
+INFO -- Learning rate:                                    [92m0.01[0m
+INFO -- ================================================================================
+INFO -- 
+INFO -- Creating PINN with [92m4[0m layers and [92m20[0m neurons per layer
+INFO -- Training PINN for [93m10[0m epochs using [93mloss_fn_weak[0m loss function
