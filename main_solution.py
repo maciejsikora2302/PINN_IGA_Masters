@@ -34,10 +34,15 @@ parser.add_argument("--learning_rate", '--lr', type=float)
 parser.add_argument("--eps_interior", '--eps_inter', type=float)
 parser.add_argument("--spline_degree", type=int)
 parser.add_argument("--save", '-s', action="store_true")
-parser.add_argument("--one_dimention", '-o', action="store_true")
+parser.add_argument("--one_dimension", '-o', action="store_true")
 parser.add_argument("--uneven_distribution", '-u', action="store_true")
-parser.add_argument("--splines", action="store_true")
+training_mode = parser.add_mutually_exclusive_group(required=True)
+training_mode.add_argument("--splines", action="store_true")
+training_mode.add_argument("--pinn_is_solution", action="store_true")
+training_mode.add_argument("--pinn_learns_coeff", action="store_true")
 args = parser.parse_args()
+
+
 
 general_parameters.length = args.length if args.length is not None else general_parameters.length
 general_parameters.total_time = args.total_time if args.total_time is not None else general_parameters.total_time
@@ -54,8 +59,12 @@ general_parameters.learning_rate = args.learning_rate if args.learning_rate is n
 general_parameters.eps_interior = args.eps_interior if args.eps_interior is not None else general_parameters.eps_interior
 general_parameters.spline_degree = args.spline_degree if args.spline_degree is not None else general_parameters.spline_degree
 general_parameters.save = args.save if args.save is not None else general_parameters.save
-general_parameters.one_dimention = args.one_dimention if args.one_dimention is not None else general_parameters.one_dimention
+general_parameters.one_dimension = args.one_dimension if args.one_dimension is not None else general_parameters.one_dimension
 general_parameters.uneven_distribution = args.uneven_distribution if args.uneven_distribution is not None else general_parameters.uneven_distribution
+general_parameters.splines = args.splines if args.splines is not None else general_parameters.splines
+general_parameters.pinn_is_solution = args.pinn_is_solution if args.pinn_is_solution is not None else general_parameters.pinn_is_solution
+general_parameters.pinn_learns_coeff = args.pinn_learns_coeff if args.pinn_learns_coeff is not None else general_parameters.pinn_learns_coeff
+
 
 LENGTH = general_parameters.length
 TOTAL_TIME = general_parameters.total_time
@@ -88,7 +97,7 @@ if __name__ == "__main__":
     else:
         x_raw = torch.linspace(x_domain[0], x_domain[1], steps=N_POINTS_X, requires_grad=True)
 
-    if general_parameters.one_dimention:
+    if general_parameters.one_dimension:
         logger.info(f"{Color.GREEN}One dimentional problem{Color.RESET}")
 
         x = x_raw.flatten().reshape(-1, 1).to(device)
@@ -127,7 +136,7 @@ if __name__ == "__main__":
     logger.info(f"{'Length: ':<50}{Color.GREEN}{LENGTH}{Color.RESET}")
     logger.info(f"{'Total time: ':<50}{Color.GREEN}{TOTAL_TIME}{Color.RESET}")
     logger.info(f"{'Number of points in x: ':<50}{Color.GREEN}{N_POINTS_X}{Color.RESET}")
-    if not general_parameters.one_dimention: logger.info(f"{'Number of points in t: ':<50}{Color.GREEN}{N_POINTS_T}{Color.RESET}")
+    if not general_parameters.one_dimension: logger.info(f"{'Number of points in t: ':<50}{Color.GREEN}{N_POINTS_T}{Color.RESET}")
     logger.info(f"{'Number of points in initial condition: ':<50}{Color.GREEN}{N_POINTS_INIT}{Color.RESET}")
     logger.info(f"{'Weight for interior loss: ':<50}{Color.GREEN}{WEIGHT_INTERIOR}{Color.RESET}")
     logger.info(f"{'Weight for initial condition loss: ':<50}{Color.GREEN}{WEIGHT_INITIAL}{Color.RESET}")
@@ -141,113 +150,122 @@ if __name__ == "__main__":
 
     if USE_SPLINE:
 
-        if general_parameters.one_dimention:
-            logger.info(f"Creating {Color.GREEN}1D{Color.RESET} BSpline")
-            spline_1D = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=1)
-        elif not general_parameters.one_dimention:
-            logger.info(f"Creating {Color.GREEN}2D{Color.RESET} BSpline")
-            spline_2D = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=2)
+        logger.info(f"Creating {Color.GREEN}{'1D' if general_parameters.one_dimension else '2D'}{Color.RESET} BSpline")
+        spline = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=1 if general_parameters.one_dimension else 2)
     else:
+        
         logger.info(f"Creating PINN with {Color.GREEN}{LAYERS}{Color.RESET} layers and {Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET} neurons per layer")
-        pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), N_X_POINTS=N_POINTS_X, N_T_POINTS=N_POINTS_T).to(device)
+
+        if general_parameters.one_dimension:
+            if general_parameters.pinn_is_solution:
+                pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=1, output_layer_dims=1).to(device)
+            elif general_parameters.pinn_learns_coeff:
+                pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=N_POINTS_X, output_layer_dims=N_POINTS_X).to(device)
+            else:
+                logger.error(f"{Color.RED}Unknown pinn type{Color.RESET}")
+                exit(1)
+        elif not general_parameters.one_dimension:
+            raise NotImplementedError("2D PINN not implemented yet :<")
+        else:
+            raise Exception("Unknown dimensionality")
 
     # assert check_gradient(nn_approximator, x, t)
     # to add new loss functions, add them to the list below and add the corresponding function to the array of functions in train pinn block below
 
-    loss_fn_weak = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak, dims = 1 if general_parameters.one_dimention else 2)
-    loss_fn_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong, dims = 1 if general_parameters.one_dimention else 2)
-    loss_fn_weak_and_strong = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong, dims = 1 if general_parameters.one_dimention else 2)
-    loss_fn_colocation = partial(compute_loss, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation, dims = 1 if general_parameters.one_dimention else 2)
+    loss_fn_weak = partial(
+        compute_loss if not USE_SPLINE else compute_loss_spline, 
+        x=x, 
+        weight_f=WEIGHT_INTERIOR, 
+        weight_i=WEIGHT_INITIAL, 
+        weight_b=WEIGHT_BOUNDARY, 
+        interior_loss_function=interior_loss_weak if not USE_SPLINE else interior_loss_weak_spline, 
+        dims=1 if general_parameters.one_dimension else 2
+    )
 
-    loss_fn_weak_spline = partial(compute_loss_spline, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_spline)
-    loss_fn_strong_spline = partial(compute_loss_spline, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong_spline)
-    loss_fn_weak_and_strong_spline = partial(compute_loss_spline, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong_spline)
-    loss_fn_colocation_spline = partial(compute_loss_spline, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INITIAL, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation_spline)
+    loss_fn_strong = partial(
+        compute_loss if not USE_SPLINE else compute_loss_spline, 
+        x=x, 
+        weight_f=WEIGHT_INTERIOR, 
+        weight_i=WEIGHT_INITIAL, 
+        weight_b=WEIGHT_BOUNDARY, 
+        interior_loss_function=interior_loss_strong if not USE_SPLINE else interior_loss_strong_spline, 
+        dims=1 if general_parameters.one_dimension else 2
+    )
 
-    if not USE_SPLINE:
-        # logger.info(f"Computing initial condition loss")
-        # logger.info(f"{'Initial condition loss weak:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak, dims = 1):.12f}{Color.RESET}")
-        # logger.info(f"{'Initial condition loss strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong, dims = 1):.12f}{Color.RESET}")
-        # logger.info(f"{'Initial condition loss weak and strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong, dims = 1):.12f}{Color.RESET}")
-        # logger.info(f"{'Initial condition loss colocation:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation, dims = 1):.12f}{Color.RESET}")
+    loss_fn_weak_and_strong = partial(
+        compute_loss if not USE_SPLINE else compute_loss_spline, 
+        x=x, 
+        weight_f=WEIGHT_INTERIOR, 
+        weight_i=WEIGHT_INITIAL, 
+        weight_b=WEIGHT_BOUNDARY, 
+        interior_loss_function=interior_loss_colocation if not USE_SPLINE else interior_loss_colocation_spline, 
+        dims=1 if general_parameters.one_dimension else 2
+    )
 
-        # train the PINN
-        for loss_fn, name in \
-            [
-                (loss_fn_weak, 'loss_fn_weak'),
-                # (loss_fn_strong, 'loss_fn_strong'), 
-                # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
-                # (loss_fn_colocation, 'loss_fn_colocation')
-            ]:
-            logger.info(f"Training PINN for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
-
-
-            start_time = time()
-            pinn_trained, loss_values = train_model(
-                pinn, loss_fn=loss_fn, loss_fn_name=name, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
-            end_time = time()
-
-            training_time = end_time - start_time
-
-            logger.info(f"Training took {Color.GREEN}{training_time:.2f}{Color.RESET} seconds")
-
-            compute_losses_and_plot_solution(
-                pinn_trained=pinn_trained,\
-                x=x,\
-                device = device, \
-                loss_values=loss_values, \
-                x_init=x_init, \
-                u_init=u_init, \
-                N_POINTS_X=N_POINTS_X, \
-                N_POINTS_T=N_POINTS_T, \
-                loss_fn_name=name, \
-                training_time=training_time, \
-                dims=1 if general_parameters.one_dimention else 2
-            )
-    else:
-        
-    # train the BSplines
-        for loss_fn, name in \
-            [
-                (loss_fn_weak_spline, 'loss_fn_weak'),
-                # (loss_fn_strong_spline, 'loss_fn_strong'), 
-                # (loss_fn_weak_and_strong_spline, 'loss_fn_weak_and_strong'), 
-                # (loss_fn_colocation_spline, 'loss_fn_colocation')
-            ]:
-            logger.info(f"Training splines for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
-
-            if args.one_dimention:
-                start_time = time()
-                spline_trained, loss_values = train_model(
-                    spline_1D, loss_fn=loss_fn, loss_fn_name=name, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
-                end_time = time()
-
-                training_time = end_time - start_time
-
-                logger.info(f"Training took {Color.GREEN}{training_time:.2f}{Color.RESET} seconds")
-
-                # TODO: Poprawić poniższy kod dla spline'ów
-                # compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, device = device, \
-                #                                 loss_values=loss_values, x_init=x_init, u_init=u_init, \
-                #                                 N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
-                #                                 loss_fn_name=name, training_time=training_time, \
-                #                                 dims=1)
-
-            
-            else:
-                start_time = time()
-                spline_trained, loss_values = train_model(
-                    spline_2D, loss_fn=loss_fn, loss_fn_name=name, learning_rate=LEARNING_RATE, max_epochs=EPOCHS)
-                end_time = time()
-
-                training_time = end_time - start_time
-
-                logger.info(f"Training took {Color.GREEN}{training_time:.2f}{Color.RESET} seconds")
-                # TODO: Poprawić poniższy kod dla spline'ów
-                # compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, t=t, device = device, \
-                #                     loss_values=loss_values, x_init=x_init, u_init=u_init, \
-                #                     N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
-                #                     loss_fn_name=name, training_time=training_time, \
-                #                     dims=2)
+    loss_fn_colocation = partial(
+        compute_loss if not USE_SPLINE else compute_loss_spline, 
+        x=x, 
+        weight_f=WEIGHT_INTERIOR, 
+        weight_i=WEIGHT_INITIAL, 
+        weight_b=WEIGHT_BOUNDARY, 
+        interior_loss_function=interior_loss_colocation if not USE_SPLINE else interior_loss_colocation_spline, 
+        dims=1 if general_parameters.one_dimension else 2
+    )
 
 
+    # logger.info(f"Computing initial condition loss")
+    # logger.info(f"{'Initial condition loss weak:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak, dims = 1):.12f}{Color.RESET}")
+    # logger.info(f"{'Initial condition loss strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_strong, dims = 1):.12f}{Color.RESET}")
+    # logger.info(f"{'Initial condition loss weak and strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_weak_and_strong, dims = 1):.12f}{Color.RESET}")
+    # logger.info(f"{'Initial condition loss colocation:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=WEIGHT_INTERIOR, weight_i=WEIGHT_INTERIOR, weight_b=WEIGHT_BOUNDARY, interior_loss_function = interior_loss_colocation, dims = 1):.12f}{Color.RESET}")
+
+    # train the PINN
+    for loss_fn, name in \
+        [
+            (loss_fn_weak, 'loss_fn_weak'),
+            # (loss_fn_strong, 'loss_fn_strong'), 
+            # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
+            # (loss_fn_colocation, 'loss_fn_colocation')
+        ]:
+        logger.info(f"Training {'PINN' if not USE_SPLINE else 'splines'} for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
+
+        model = pinn if not USE_SPLINE else spline
+
+        start_time = time()
+        model_trained, loss_values = train_model(
+            model,
+            loss_fn=loss_fn, 
+            loss_fn_name=name, 
+            learning_rate=LEARNING_RATE, 
+            max_epochs=EPOCHS)
+        end_time = time()
+
+        training_time = end_time - start_time
+
+        logger.info(f"Training took {Color.GREEN}{training_time:.2f}{Color.RESET} seconds")
+
+        compute_losses_and_plot_solution(
+            pinn_trained=model_trained,\
+            x=x,\
+            device = device, \
+            loss_values=loss_values, \
+            x_init=x_init, \
+            u_init=u_init, \
+            N_POINTS_X=N_POINTS_X, \
+            N_POINTS_T=N_POINTS_T, \
+            loss_fn_name=name, \
+            training_time=training_time, \
+            dims=1 if general_parameters.one_dimension else 2
+        )
+            # TODO: Poprawić poniższy kod dla spline'ów
+            # compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, device = device, \
+            #                                 loss_values=loss_values, x_init=x_init, u_init=u_init, \
+            #                                 N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
+            #                                 loss_fn_name=name, training_time=training_time, \
+            #                                 dims=1)
+            # TODO: Poprawić poniższy kod dla spline'ów
+            # compute_losses_and_plot_solution(pinn_trained=pinn_trained, x=x, t=t, device = device, \
+            #                     loss_values=loss_values, x_init=x_init, u_init=u_init, \
+            #                     N_POINTS_X=N_POINTS_X, N_POINTS_T=N_POINTS_T, \
+            #                     loss_fn_name=name, training_time=training_time, \
+            #                     dims=2)

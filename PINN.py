@@ -8,19 +8,17 @@ class PINN(nn.Module):
     In the context of PINNs, the neural network is used as universal function approximator
     to approximate the solution of the differential equation
     """
-    def __init__(self, num_hidden: int, dim_hidden: int, act=nn.Tanh(), pinning: bool = False, N_X_POINTS: int = 10, N_T_POINTS: int = None, dims: int = 1):
+    def __init__(self, num_hidden: int, dim_hidden: int, act=nn.Tanh(), pinning: bool = False, input_layer_dims: int = 1, output_layer_dims: int = 1, dims: int = 1):
 
         super().__init__()
 
         self.pinning = pinning
         self.dims = dims
-        self.N_X_POINTS = N_X_POINTS
-        self.N_T_POINTS = N_T_POINTS
         # self.layer_in = nn.Linear(2, dim_hidden)
         # self.layer_out = nn.Linear(dim_hidden, 1)
         if dims == 1:
-            self.layer_in = nn.Linear(N_X_POINTS, dim_hidden)
-            self.layer_out = nn.Linear(dim_hidden, N_X_POINTS)
+            self.layer_in = nn.Linear(input_layer_dims, dim_hidden)
+            self.layer_out = nn.Linear(dim_hidden, output_layer_dims)
 
         num_middle = num_hidden - 1
         self.middle_layers = nn.ModuleList(

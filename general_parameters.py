@@ -55,6 +55,9 @@ class GeneralParameters:
             save = None, \
             one_dimension = None, \
             uneven_distribution = None, \
+            splines = None, \
+            pinn_is_solution = None, \
+            pinn_learns_coeff = None, \
             device = None):
         
         self.length = 1. if length is None else length
@@ -72,12 +75,15 @@ class GeneralParameters:
         self.eps_interior = 1e-1 if eps_interior is None else eps_interior
         self.spline_degree = 3 if spline_degree is None else spline_degree
         self.knot_vector_length = int(self.n_points_x / self.eps_interior)
-        self.coefs_vector_length = int(self.knot_vector_length - self.spline_degree - 1)
+        self.coefs_vector_length = self.knot_vector_length - self.spline_degree - 1
         self.knot_vector = torch.linspace(0, 1, self.knot_vector_length)
+        self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), self.knot_vector, torch.ones(self.spline_degree-1)))
         self.save = False if save is None else save
         self.one_dimension = False if one_dimension is None else one_dimension
         self.uneven_distribution = False if uneven_distribution is None else uneven_distribution
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if device is None else device
-        self.splines = False
+        self.splines = False if splines is None else splines
+        self.pinn_is_solution = False if pinn_is_solution is None else pinn_is_solution
+        self.pinn_learns_coeff = False if pinn_learns_coeff is None else pinn_learns_coeff
 
 general_parameters = GeneralParameters()

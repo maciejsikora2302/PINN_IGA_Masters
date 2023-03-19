@@ -24,9 +24,6 @@ def train_model(
     loss_values = []
     lowest_current_loss = float("inf")
 
-    to_estimate = 10  # Number of past epochs to use for time estimation
-    start_time = time.time()
-    time_per_epoch = []
 
     for epoch in tqdm.tqdm(range(max_epochs), desc=f"{Color.BLUE}INFO -- {loss_fn_name}: {Color.RESET}", unit=" epoch"):
         try:
