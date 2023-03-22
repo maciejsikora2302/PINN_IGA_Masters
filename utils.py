@@ -134,6 +134,8 @@ def compute_losses_and_plot_solution(
     ax.set_xlabel("x")
     ax.set_ylabel("u")
     ax.plot(x_init.cpu(), pinn_values, label="PINN solution")
+    if general_parameters.pinn_learns_coeff:
+        ax.plot(x_init.cpu(), f(pinn_trained.cuda(), x.reshape(-1, 1)).cpu().flatten().detach(), label="Learned coeffs")
     ax.legend()
     plt.savefig(f"{path}/solution_profile.png")
 
@@ -144,6 +146,8 @@ def compute_losses_and_plot_solution(
     ax.set_ylabel("u")
     ax.set_ylim(-0.1, 1.1)
     ax.plot(x_init.cpu(), pinn_values, label="PINN solution")
+    if general_parameters.pinn_learns_coeff:
+        ax.plot(x_init.cpu(), f(pinn_trained.cuda(), x.reshape(-1, 1)).cpu().flatten().detach(), label="Learned coeffs")
     ax.legend()
     plt.savefig(f"{path}/solution_profile_normalized.png")
     
