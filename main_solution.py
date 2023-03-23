@@ -168,7 +168,7 @@ if __name__ == "__main__":
         logger.info(f"Creating PINN with {Color.GREEN}{LAYERS}{Color.RESET} layers and {Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET} neurons per layer")
 
         if general_parameters.one_dimension:
-            pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=N_POINTS_X, output_layer_dims=N_POINTS_X).to(device)
+            pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh()).to(device)
             # if general_parameters.pinn_is_solution:
             #     pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=1, output_layer_dims=1).to(device)
             # elif general_parameters.pinn_learns_coeff:

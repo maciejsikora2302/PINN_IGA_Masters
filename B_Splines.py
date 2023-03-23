@@ -11,7 +11,8 @@ class B_Splines(torch.nn.Module):
       self.knot_vector = knot_vector
       # self.coefs = Variable(10.0 * torch.rand(len(knot_vector) - degree - 1), requires_grad=True) if coefs is None else coefs # We want to differentiate function wrt BSplines coefficient
       self.degree = degree
-      self.coefs = torch.nn.Parameter(10.0 * torch.rand(len(self.knot_vector) - self.degree - 1) if coefs is None else coefs)
+      # self.coefs = torch.nn.Parameter(10.0 * torch.rand(len(self.knot_vector) - self.degree - 1) if coefs is None else coefs)
+      self.coefs = torch.nn.Parameter(5.0 * torch.rand(len(self.knot_vector) - self.degree - 1) if coefs is None else coefs)
       self.dims = dims
       self.losses = []
 
