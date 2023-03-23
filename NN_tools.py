@@ -31,7 +31,6 @@ def train_model(
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
             loss_values.append(loss.item())
 
             if loss_values[-1] < lowest_current_loss:
@@ -54,8 +53,6 @@ def train_model(
         except KeyboardInterrupt:
             logger.info(f"Training interrupted by user at epoch {Color.RED}{epoch + 1}{Color.RESET}")
             break
-
-
     return nn_approximator, np.array(loss_values)
 
 

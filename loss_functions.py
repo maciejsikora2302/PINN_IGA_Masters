@@ -77,26 +77,23 @@ def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spline
         eps_interior, sp, _, _, v = precalculations_1D(x, sp)
         v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
 
-        tensor_to_integrate = dfdx(pinn, x, t, order=1).cuda() * v \
+        loss = dfdx(pinn, x, t, order=1).cuda() * v \
             + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x
-        n = x.shape[0]
-        loss = torch.trapezoid(tensor_to_integrate, dx = 1/n)
-        # tensor_to_integrate = dfdx(pinn, x, t, order=1).cuda() \
-        #     + eps_interior*dfdx(pinn, x, t, order=1)
         # n = x.shape[0]
         # loss = torch.trapezoid(tensor_to_integrate, dx = 1/n)
 
+        # loss = -general_parameters.eps_interior * dfdx(pinn, x, t, order=2) + dfdx(pinn, x, t, order=1)
 
         #print all components of loss_weak
         logger.debug("Loss weak components:")
 
         logger.debug(f"dfdx(pinn, x, t, order=1).cuda(): {dfdx(pinn, x, t, order=1).cuda()}")
-        logger.debug(f"v: {v}")
-        logger.debug(f"dfdx(pinn, x, t, order=1).cuda() * v: {dfdx(pinn, x, t, order=1).cuda() * v}")
-        logger.debug(f"eps_interior*dfdx(pinn, x, t, order=1): {eps_interior*dfdx(pinn, x, t, order=1)}")
-        logger.debug(f"v_deriv_x: {v_deriv_x}")
-        logger.debug(f"eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x: {eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x}")
-        logger.debug(f"Loss weak: {loss}")
+        # logger.debug(f"v: {v}")
+        # logger.debug(f"dfdx(pinn, x, t, order=1).cuda() * v: {dfdx(pinn, x, t, order=1).cuda() * v}")
+        # logger.debug(f"eps_interior*dfdx(pinn, x, t, order=1): {eps_interior*dfdx(pinn, x, t, order=1)}")
+        # logger.debug(f"v_deriv_x: {v_deriv_x}")
+        # logger.debug(f"eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x: {eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x}")
+        # logger.debug(f"Loss weak: {loss}")
 
     elif dims == 2:
         eps_interior, sp, _, _, v = precalculations_2D(x, t, sp)
@@ -464,15 +461,18 @@ def boundary_loss_spline(spline: B_Splines, x:torch.Tensor, t: torch.Tensor = No
 def boundary_loss(pinn: PINN, x:torch.Tensor, t: torch.Tensor = None, dims: int = 2):
 
     if dims == 1:
-        x_raw = torch.unique(x).reshape(-1, 1).detach()
-        x_raw.requires_grad = True
         
-        ones = torch.ones_like(x_raw, requires_grad=True) * x_raw[-1]
-        boundary_loss_right = f(pinn, ones)
+        # ones = torch.ones_like(x_raw, requires_grad=True) * x_raw[-1]
+        # boundary_loss_right = f(pinn, ones)
 
-        zeros = torch.ones_like(x_raw, requires_grad=True) * x_raw[0]
+        # zeros = torch.ones_like(x_raw, requires_grad=True) * x_raw[0]
 
-        boundary_loss_left = f(pinn, zeros) - 1.0
+        # boundary_loss_left = f(pinn, zeros) - 1.0
+        boundary_xi = x[-1].reshape(-1, 1) #last point = 1
+        boundary_loss_xi = f(pinn, boundary_xi)
+        
+        boundary_xf = x[0].reshape(-1, 1) #first point = 0
+        boundary_loss_xf = -general_parameters.eps_interior * dfdx(pinn, boundary_xf) + f(pinn, boundary_xf)-1.0
 
         #  -eps*u'(0)+u(0)-1.0=0
         #  boundary_xf = x[0].reshape(-1, 1) #first point = 0
@@ -488,7 +488,7 @@ def boundary_loss(pinn: PINN, x:torch.Tensor, t: torch.Tensor = None, dims: int 
         # boundary_loss_right = f(pinn, ones)
 
         # boundary_loss_left = -general_parameters.eps_interior * dfdx(pinn, zeros) + f(pinn, zeros) - ones
-        return boundary_loss_left.pow(2).mean() + boundary_loss_right.pow(2).mean()
+        return boundary_loss_xf.pow(2).mean() + boundary_loss_xi.pow(2).mean()
     
     elif dims == 2:
         t_raw = torch.unique(t).reshape(-1, 1).detach()
@@ -588,9 +588,7 @@ def compute_loss(
     if dims == 1:
         t = None
         final_loss = \
-            weight_f * interior_loss_function(pinn, x, t, dims=dims) + \
-            weight_i * initial_loss(pinn, x, t, dims=dims)
-        
+            weight_f * interior_loss_function(pinn, x, t, dims=dims)
         if not pinn.pinning:
             final_loss += weight_b * boundary_loss(pinn, x, t, dims=dims)
 
