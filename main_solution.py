@@ -90,7 +90,7 @@ KNOT_VECTOR = general_parameters.knot_vector
 SPLINE_DEGREE = general_parameters.spline_degree
 SAVE = general_parameters.save
 USE_SPLINE = general_parameters.splines
-
+OPTIMIZE_TEST_FUNCTION = general_parameters.optimize_test_function
 
 
 if __name__ == "__main__":
@@ -169,6 +169,12 @@ if __name__ == "__main__":
 
         if general_parameters.one_dimension:
             pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh()).to(device)
+            if OPTIMIZE_TEST_FUNCTION:
+                TEST_FUNCTION = B_Splines(
+                    KNOT_VECTOR,
+                    SPLINE_DEGREE,
+                    dims=1
+                )
             # if general_parameters.pinn_is_solution:
             #     pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=1, output_layer_dims=1).to(device)
             # elif general_parameters.pinn_learns_coeff:
@@ -190,7 +196,8 @@ if __name__ == "__main__":
         weight_i=WEIGHT_INITIAL, 
         weight_b=WEIGHT_BOUNDARY, 
         interior_loss_function=interior_loss_weak if not USE_SPLINE else interior_loss_weak_spline, 
-        dims=1 if general_parameters.one_dimension else 2
+        dims=1 if general_parameters.one_dimension else 2,
+        test_function=TEST_FUNCTION
     )
 
     loss_fn_strong = partial(
@@ -248,7 +255,8 @@ if __name__ == "__main__":
             loss_fn=loss_fn, 
             loss_fn_name=name, 
             learning_rate=LEARNING_RATE, 
-            max_epochs=EPOCHS)
+            max_epochs=EPOCHS,
+            test_function=TEST_FUNCTION)
         end_time = time()
 
         training_time = end_time - start_time

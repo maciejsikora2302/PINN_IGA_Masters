@@ -9,10 +9,9 @@ class B_Splines(torch.nn.Module):
 
       super().__init__()
       self.knot_vector = knot_vector
-      # self.coefs = Variable(10.0 * torch.rand(len(knot_vector) - degree - 1), requires_grad=True) if coefs is None else coefs # We want to differentiate function wrt BSplines coefficient
       self.degree = degree
       # self.coefs = torch.nn.Parameter(10.0 * torch.rand(len(self.knot_vector) - self.degree - 1) if coefs is None else coefs)
-      self.coefs = torch.nn.Parameter(5.0 * torch.rand(len(self.knot_vector) - self.degree - 1) if coefs is None else coefs)
+      self.coefs = torch.nn.Parameter(torch.ones(len(self.knot_vector) - self.degree - 1))
       self.dims = dims
       self.losses = []
 
@@ -26,7 +25,7 @@ class B_Splines(torch.nn.Module):
       n = general_parameters.n_coefs
 
       
-      assert len(self.coefs) >= n
+      # assert len(self.coefs) >= n
 
       if self.dims == 1:
          x = x.flatten().cuda()
@@ -34,7 +33,7 @@ class B_Splines(torch.nn.Module):
          x = x.flatten()
       
       if mode == 'Adam':
-
+         
          def _B(x: torch.Tensor, k: int, i: int, t: torch.Tensor) -> torch.Tensor:
             """
             Function calculates i-th spline function with degree equals to k
@@ -60,13 +59,13 @@ class B_Splines(torch.nn.Module):
                return c1 + c2
 
          basis_functions = torch.stack([_B(x, self.degree, basis_function_idx, self.knot_vector) for basis_function_idx in range(n)])
-
+         
          return torch.matmul(self.coefs.cuda(), basis_functions)
       
       else:
 
          tck = (self.knot_vector.detach(), self.coefs.detach(), self.degree)
-
+         
          if self.dims == 1:
             return torch.Tensor(spi.splev(x.cpu().detach(), tck, der=0)).cuda()
          elif self.dims == 2:

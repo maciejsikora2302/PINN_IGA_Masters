@@ -66,7 +66,15 @@ def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = 
         return eps_interior, sp, sp.degree, sp.coefs, v_coloc
 
 
-def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 2):
+def interior_loss_weak(
+        pinn: PINN,
+        x:torch.Tensor, 
+        t: torch.Tensor, 
+        sp: B_Splines = None, 
+        dims: int = 2, 
+        optimize_splines: bool = True,
+        test_function: B_Splines = None
+        ):
     #t here is x in Eriksson problem, x here is y in Erikkson problem
     # loss = dfdt(pinn, x, t, order=1) - eps*dfdt(pinn, x, t, order=2)-eps*dfdx(pinn, x, t, order=2)
     
@@ -74,16 +82,19 @@ def interior_loss_weak(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spline
     if dims == 1:
         
         x = x.cuda()
-        eps_interior, sp, _, _, v = precalculations_1D(x, sp)
-        v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
+        eps_interior, sp, _, _, _ = precalculations_1D(x, sp)
+        
+        if optimize_splines == True:
+            v = test_function.calculate_BSpline_1D(x, mode="Adam").cuda()
+            v_deriv_x = test_function.calculate_BSpline_1D_deriv_dx(x, mode="Adam").cuda()
+            loss = dfdx(pinn, x, t, order=1).cuda() * v \
+                + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x
+        else:
+            v = sp.calculate_BSpline_1D(x).cuda()
+            v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
 
-        loss = dfdx(pinn, x, t, order=1).cuda() * v \
-            + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x
-        # n = x.shape[0]
-        # loss = torch.trapezoid(tensor_to_integrate, dx = 1/n)
-
-        # loss = -general_parameters.eps_interior * dfdx(pinn, x, t, order=2) + dfdx(pinn, x, t, order=1)
-
+            loss = dfdx(pinn, x, t, order=1).cuda() * v \
+                + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x
         #print all components of loss_weak
         logger.debug("Loss weak components:")
 
@@ -273,7 +284,6 @@ def interior_loss_weak_spline(spline: B_Splines, x:torch.Tensor, t: torch.Tensor
             + eps_interior*spline.calculate_BSpline_1D_deriv_dx(x, mode=mode).cuda() * v_deriv_x
         n = x.shape[0]
         loss = torch.trapezoid(tensor_to_integrate, dx = 1/n)
-        print(loss.pow(2).mean())
     elif spline.dims == 2:
         eps_interior, sp, _, _, v = precalculations_2D(x, t, sp)
 
@@ -574,7 +584,8 @@ def compute_loss(
     pinn: PINN, x: torch.Tensor = None, t: torch.Tensor = None, 
     weight_f = 1.0, weight_b = 1.0, weight_i = 1.0, 
     verbose = False, interior_loss_function: Callable = interior_loss_weak_and_strong,
-    dims: int = 2
+    dims: int = 2,
+    test_function=None
 ) -> torch.float:
     """Compute the full loss function as interior loss + boundary loss
     This custom loss function is fully defined with differentiable tensors therefore
@@ -587,8 +598,12 @@ def compute_loss(
 
     if dims == 1:
         t = None
-        final_loss = \
-            weight_f * interior_loss_function(pinn, x, t, dims=dims)
+        if test_function is None:
+            final_loss = \
+                weight_f * interior_loss_function(pinn, x, t, dims=dims)
+        else:
+            final_loss = \
+                weight_f * interior_loss_function(pinn, x, t, dims=dims, test_function=test_function)
         if not pinn.pinning:
             final_loss += weight_b * boundary_loss(pinn, x, t, dims=dims)
 
@@ -628,7 +643,6 @@ def compute_loss_spline(
             weight_f * interior_loss_function(spline, x, t) + \
             weight_i * initial_loss_spline(spline, x, t) + \
             weight_b * boundary_loss_spline(spline, x, t)
-        print(final_loss)
         return final_loss if not verbose else (final_loss, interior_loss_function(spline, x, t), initial_loss_spline(spline, x, t), boundary_loss_spline(spline, x, t))
 
     elif spline.dims == 2:

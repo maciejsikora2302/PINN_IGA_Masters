@@ -17,10 +17,18 @@ def train_model(
     learning_rate: int = 0.01,
     max_epochs: int = 1_000,
     how_often_to_display: int = 20,
-    device="cuda"
+    device="cuda",
+    test_function: B_Splines=None
 ) -> Tuple[PINN, np.ndarray]:
 
-    optimizer = torch.optim.Adam(nn_approximator.parameters(), lr=learning_rate)
+    if test_function is None:
+        optimizer = torch.optim.Adam(nn_approximator.parameters(), lr=learning_rate)
+    else:
+        parameters = [
+            {'params': nn_approximator.parameters()},
+            {'params': test_function.parameters()}
+        ]
+        optimizer = torch.optim.Adam(parameters, lr=learning_rate)
     loss_values = []
     lowest_current_loss = float("inf")
 
@@ -31,6 +39,7 @@ def train_model(
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            print(loss)
             loss_values.append(loss.item())
 
             if loss_values[-1] < lowest_current_loss:

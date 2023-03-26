@@ -74,7 +74,7 @@ class GeneralParameters:
         self.epochs = 50_000 if epochs is None else epochs
         self.learning_rate = 0.0025 if learning_rate is None else learning_rate
         self.eps_interior = 1e-1 if eps_interior is None else eps_interior
-        self.spline_degree = 4 if spline_degree is None else spline_degree
+        self.spline_degree = 3 if spline_degree is None else spline_degree
         self.save = False if save is None else save
         self.one_dimension = False if one_dimension is None else one_dimension
         self.uneven_distribution = False if uneven_distribution is None else uneven_distribution
@@ -82,13 +82,14 @@ class GeneralParameters:
         self.splines = False if splines is None else splines
         self.pinn_is_solution = False if pinn_is_solution is None else pinn_is_solution
         self.pinn_learns_coeff = False if pinn_learns_coeff is None else pinn_learns_coeff
+        self.optimize_test_function = True
     
     def precalculate(self):
 
         if self.pinn_is_solution:
-            self.n_coefs = self.n_points_x - self.spline_degree - 1
             self.knot_vector = torch.linspace(0, 1, self.n_points_x)
             self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), self.knot_vector, torch.ones(self.spline_degree-1)))
+            self.n_coefs = len(self.knot_vector) - self.spline_degree - 1
 
 
         elif self.pinn_learns_coeff:
