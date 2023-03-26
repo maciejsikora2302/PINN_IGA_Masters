@@ -44,12 +44,11 @@ def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = 
 
 
     eps_interior = general_parameters.eps_interior
-    knot_vector_length = len(general_parameters.knot_vector)
     degree = general_parameters.spline_degree
     coefs_vector_length = general_parameters.n_coefs
 
     linspace = general_parameters.knot_vector
-    # coefs = torch.ones(coefs_vector_length)
+
     #coefs random floats between 0 and 1 as a tensor
     coefs = torch.Tensor(np.random.rand(coefs_vector_length))
     sp = B_Splines(linspace, degree, coefs=coefs) if sp is None else sp
@@ -83,12 +82,14 @@ def interior_loss_weak(
         x = x.cuda()
         eps_interior, sp, _, _, _ = precalculations_1D(x, sp)
         
-        if general_parameters.optimize_test_function == True:
+        if general_parameters.optimize_test_function:
             v = test_function.calculate_BSpline_1D(x, mode="Adam").cuda()
             v_deriv_x = test_function.calculate_BSpline_1D_deriv_dx(x, mode="Adam").cuda()
+
             loss = dfdx(pinn, x, t, order=1).cuda() * v \
                 + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x
         else:
+
             v = sp.calculate_BSpline_1D(x).cuda()
             v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
 
@@ -130,7 +131,13 @@ def interior_loss_weak(
 
     return loss.pow(2).mean()
 
-def interior_loss_colocation(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 2):
+def interior_loss_colocation(
+        pinn: PINN, 
+        x: torch.Tensor, 
+        t: torch.Tensor, 
+        sp: B_Splines = None, 
+        dims: int = 2
+        ):
 
     if dims == 1:
         x = x.cuda()
@@ -151,20 +158,33 @@ def interior_loss_colocation(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_
     return loss.pow(2).mean()
 
         
-def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 1):
+def interior_loss_strong(
+        pinn: PINN, 
+        x: torch.Tensor, 
+        t: torch.Tensor, 
+        sp: B_Splines = None, 
+        dims: int = 1,
+        test_function: B_Splines = None
+        ):
 
     if dims == 1:
         x = x.cuda()
 
-    if dims == 1:
         eps_interior, sp, _, _, v = precalculations_1D(x, sp)
-        tensor_to_integrate = (
-            - eps_interior*dfdx(pinn, x, order=2)
-            + dfdx(pinn, x, order=1) 
-            ) * v
+
+        if general_parameters.optimize_test_function:
+            v = test_function.calculate_BSpline_1D(x, mode='Adam')
+            loss = (
+                - eps_interior*dfdx(pinn, x, order=2)
+                + dfdx(pinn, x, order=1) 
+                ) * v
+        else:
+            loss = (
+                - eps_interior*dfdx(pinn, x, order=2)
+                + dfdx(pinn, x, order=1) 
+                ) * v
         
-        n = x.shape[0]
-        loss = torch.trapezoid(tensor_to_integrate, dx = 1/n)
+       
 
     elif dims == 2:
 
@@ -186,55 +206,45 @@ def interior_loss_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Spli
     return loss.pow(2).mean()
 
 
-def interior_loss_weak_and_strong(pinn: PINN, x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, dims: int = 2):
+def interior_loss_weak_and_strong(
+        pinn: PINN, 
+        x:torch.Tensor, 
+        t: torch.Tensor, 
+        sp: B_Splines = None,
+        dims: int = 2,
+        test_function: B_Splines = None
+        ):
 
     if dims == 1:
         x = x.cuda()
-
-    if dims == 1:
-
         eps_interior, sp, _, _, v = precalculations_1D(x, sp)
 
-        v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
-        n = x.shape[0]
+        if general_parameters.optimize_test_function:
+            
+            v = test_function.calculate_BSpline_1D(x, mode='Adam').cuda()
+            v_deriv_x = test_function.calculate_BSpline_1D_deriv_dx(x, mode='Adam').cuda()
 
-        # print(v.shape, v_deriv_x.shape)
-        # print(x.shape)
-        
-        # #print all components of loss_weak
-        # logger.debug("loss_weak components:")
-        # logger.debug("dfdx(pinn, x, order=1).cuda() * v")
-        # logger.debug(dfdx(pinn, x, order=1).cuda() * v)
-        # logger.debug("eps_interior*dfdx(pinn, x, order=2) * v_deriv_x")
-        # logger.debug(eps_interior*dfdx(pinn, x, order=2) * v_deriv_x)
-        # logger.debug("+"*100)
-        # logger.debug("eps_interior")
-        # logger.debug(eps_interior)
-        # logger.debug("dfdx(pinn, x, order=2)")
-        # logger.debug(dfdx(pinn, x, order=2))
-        # logger.debug("v_deriv_x")
-        # logger.debug(v_deriv_x)
-        # logger.debug("+"*100)
-        # logger.debug("final: torch.trapezoid(dfdx(pinn, x, order=1).cuda() * v + eps_interior*dfdx(pinn, x, order=2) * v_deriv_x, dx=1/n)")
-        # logger.debug(torch.trapezoid(dfdx(pinn, x, order=1).cuda() * v + eps_interior*dfdx(pinn, x, order=1) * v_deriv_x, dx=1/n))
-        # logger.debug("loss_strong components:")
-        # logger.debug("eps_interior*dfdx(pinn, x, order=2)")
-        # logger.debug(eps_interior*dfdx(pinn, x, order=2))
-        # logger.debug("dfdx(pinn, x, order=1)")
-        # logger.debug(dfdx(pinn, x, order=1))
-        # logger.debug("final: torch.trapezoid((- eps_interior*dfdx(pinn, x, order=2) + dfdx(pinn, x, order=1)) * v, dx=1/n)")
-        # logger.debug(torch.trapezoid((- eps_interior*dfdx(pinn, x, order=2) + dfdx(pinn, x, order=1)) * v, dx=1/n))
+            loss_weak = (
+                dfdx(pinn, x, order=1).cuda() * v
+                + eps_interior*dfdx(pinn, x, order=1) * v_deriv_x
+                )
 
+            loss_strong = (
+                - eps_interior*dfdx(pinn, x, order=1)
+                + dfdx(pinn, x, order=2) 
+                ) * v
+        else:
+            v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
 
-        loss_weak = torch.trapezoid(
-            dfdx(pinn, x, order=1).cuda() * v
-            + eps_interior*dfdx(pinn, x, order=1) * v_deriv_x, dx=1/n
-            )
+            loss_weak = (
+                dfdx(pinn, x, order=1).cuda() * v
+                + eps_interior*dfdx(pinn, x, order=1) * v_deriv_x
+                )
 
-        loss_strong = torch.trapezoid((
-            - eps_interior*dfdx(pinn, x, order=1)
-            + dfdx(pinn, x, order=2) 
-            ) * v, dx=1/n)
+            loss_strong = (
+                - eps_interior*dfdx(pinn, x, order=1)
+                + dfdx(pinn, x, order=2) 
+                ) * v
         
 
     elif dims == 2:
