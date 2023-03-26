@@ -39,7 +39,6 @@ def train_model(
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            print(loss)
             loss_values.append(loss.item())
 
             if loss_values[-1] < lowest_current_loss:
