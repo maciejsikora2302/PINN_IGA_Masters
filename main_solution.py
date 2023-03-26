@@ -211,7 +211,8 @@ if __name__ == "__main__":
         weight_i=WEIGHT_INITIAL, 
         weight_b=WEIGHT_BOUNDARY, 
         interior_loss_function=interior_loss_strong if not USE_SPLINE else interior_loss_strong_spline, 
-        dims=1 if general_parameters.one_dimension else 2
+        dims=1 if general_parameters.one_dimension else 2,
+        test_function=TEST_FUNCTION
     )
 
     loss_fn_weak_and_strong = partial(
@@ -220,8 +221,9 @@ if __name__ == "__main__":
         weight_f=WEIGHT_INTERIOR, 
         weight_i=WEIGHT_INITIAL, 
         weight_b=WEIGHT_BOUNDARY, 
-        interior_loss_function=interior_loss_colocation if not USE_SPLINE else interior_loss_colocation_spline, 
-        dims=1 if general_parameters.one_dimension else 2
+        interior_loss_function=interior_loss_weak_and_strong if not USE_SPLINE else interior_loss_weak_and_strong_spline, 
+        dims=1 if general_parameters.one_dimension else 2,
+        test_function=TEST_FUNCTION
     )
 
     loss_fn_colocation = partial(
@@ -231,7 +233,8 @@ if __name__ == "__main__":
         weight_i=WEIGHT_INITIAL, 
         weight_b=WEIGHT_BOUNDARY, 
         interior_loss_function=interior_loss_colocation if not USE_SPLINE else interior_loss_colocation_spline, 
-        dims=1 if general_parameters.one_dimension else 2
+        dims=1 if general_parameters.one_dimension else 2,
+        test_function=TEST_FUNCTION
     )
 
 
@@ -244,9 +247,9 @@ if __name__ == "__main__":
     # train the PINN
     for loss_fn, name in \
         [
-            (loss_fn_weak, 'loss_fn_weak'),
+            # (loss_fn_weak, 'loss_fn_weak'),
             # (loss_fn_strong, 'loss_fn_strong'), 
-            # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
+            (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
             # (loss_fn_colocation, 'loss_fn_colocation')
         ]:
         logger.info(f"Training {'PINN' if not USE_SPLINE else 'splines'} for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
