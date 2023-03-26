@@ -72,7 +72,6 @@ def interior_loss_weak(
         t: torch.Tensor, 
         sp: B_Splines = None, 
         dims: int = 2, 
-        optimize_splines: bool = True,
         test_function: B_Splines = None
         ):
     #t here is x in Eriksson problem, x here is y in Erikkson problem
@@ -84,7 +83,7 @@ def interior_loss_weak(
         x = x.cuda()
         eps_interior, sp, _, _, _ = precalculations_1D(x, sp)
         
-        if optimize_splines == True:
+        if general_parameters.optimize_test_function == True:
             v = test_function.calculate_BSpline_1D(x, mode="Adam").cuda()
             v_deriv_x = test_function.calculate_BSpline_1D_deriv_dx(x, mode="Adam").cuda()
             loss = dfdx(pinn, x, t, order=1).cuda() * v \

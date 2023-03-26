@@ -38,6 +38,7 @@ parser.add_argument("--spline_degree", type=int)
 parser.add_argument("--save", '-s', action="store_true")
 parser.add_argument("--one_dimension", '-o', action="store_true")
 parser.add_argument("--uneven_distribution", '-u', action="store_true")
+parser.add_argument("--optimize_test_function", '-otf', action="store_true")
 training_mode = parser.add_mutually_exclusive_group(required=True)
 training_mode.add_argument("--splines", action="store_true")
 training_mode.add_argument("--pinn_is_solution", action="store_true")
@@ -70,6 +71,7 @@ general_parameters.uneven_distribution = args.uneven_distribution if args.uneven
 general_parameters.splines = args.splines if args.splines is not None else general_parameters.splines
 general_parameters.pinn_is_solution = args.pinn_is_solution if args.pinn_is_solution is not None else general_parameters.pinn_is_solution
 general_parameters.pinn_learns_coeff = args.pinn_learns_coeff if args.pinn_learns_coeff is not None else general_parameters.pinn_learns_coeff
+general_parameters.optimize_test_function = args.optimize_test_function if args.optimize_test_function is not None else general_parameters.optimize_test_function
 
 general_parameters.precalculate()
 pprint(vars(general_parameters))
@@ -175,6 +177,8 @@ if __name__ == "__main__":
                     SPLINE_DEGREE,
                     dims=1
                 )
+            else:
+                TEST_FUNCTION = None
             # if general_parameters.pinn_is_solution:
             #     pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=1, output_layer_dims=1).to(device)
             # elif general_parameters.pinn_learns_coeff:

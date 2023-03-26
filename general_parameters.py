@@ -59,6 +59,7 @@ class GeneralParameters:
             splines = None, \
             pinn_is_solution = None, \
             pinn_learns_coeff = None, \
+            optimize_test_function = None, \
             device = None):
         
         self.length = 1. if length is None else length
@@ -82,7 +83,7 @@ class GeneralParameters:
         self.splines = False if splines is None else splines
         self.pinn_is_solution = False if pinn_is_solution is None else pinn_is_solution
         self.pinn_learns_coeff = False if pinn_learns_coeff is None else pinn_learns_coeff
-        self.optimize_test_function = True
+        self.optimize_test_function = False if optimize_test_function is None else optimize_test_function
     
     def precalculate(self):
 
