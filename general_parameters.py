@@ -87,7 +87,7 @@ class GeneralParameters:
     
     def precalculate(self):
 
-        if self.pinn_is_solution:
+        if self.pinn_is_solution or self.splines:
             self.knot_vector = torch.linspace(0, 1, self.n_points_x)
             self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), self.knot_vector, torch.ones(self.spline_degree-1)))
             self.n_coefs = len(self.knot_vector) - self.spline_degree - 1

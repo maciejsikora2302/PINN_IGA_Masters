@@ -19,7 +19,7 @@ def f_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor = None, mode: s
     """Compute the value of the approximate solution from the spline model"""
 
     if spline.dims == 1:
-        return spline.calculate_BSpline_1D(x, mode=mode)
+        return spline.calculate_BSpline_1D(x, mode=mode).cuda()
     elif spline.dims == 2:
         return spline.calculate_BSpline_2D(x, t, mode=mode)
 
@@ -27,7 +27,7 @@ def dfdx_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor = None, mode
     """Compute the value of the approximate derivative solution from the spline model w.r.t. x"""
 
     if spline.dims == 1:
-        return spline.calculate_BSpline_1D_deriv_dx(x, mode=mode)
+        return spline.calculate_BSpline_1D_deriv_dx(x, mode=mode).cuda()
     elif spline.dims == 2:
         return spline.calculate_BSpline_2D_deriv_dx(x, t, mode=mode)
 

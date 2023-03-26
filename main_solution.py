@@ -161,6 +161,16 @@ if __name__ == "__main__":
     logger.info("="*80)
     logger.info("")
 
+
+    if OPTIMIZE_TEST_FUNCTION:
+                TEST_FUNCTION = B_Splines(
+                    KNOT_VECTOR,
+                    SPLINE_DEGREE,
+                    dims=1 if general_parameters.one_dimension else 2
+                )
+    else:
+        TEST_FUNCTION = None
+
     if USE_SPLINE:
 
         logger.info(f"Creating {Color.GREEN}{'1D' if general_parameters.one_dimension else '2D'}{Color.RESET} BSpline")
@@ -171,14 +181,6 @@ if __name__ == "__main__":
 
         if general_parameters.one_dimension:
             pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh()).to(device)
-            if OPTIMIZE_TEST_FUNCTION:
-                TEST_FUNCTION = B_Splines(
-                    KNOT_VECTOR,
-                    SPLINE_DEGREE,
-                    dims=1
-                )
-            else:
-                TEST_FUNCTION = None
             # if general_parameters.pinn_is_solution:
             #     pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=1, output_layer_dims=1).to(device)
             # elif general_parameters.pinn_learns_coeff:
@@ -233,8 +235,7 @@ if __name__ == "__main__":
         weight_i=WEIGHT_INITIAL, 
         weight_b=WEIGHT_BOUNDARY, 
         interior_loss_function=interior_loss_colocation if not USE_SPLINE else interior_loss_colocation_spline, 
-        dims=1 if general_parameters.one_dimension else 2,
-        test_function=TEST_FUNCTION
+        dims=1 if general_parameters.one_dimension else 2
     )
 
 
