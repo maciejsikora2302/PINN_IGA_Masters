@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-from scipy.interpolate import BSpline
-from general_parameters import general_parameters
 
 class PINN(nn.Module):
     """Simple neural network accepting two features as input and returning a single output
