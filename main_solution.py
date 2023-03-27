@@ -93,6 +93,8 @@ SPLINE_DEGREE = general_parameters.spline_degree
 SAVE = general_parameters.save
 USE_SPLINE = general_parameters.splines
 OPTIMIZE_TEST_FUNCTION = general_parameters.optimize_test_function
+PINN_LEARNS_COEFS = general_parameters.pinn_learns_coeff
+N_SPLINE_COEFS = general_parameters.n_coefs
 
 
 if __name__ == "__main__":
@@ -175,18 +177,22 @@ if __name__ == "__main__":
 
         logger.info(f"Creating {Color.GREEN}{'1D' if general_parameters.one_dimension else '2D'}{Color.RESET} BSpline")
         spline = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=1 if general_parameters.one_dimension else 2)
+    
+    elif PINN_LEARNS_COEFS:
+        logger.info(f"Creating PINN to learn spline coefficients with {Color.GREEN}{LAYERS}{Color.RESET} layers and {Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET} neurons per layer")
+        
+        if general_parameters.one_dimension:
+            pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), dim_layer_out=N_SPLINE_COEFS).to(device)
+        elif not general_parameters.one_dimension:
+            raise NotImplementedError("2D PINN not implemented yet :<")
+        else:
+            raise Exception("Unknown dimensionality")
     else:
         
         logger.info(f"Creating PINN with {Color.GREEN}{LAYERS}{Color.RESET} layers and {Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET} neurons per layer")
 
         if general_parameters.one_dimension:
             pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh()).to(device)
-            # if general_parameters.pinn_is_solution:
-            #     pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), input_layer_dims=1, output_layer_dims=1).to(device)
-            # elif general_parameters.pinn_learns_coeff:
-            # else:
-            #     logger.error(f"{Color.RED}Unknown pinn type{Color.RESET}")
-            #     exit(1)
         elif not general_parameters.one_dimension:
             raise NotImplementedError("2D PINN not implemented yet :<")
         else:
