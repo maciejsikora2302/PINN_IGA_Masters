@@ -87,25 +87,25 @@ class GeneralParameters:
     
     def precalculate(self):
 
-        if self.pinn_is_solution or self.splines:
+        if self.pinn_is_solution or self.splines or self.pinn_learns_coeff:
             self.knot_vector = torch.linspace(0, 1, self.n_points_x)
             self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), self.knot_vector, torch.ones(self.spline_degree-1)))
             self.n_coefs = len(self.knot_vector) - self.spline_degree - 1
 
 
-        elif self.pinn_learns_coeff:
-            self.n_edge_knots = self.spline_degree * 2
-            self.n_internal_knots = self.n_points_x - self.n_edge_knots
-            self.n_coefs = self.n_internal_knots + self.spline_degree - 1
+        # elif self.pinn_learns_coeff:
+        #     self.n_edge_knots = self.spline_degree * 2
+        #     self.n_internal_knots = self.n_points_x - self.n_edge_knots
+        #     self.n_coefs = self.n_internal_knots + self.spline_degree - 1
 
-            if general_parameters.uneven_distribution:
-                internal_knots = get_unequaly_distribution_points(eps=self.eps_interior, density_range=0.2, n=self.n_internal_knots, device='cpu')
-            else:
-                internal_knots = torch.linspace(0, 1, self.n_internal_knots)
+        #     if general_parameters.uneven_distribution:
+        #         internal_knots = get_unequaly_distribution_points(eps=self.eps_interior, density_range=0.2, n=self.n_internal_knots, device='cpu')
+        #     else:
+        #         internal_knots = torch.linspace(0, 1, self.n_internal_knots)
 
-            self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), 
-                                        internal_knots,
-                                        torch.ones(self.spline_degree-1)))
+        #     self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), 
+        #                                 internal_knots,
+        #                                 torch.ones(self.spline_degree-1)))
 
             # self.knot_vector = torch.linspace(0, 1, self.n_points_x)
             # self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), 
