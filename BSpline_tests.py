@@ -65,5 +65,5 @@ bs = B_Splines(
 # print(spline_NN)
 # print(spline_adam)
 x = torch.linspace(0,1,200)
-print(bs._get_basis_functions_1D(x) @ bs.coefs)
-print(bs.calculate_BSpline_1D(x, mode='NN'))
+print((bs._get_basis_functions_1D(x).cuda() @ bs.coefs.cuda()).shape)
+print(bs._get_basis_functions_1D(x).shape)

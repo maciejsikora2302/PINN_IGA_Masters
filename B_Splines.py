@@ -32,22 +32,22 @@ class B_Splines(torch.nn.Module):
          coefs = torch.zeros(n_coefs)
          coefs[idx] = 1.0
          tck = (
-            self.knot_vector.detach(),
-            coefs.detach(),
+            self.knot_vector.cpu().detach(),
+            coefs.cpu().detach(),
             self.degree
          )
 
-         BS = spi.splev(x, tck, der=order, ext=0)
+         BS = spi.splev(x.cpu().detach(), tck, der=order, ext=0)
          basis_functions.append(BS)
 
-      return torch.Tensor(basis_functions).T
+      return torch.Tensor(basis_functions).T.cuda()
          
 
    def calculate_BSpline_1D(self, x: torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
       Funtion calculates value of a linear combination of 1D splines basis functions
       """
-      n = general_parameters.n_coefs
+      n = general_parameters.n_coeff
 
       
       # assert len(self.coefs) >= n

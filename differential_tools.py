@@ -8,7 +8,7 @@ from scipy.interpolate import BSpline
 
 def f(pinn: PINN, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
     """Compute the value of the approximate solution from the NN model"""
-   
+
     if t is None:
         return pinn(x.cuda(), t)
 
@@ -34,14 +34,26 @@ def dfdx_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor = None, mode
 def df(output: torch.Tensor, input: torch.Tensor, order: int = 1) -> torch.Tensor:
     """Compute neural network derivative with respect to input features using PyTorch autograd engine"""
     df_value = output
-    for _ in range(order):
-        df_value = torch.autograd.grad(
-            df_value,
-            input,
-            grad_outputs=torch.ones_like(input),
-            create_graph=True,
-            retain_graph=True,
-        )[0]
+
+    if not general_parameters.pinn_learns_coeff:
+        for _ in range(order):
+            df_value = torch.autograd.grad(
+                df_value,
+                input,
+                grad_outputs=torch.ones_like(input),
+                create_graph=True,
+                retain_graph=True,
+            )[0]
+    else:
+        for _ in range(order):
+            df_value = torch.autograd.grad(
+                df_value,
+                input,
+                grad_outputs=torch.ones_like(input).cuda(),
+                create_graph=True,
+                retain_graph=True,
+            )[0]
+            #print(df_value.shape)
 
     # return df_value.cuda()
     return df_value

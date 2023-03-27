@@ -17,7 +17,7 @@ def precalculations_2D(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, co
     eps_interior = general_parameters.eps_interior
     knot_vector_length = len(general_parameters.knot_vector)
     degree = general_parameters.spline_degree
-    coefs_vector_length = general_parameters.n_coefs
+    coefs_vector_length = general_parameters.n_coeff
 
     linspace = torch.linspace(0, 1, knot_vector_length)
     coefs = torch.ones(coefs_vector_length)
@@ -45,7 +45,7 @@ def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = 
 
     eps_interior = general_parameters.eps_interior
     degree = general_parameters.spline_degree
-    coefs_vector_length = general_parameters.n_coefs
+    coefs_vector_length = general_parameters.n_coeff
 
     linspace = general_parameters.knot_vector
 
@@ -435,7 +435,6 @@ def interior_loss_weak_and_strong_spline(
                 + spline.calculate_BSpline_1D_deriv_dx(x, mode=mode).cuda()
                 ) * v.cuda()
             
-            print(test_function.coefs)
         else:
         
             v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x, mode='NN').cuda()
@@ -481,7 +480,7 @@ def interior_loss_weak_and_strong_spline(
     return (loss_weak.pow(2) + loss_strong.pow(2)).mean()
 
 
-def loss_PINN_learns_coefs(
+def loss_PINN_learns_coeff(
         pinn: PINN,
         spline: B_Splines, 
         x:torch.Tensor, 
@@ -489,30 +488,33 @@ def loss_PINN_learns_coefs(
         dims: int = 1,
         ):
 
+    
+    eps_interior = general_parameters.eps_interior
+    
     if dims == 1:
         x = x.cuda()
-        eps_interior = general_parameters.eps_interior
-
+        
         # splines have to return matrix function vector for all inputs, so we need to return matrix with dimension
-        # input_dim x number_of_coefs == input_dim x number_of_basis_functions
+        # input_dim x number_of_coeffs
         sp_value = spline._get_basis_functions_1D(x, order=0)
         d_sp_dx = spline._get_basis_functions_1D(x, order=1)
         d2_sp_dx2 = spline._get_basis_functions_1D(x, order=2)
 
-        # pinns return matrix of splines coefficients for all inputs with dimension number_of_coefs x 1
+        # pinns return matrix of splines coefficients for all inputs with dimension 1 x number_of_coeffs
+        x = x.reshape(dims, x.shape[0])
         pinn_value = f(pinn, x)
         d_pinn_dx = dfdx(pinn, x, order=1)
         d2_pinn_dx2 = dfdx(pinn, x, order=2)
 
         # pinns returns matrix of splines coefficients for all inputs with dimension 
-        d_solution_dx = d_pinn_dx @ sp_value + pinn_value @ d_sp_dx
-        d2_solution_dx2 = d2_pinn_dx2 @ sp_value + 2*d_pinn_dx @ d_sp_dx + pinn_value @ d2_sp_dx2
+        d_solution_dx = sp_value @ d_pinn_dx.T + d_sp_dx @ pinn_value.T
+        d2_solution_dx2 = sp_value @ d2_pinn_dx2.T + 2*d_sp_dx @ d_pinn_dx.T + d2_sp_dx2 @ pinn_value.T
         
         loss = d_solution_dx - eps_interior*d2_solution_dx2
+        loss = loss.flatten()
 
     elif dims == 2:
         raise NotImplementedError("So sorry... not implemented yet :c")
-
     return loss.pow(2).mean()
 
 
@@ -554,7 +556,7 @@ def boundary_loss_spline(
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
 
-def boundary_loss_PINN_learns_coefs(
+def boundary_loss_PINN_learns_coeff(
         pinn: PINN,
         spline: B_Splines,
         x: torch.Tensor,
@@ -567,19 +569,25 @@ def boundary_loss_PINN_learns_coefs(
     if dims == 1:
         
 
-        boundary_xi = x[-1].reshape(-1, 1) #last point = 1
+        # boundary_xi = x[-1].reshape(-1, 1) #last point = 1
+        boundary_xi = torch.ones_like(x)
+        boundary_xi = boundary_xi.reshape((x.shape[1], x.shape[0]))
+        boundary_xi.requires_grad=True
         sp_value_xi = spline._get_basis_functions_1D(boundary_xi, order=0)
         f_value_xi = f(pinn, boundary_xi)
-        boundary_loss_xi = f_value_xi @ sp_value_xi
+        boundary_loss_xi = sp_value_xi @ f_value_xi.T
         
 
-        boundary_xf = x[0].reshape(-1, 1) #first point = 0
+        # boundary_xf = x[0].reshape(-1, 1) #first point = 0
+        boundary_xf = torch.zeros_like(x)
+        boundary_xf = boundary_xf.reshape((x.shape[1], x.shape[0]))
+        boundary_xf.requires_grad = True
         sp_value_xf = spline._get_basis_functions_1D(boundary_xf, order=0)
         f_value_xf = f(pinn, boundary_xf)
-        f_deriv_value_xf = f(pinn, boundary_xf, order=2)
+        f_deriv_value_xf = dfdx(pinn, boundary_xf, order=2)
         sp_deriv_value_xf = spline._get_basis_functions_1D(boundary_xf, order=1)
-        boundary_loss_xf = -eps_interior * (f_deriv_value_xf @ sp_value_xf + f_value_xf @ sp_deriv_value_xf) \
-                            + f_value_xf @ sp_value_xf - 1.0
+        boundary_loss_xf = -eps_interior * (sp_value_xf @ f_deriv_value_xf.T + sp_deriv_value_xf @ f_value_xf.T) \
+                            + sp_value_xf @ f_value_xf.T - 1.0
 
 
         return boundary_loss_xf.pow(2).mean() + boundary_loss_xi.pow(2).mean()
@@ -735,5 +743,34 @@ def compute_loss_spline(
             weight_i * initial_loss_spline(spline, x, t)
 
         return final_loss if not verbose else (final_loss, interior_loss_function(spline, x, t), initial_loss_spline(spline, x, t), boundary_loss_spline(spline, x, t))
+    else:
+        raise ValueError("Wrong dimensionality, must be 1 or 2")
+    
+def compute_loss_PINN_learns_coeff(
+    pinn: PINN, spline: B_Splines,
+    x: torch.Tensor = None, t: torch.Tensor = None, 
+    weight_f = 1.0, weight_b = 1.0,
+    dims: int = 2,
+) -> torch.float:
+    """Compute the full loss function as interior loss + boundary loss
+    This custom loss function is fully defined with differentiable tensors therefore
+    the .backward() method can be applied to it
+    """
+    #print all weights
+    # print("weight_f: ", weight_f)
+    # print("weight_b: ", weight_b)
+    # print("weight_i: ", weight_i)
+
+    if dims == 1:
+        t = None
+        final_loss = \
+            weight_f * loss_PINN_learns_coeff(pinn, spline, x, t, dims=dims)
+        if not pinn.pinning:
+            final_loss += weight_b * boundary_loss_PINN_learns_coeff(pinn, spline, x, t, dims=dims)
+        print(final_loss)
+        return final_loss
+    
+    elif dims == 2:
+        raise NotImplementedError("Not implemented yet!")
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")

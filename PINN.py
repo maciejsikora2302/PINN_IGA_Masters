@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from general_parameters import general_parameters
 
 class PINN(nn.Module):
     """Simple neural network accepting two features as input and returning a single output
@@ -7,7 +8,7 @@ class PINN(nn.Module):
     In the context of PINNs, the neural network is used as universal function approximator
     to approximate the solution of the differential equation
     """
-    def __init__(self, num_hidden: int, dim_hidden: int, act=nn.Tanh(), pinning: bool = False, dims: int = 1, dim_layer_out: int = 1):
+    def __init__(self, num_hidden: int, dim_hidden: int, act=nn.Tanh(), pinning: bool = False, dims: int = 1, dim_layer_in = 1, dim_layer_out: int = 1):
 
         super().__init__()
 
@@ -16,7 +17,10 @@ class PINN(nn.Module):
         # self.layer_in = nn.Linear(2, dim_hidden)
         # self.layer_out = nn.Linear(dim_hidden, 1)
         if dims == 1:
-            self.layer_in = nn.Linear(1, dim_hidden)
+            if general_parameters.pinn_learns_coeff:
+                self.layer_in = nn.Linear(dim_layer_in, dim_hidden)
+            else:
+                self.layer_in = nn.Linear(dims, dim_hidden)
             self.layer_out = nn.Linear(dim_hidden, dim_layer_out)
 
         num_middle = num_hidden - 1
@@ -28,8 +32,8 @@ class PINN(nn.Module):
     def forward(self, x, t):
 
         if self.dims == 1:
-
-            x_stack = torch.cat([x], dim=1)        
+            
+            x_stack = torch.cat([x], dim=1)
             out = self.act(self.layer_in(x_stack))
             for layer in self.middle_layers:
                 out = self.act(layer(out))
