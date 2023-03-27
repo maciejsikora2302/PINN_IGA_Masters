@@ -737,7 +737,3 @@ def compute_loss_spline(
         return final_loss if not verbose else (final_loss, interior_loss_function(spline, x, t), initial_loss_spline(spline, x, t), boundary_loss_spline(spline, x, t))
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
-
-# TODO
-def compute_loss_pinn_learns_coefs():
-    pass
