@@ -765,8 +765,8 @@ def compute_loss_PINN_learns_coeff(
         t = None
         final_loss = \
             weight_f * loss_PINN_learns_coeff(pinn, spline, x, t, dims=dims)
-        if not pinn.pinning:
-            final_loss += weight_b * boundary_loss_PINN_learns_coeff(pinn, spline, x, t, dims=dims)
+        # if not pinn.pinning:
+        #     final_loss += weight_b * boundary_loss_PINN_learns_coeff(pinn, spline, x, t, dims=dims)
         print(final_loss)
         return final_loss
     
