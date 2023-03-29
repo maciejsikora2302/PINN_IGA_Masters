@@ -267,8 +267,8 @@ if __name__ == "__main__":
         for loss_fn, name in \
             [
                 # (loss_fn_weak, 'loss_fn_weak'),
-                # (loss_fn_strong, 'loss_fn_strong'), 
-                (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
+                (loss_fn_strong, 'loss_fn_strong'), 
+                # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
                 # (loss_fn_colocation, 'loss_fn_colocation')
             ]:
             logger.info(f"Training {'PINN' if not USE_SPLINE else 'splines'} for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
