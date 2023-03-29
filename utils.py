@@ -63,6 +63,15 @@ def compute_losses_and_plot_solution(
     with open(f"{path}/time.txt", "w") as time_file:
         time_file.write(f"{training_time:.2f}")
 
+    #save loss values to file
+    with open(f"{path}/loss_values.txt", "w") as loss_file:
+        for loss in loss_values:
+            loss_file.write(f"{loss:.5f},")
+    
+
+
+                            
+
     # logger.info(f"Computing final loss")
 
     # losses = compute_loss(pinn_trained.to(device), x=x, t=t, verbose=True, dims=dims)
@@ -135,7 +144,18 @@ def compute_losses_and_plot_solution(
             pinn_values = torch.Tensor(spline(x.cpu().detach())).flatten()
     else:
         pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1), t.reshape(-1,1))
-    # print(pinn_values.cpu().flatten().detach())
+
+
+    #save x to file
+    with open(f"{path}/x.txt", "w") as x_file:
+        for x_value in x_init:
+            x_file.write(f"{x_value:.5f},")
+
+    #save pinn values to file
+    with open(f"{path}/pinn_values.txt", "w") as pinn_values_file:
+        for pinn_value in pinn_values:
+            pinn_values_file.write(f"{pinn_value:.5f},")
+
 
     fig, ax = plt.subplots(figsize=(14, 10), dpi=100)
     ax.set_title("Solution profile")

@@ -40,7 +40,9 @@ def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = 
 
     if general_parameters.pinn_is_solution:
         x = torch.rand_like(x)
-        x = torch.sort(x)[0]
+        # x = torch.sort(x)[0]
+        x.requires_grad_(True)
+        
 
 
     eps_interior = general_parameters.eps_interior
@@ -60,14 +62,14 @@ def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = 
     v_coloc = sp_coloc.calculate_BSpline_1D(x)
     
     if not colocation:
-        return eps_interior, sp, sp.degree, sp.coefs, v
+        return eps_interior, sp, sp.degree, sp.coefs, v, x
     else:
-        return eps_interior, sp, sp.degree, sp.coefs, v_coloc
+        return eps_interior, sp, sp.degree, sp.coefs, v_coloc, x
 
 
 def interior_loss_weak(
         pinn: PINN,
-        x:torch.Tensor, 
+        x: torch.Tensor, 
         t: torch.Tensor, 
         sp: B_Splines = None, 
         dims: int = 2, 
@@ -80,7 +82,7 @@ def interior_loss_weak(
     if dims == 1:
         
         x = x.cuda()
-        eps_interior, sp, _, _, _ = precalculations_1D(x, sp)
+        eps_interior, sp, _, _, _, x = precalculations_1D(x, sp)
         
         if general_parameters.optimize_test_function:
             v = test_function.calculate_BSpline_1D(x, mode="Adam").cuda()
@@ -141,7 +143,7 @@ def interior_loss_colocation(
 
     if dims == 1:
         x = x.cuda()
-        eps_interior, sp, _, _, v = precalculations_1D(x, sp, colocation = True)
+        eps_interior, sp, _, _, v, x = precalculations_1D(x, sp, colocation = True)
 
         loss = (dfdx(pinn, x, order=1) - eps_interior*dfdx(pinn, x, order=2)) * v
 
@@ -170,7 +172,7 @@ def interior_loss_strong(
     if dims == 1:
         x = x.cuda()
 
-        eps_interior, sp, _, _, v = precalculations_1D(x, sp)
+        eps_interior, sp, _, _, v, x = precalculations_1D(x, sp)
 
         if general_parameters.optimize_test_function:
             v = test_function.calculate_BSpline_1D(x, mode='Adam')
@@ -217,7 +219,7 @@ def interior_loss_weak_and_strong(
 
     if dims == 1:
         x = x.cuda()
-        eps_interior, sp, _, _, v = precalculations_1D(x, sp)
+        eps_interior, sp, _, _, v, x = precalculations_1D(x, sp)
 
         if general_parameters.optimize_test_function:
             
