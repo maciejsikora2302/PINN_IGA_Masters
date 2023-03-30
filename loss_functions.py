@@ -193,13 +193,15 @@ def interior_loss_strong(
                 - eps_interior*dfdx(pinn, x, order=2)
                 + dfdx(pinn, x, order=1) 
                 ) * v
+            
         else:
             loss = (
                 - eps_interior*dfdx(pinn, x, order=2)
                 + dfdx(pinn, x, order=1) 
                 ) * v
+            
         
-       
+        
 
     elif dims == 2:
 
@@ -795,9 +797,9 @@ def compute_loss_PINN_learns_coeff(
         t = None
         final_loss = \
             weight_f * loss_PINN_learns_coeff(pinn, spline, x, t, dims=dims)
-        # if not pinn.pinning:
-        #     final_loss += weight_b * boundary_loss_PINN_learns_coeff(pinn, spline, x, t, dims=dims)
-        print(final_loss)
+        if not pinn.pinning:
+            final_loss += weight_b * boundary_loss_PINN_learns_coeff(pinn, spline, x, t, dims=dims)
+
         return final_loss
     
     elif dims == 2:

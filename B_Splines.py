@@ -259,9 +259,8 @@ class B_Splines(torch.nn.Module):
       x = x.flatten()
       t = t.flatten()
 
-      spline_1D_deriv_dx = self.calculate_BSpline_1D_deriv_dx(x, mode=mode).cpu()
-      spline_1D_deriv_dxdx = self.calculate_BSpline_1D_deriv_dx(spline_1D_deriv_dx, mode=mode).cpu()
-      spline_1D_t = self.calculate_BSpline_1D(t, mode=mode).cpu()
+      spline_1D_deriv_dxdx = self.calculate_BSpline_1D_deriv_dx(x, mode=mode, coefs=self.coefs).cpu()
+      spline_1D_t = self.calculate_BSpline_1D(t, mode=mode, coefs=self.coefs_2).cpu()
 
       return torch.outer(spline_1D_deriv_dxdx, spline_1D_t).cpu()
 
@@ -273,9 +272,8 @@ class B_Splines(torch.nn.Module):
       x = x.flatten()
       t = t.flatten()
 
-      spline_1D_deriv_dt = self.calculate_BSpline_1D_deriv_dx(x, mode=mode).cpu()
-      spline_1D_deriv_dtdt = self.calculate_BSpline_1D_deriv_dx(spline_1D_deriv_dt, mode=mode).cpu()
-      spline_1D_x = self.calculate_BSpline_1D(x, mode=mode).cpu()
+      spline_1D_deriv_dtdt = self.calculate_BSpline_1D_deriv_dx(t, mode=mode, coefs=self.coefs_2).cpu()
+      spline_1D_x = self.calculate_BSpline_1D(x, mode=mode, coefs=self.coefs).cpu()
 
       return torch.outer(spline_1D_deriv_dtdt, spline_1D_x).cpu()
 
@@ -286,7 +284,10 @@ class B_Splines(torch.nn.Module):
       x = x.flatten()
       t = t.flatten()
       
-      return torch.outer(self.calculate_BSpline_1D(x, mode=mode).cpu(), self.calculate_BSpline_1D_deriv_dx(t, mode=mode).cpu())
+      spline_1D_x = self.calculate_BSpline_1D(x, mode=mode, coefs=self.coefs).cpu()
+      spline_1D_deriv_dt = self.calculate_BSpline_1D_deriv_dx(t, mode=mode, coefs=self.coefs_2).cpu()
+
+      return torch.outer(spline_1D_x, spline_1D_deriv_dt).cpu()
    
    def calculate_BSpline_2D_deriv_dxdt(self, x: torch.Tensor, t: torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
@@ -295,7 +296,10 @@ class B_Splines(torch.nn.Module):
       The order of variables doesn't matter.
       """
 
-      return torch.outer(self.calculate_BSpline_1D_deriv_dx(x,mode=mode), self.calculate_BSpline_1D_deriv_dx(t, mode=mode))
+      spline_1D_deriv_dx = self.calculate_BSpline_1D_deriv_dx(x,mode=mode, coefs=self.coefs)
+      spline_1D_deriv_dt = self.calculate_BSpline_1D_deriv_dx(t, mode=mode, coefs=self.coefs_2)
+
+      return torch.outer(spline_1D_deriv_dx, spline_1D_deriv_dt).cpu()
    
    def forward(self, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
 
