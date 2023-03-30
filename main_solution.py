@@ -192,9 +192,19 @@ if __name__ == "__main__":
                 ).to(device)
 
             # In this case the coefficients don't matter
-            spline = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=1 if general_parameters.one_dimension else 2)
+            spline = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=1)
         elif not general_parameters.one_dimension:
-            raise NotImplementedError("2D PINN not implemented yet :<")
+            pinn = PINN(
+                LAYERS, 
+                NEURONS_PER_LAYER, 
+                pinning=False, 
+                act=nn.Tanh(), 
+                dim_layer_in=x.shape[0], # Dim layer in 2D case needs to be modified in future 
+                dim_layer_out=N_SPLINE_coeff
+                ).to(device)
+            
+            spline = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=2)
+
         else:
             raise Exception("Unknown dimensionality")
     else:
@@ -204,7 +214,7 @@ if __name__ == "__main__":
         if general_parameters.one_dimension:
             pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh()).to(device)
         elif not general_parameters.one_dimension:
-            raise NotImplementedError("2D PINN not implemented yet :<")
+            pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), dims=2).to(device)
         else:
             raise Exception("Unknown dimensionality")
 

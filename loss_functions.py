@@ -9,19 +9,19 @@ import math
 
 def initial_condition(x) -> torch.Tensor:
     res = torch.sin(math.pi*x).reshape(-1,1)
-    # res = x.reshape(-1,1)
-    # res = torch.zeros_like(x).reshape(-1,1)
     return res
 
-def precalculations_2D(x:torch.Tensor, t: torch.Tensor, sp: B_Splines = None, colocation: bool = False):
+def precalculations_2D(x: torch.Tensor, t: torch.Tensor, sp: B_Splines = None, colocation: bool = False):
     eps_interior = general_parameters.eps_interior
     knot_vector_length = len(general_parameters.knot_vector)
     degree = general_parameters.spline_degree
     coefs_vector_length = general_parameters.n_coeff
 
     linspace = torch.linspace(0, 1, knot_vector_length)
-    coefs = torch.ones(coefs_vector_length)
-    sp = B_Splines(linspace, degree, coefs=coefs, dims=2) if sp is None else sp
+
+    #coefs random floats between 0 and 1 as a tensor
+    # coefs = torch.Tensor(np.random.rand(coefs_vector_length)) # This is done in the B-Splines class
+    sp = B_Splines(linspace, degree, dims=2) if sp is None else sp
 
     coefs_int = torch.Tensor(np.random.randint(0, 2, (coefs_vector_length, )))
     sp_coloc = B_Splines(linspace, degree, coefs=coefs_int, dims=2)
@@ -52,11 +52,11 @@ def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = 
     linspace = general_parameters.knot_vector
 
     #coefs random floats between 0 and 1 as a tensor
-    coefs = torch.Tensor(np.random.rand(coefs_vector_length))
-    sp = B_Splines(linspace, degree, coefs=coefs) if sp is None else sp
+    # coefs = torch.Tensor(np.random.rand(coefs_vector_length))
+    sp = B_Splines(linspace, degree, dims=1) if sp is None else sp
 
     coefs_int = torch.Tensor(np.random.randint(0, 2, (coefs_vector_length, )))
-    sp_coloc = B_Splines(linspace, degree, coefs=coefs_int)
+    sp_coloc = B_Splines(linspace, degree, coefs=coefs_int, dims=1)
 
     v = sp.calculate_BSpline_1D(x)
     v_coloc = sp_coloc.calculate_BSpline_1D(x)
@@ -111,27 +111,40 @@ def interior_loss_weak(
     elif dims == 2:
         eps_interior, sp, _, _, v = precalculations_2D(x, t, sp)
 
-        v_deriv_x = sp.calculate_BSpline_2D_deriv_dx(x, t) #.cuda()
-        v_deriv_t = sp.calculate_BSpline_2D_deriv_dt(x, t) # .cuda()
-
         n_x = x.shape[0]
         n_t = t.shape[0]
 
-        loss = torch.trapezoid(torch.trapezoid(
-            
-            # dfdt(pinn, x, t, order=1).cuda() * v
-            # + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x
-            # + eps_interior*dfdt(pinn, x, t, order=1) * v_deriv_t
-            dfdt(pinn, x, t, order=1).cpu() * v.cpu()
-            + eps_interior*dfdx(pinn, x, t, order=1).cpu() * v_deriv_x.cpu()
-            + eps_interior*dfdt(pinn, x, t, order=1).cpu() * v_deriv_t.cpu()
-            
-            , dx = 1/n_x), dx = 1/n_t)
+        if general_parameters.optimize_test_function:
+            v_deriv_x = sp.calculate_BSpline_2D_deriv_dx(x, t, mode="Adam") #.cuda()
+            v_deriv_t = sp.calculate_BSpline_2D_deriv_dt(x, t, mode="Adam") # .cuda()
+            v = sp.calculate_BSpline_2D(x, t, mode="Adam")
+
+            loss = torch.trapezoid(torch.trapezoid(
+                
+                (dfdt(pinn, x, t, order=1).cpu() * v.cpu()
+                + eps_interior*dfdx(pinn, x, t, order=1).cpu() * v_deriv_x.cpu()
+                + eps_interior*dfdt(pinn, x, t, order=1).cpu() * v_deriv_t.cpu()).pow(2)
+                
+                , dx = 1/n_x), dx = 1/n_t)
+        else:
+            v_deriv_x = sp.calculate_BSpline_2D_deriv_dx(x, t) #.cuda()
+            v_deriv_t = sp.calculate_BSpline_2D_deriv_dt(x, t) # .cuda()
+
+            loss = torch.trapezoid(torch.trapezoid(
+                
+                (dfdt(pinn, x, t, order=1).cpu() * v.cpu()
+                + eps_interior*dfdx(pinn, x, t, order=1).cpu() * v_deriv_x.cpu()
+                + eps_interior*dfdt(pinn, x, t, order=1).cpu() * v_deriv_t.cpu()).pow(2)
+                
+                , dx = 1/n_x), dx = 1/n_t)
         
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
 
-    return loss.pow(2).mean()
+    if dims == 2:
+        return loss
+    elif dims == 1:
+        return loss.pow(2).mean()
 
 def interior_loss_colocation(
         pinn: PINN, 
@@ -194,18 +207,33 @@ def interior_loss_strong(
         n_x = x.shape[0]
         n_t = t.shape[0]
 
-        loss = torch.trapezoid(torch.trapezoid(
+        if general_parameters.optimize_test_function:
+            
+            v = sp.calculate_BSpline_2D(x, t, mode="Adam")
 
-            (dfdt(pinn, x, t, order=1).cpu() 
-                            - eps_interior*dfdt(pinn, x, t, order=2).cpu()
-                            - eps_interior*dfdx(pinn, x, t, order=2).cpu()) * v.cpu()
+            loss = torch.trapezoid(torch.trapezoid(
 
-                            , dx=1/n_x), dx=1/n_t)
+                ((dfdt(pinn, x, t, order=1).cpu() 
+                                - eps_interior*dfdt(pinn, x, t, order=2).cpu()
+                                - eps_interior*dfdx(pinn, x, t, order=2).cpu()) * v.cpu()).pow(2)
 
+                                , dx=1/n_x), dx=1/n_t)
+        else:
+
+            loss = torch.trapezoid(torch.trapezoid(
+
+                ((dfdt(pinn, x, t, order=1).cpu() 
+                                - eps_interior*dfdt(pinn, x, t, order=2).cpu()
+                                - eps_interior*dfdx(pinn, x, t, order=2).cpu()) * v.cpu()).pow(2)
+
+                                , dx=1/n_x), dx=1/n_t)
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
 
-    return loss.pow(2).mean()
+    if dims == 2:
+        return loss
+    elif dims == 1:
+        return loss.pow(2).mean()
 
 
 def interior_loss_weak_and_strong(
