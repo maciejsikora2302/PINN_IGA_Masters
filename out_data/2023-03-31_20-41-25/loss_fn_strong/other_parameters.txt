@@ -1,0 +1,1 @@
+{"pinn_learns_coeff": false, "pinn_is_solution": true, "epochs": 1000, "learning_rate": 0.01, "eps_interior": 0.1, "n_points_x": 10}

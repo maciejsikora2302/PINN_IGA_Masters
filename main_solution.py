@@ -47,7 +47,7 @@ args = parser.parse_args()
 
 
 
-pprint(vars(args))
+# pprint(vars(args))
 
 
 
@@ -74,7 +74,7 @@ general_parameters.pinn_learns_coeff = args.pinn_learns_coeff if args.pinn_learn
 general_parameters.optimize_test_function = args.optimize_test_function if args.optimize_test_function is not None else general_parameters.optimize_test_function
 
 general_parameters.precalculate()
-pprint(vars(general_parameters))
+# pprint(vars(general_parameters))
 
 LENGTH = general_parameters.length
 TOTAL_TIME = general_parameters.total_time
@@ -188,7 +188,8 @@ if __name__ == "__main__":
                 pinning=False, 
                 act=nn.Tanh(), 
                 dim_layer_in=x.shape[0], 
-                dim_layer_out=N_SPLINE_coeff
+                dim_layer_out=N_SPLINE_coeff,
+                pinn_learns_coeff=general_parameters.pinn_learns_coeff
                 ).to(device)
 
             # In this case the coefficients don't matter
@@ -200,7 +201,8 @@ if __name__ == "__main__":
                 pinning=False, 
                 act=nn.Tanh(), 
                 dim_layer_in=x.shape[0], # Dim layer in 2D case needs to be modified in future 
-                dim_layer_out=N_SPLINE_coeff
+                dim_layer_out=N_SPLINE_coeff,
+                pinn_learns_coeff=general_parameters.pinn_learns_coeff,
                 ).to(device)
             
             spline = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=2)
@@ -212,9 +214,9 @@ if __name__ == "__main__":
         logger.info(f"Creating PINN with {Color.GREEN}{LAYERS}{Color.RESET} layers and {Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET} neurons per layer")
 
         if general_parameters.one_dimension:
-            pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh()).to(device)
+            pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), pinn_learns_coeff=general_parameters.pinn_learns_coeff).to(device)
         elif not general_parameters.one_dimension:
-            pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), dims=2).to(device)
+            pinn = PINN(LAYERS, NEURONS_PER_LAYER, pinning=False, act=nn.Tanh(), pinn_learns_coeff=general_parameters.pinn_learns_coeff, dims=2).to(device)
         else:
             raise Exception("Unknown dimensionality")
 
@@ -276,8 +278,8 @@ if __name__ == "__main__":
         # train the PINN
         for loss_fn, name in \
             [
-                (loss_fn_weak, 'loss_fn_weak'),
-                # (loss_fn_strong, 'loss_fn_strong'), 
+                # (loss_fn_weak, 'loss_fn_weak'),
+                (loss_fn_strong, 'loss_fn_strong'), 
                 # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
                 # (loss_fn_colocation, 'loss_fn_colocation')
             ]:
