@@ -8,6 +8,7 @@ from NN_tools import f
 from plotting import plot_color
 from PINN import PINN
 from scipy.interpolate import BSpline
+import json
 
 def running_average(y, window=100):
     cumsum = np.cumsum(np.insert(y, 0, 0)) 
@@ -56,6 +57,7 @@ def compute_losses_and_plot_solution(
 
     if not os.path.exists(path):
         os.makedirs(path)
+
 
     logger.info(f"Creating plots and saving to files. Dimensions: {dims}")
 
@@ -186,11 +188,23 @@ def compute_losses_and_plot_solution(
         y = pinn_values
         file.write(','.join([str(x) for x in y]))
 
-    # with open(f"{path}/solution_profile2.txt", "w") as file:
-    #     X = x_init.reshape(-1, 1).cpu().numpy()
-    #     Y = pinn_values.flatten().detach()
-    #     print(X)    
-    #     print(Y)
+
+    #write parameters of pinn clas to file
+    with open(f"{path}/model_parameters.txt", "w") as file:
+        file.write(str(pinn_trained))
+    
+    # write other important parameters to file
+    with open(f"{path}/other_parameters.txt", "w") as file:
+        dict_to_save = {
+            "pinn_learns_coeff": general_parameters.pinn_learns_coeff,
+            "pinn_is_solution": general_parameters.pinn_is_solution,
+            "pinn_learns_coeff": general_parameters.pinn_learns_coeff,
+            "epochs": general_parameters.epochs,
+            "learning_rate": general_parameters.learning_rate,
+            "eps_interior": general_parameters.eps_interior,
+            "n_points_x": general_parameters.n_points_x,
+        }
+        file.write(json.dumps(dict_to_save))
 
 
 

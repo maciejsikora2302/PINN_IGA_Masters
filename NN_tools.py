@@ -6,7 +6,7 @@ from typing import Callable, Tuple, Union
 from general_parameters import logger, Color, general_parameters, OUT_DATA_FOLDER
 from B_Splines import B_Splines
 import tqdm
-import time
+import os
 
 
 
@@ -44,7 +44,10 @@ def train_model(
             if loss_values[-1] < lowest_current_loss:
                 lowest_current_loss = loss_values[-1]
                 if general_parameters.save:
-                    SAVE_PATH = f"{OUT_DATA_FOLDER}/model_{loss_fn_name}.pt"
+                    path = f"{OUT_DATA_FOLDER}/{loss_fn_name}"
+                    if not os.path.exists(path):
+                        os.makedirs(path)
+                    SAVE_PATH = f"{path}/model.pt"
                     logger.debug(f"Saving model to {Color.YELLOW}{SAVE_PATH}{Color.RESET}")
                     torch.save(nn_approximator.state_dict(), SAVE_PATH)
             # if (epoch + 1) % how_often_to_display == 0:
