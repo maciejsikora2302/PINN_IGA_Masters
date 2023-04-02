@@ -88,15 +88,45 @@ def interior_loss_weak(
             v = test_function.calculate_BSpline_1D(x, mode="Adam").cuda()
             v_deriv_x = test_function.calculate_BSpline_1D_deriv_dx(x, mode="Adam").cuda()
 
-            loss = dfdx(pinn, x, t, order=1).cuda() * v \
-                + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x
+            last_point = x[-1].reshape(-1, 1) #last point = 1
+            first_point = x[0].reshape(-1, 1) #first point = 0
+
+            v_at_last_point = test_function.calculate_BSpline_1D(last_point, mode="Adam").cuda()
+            v_at_first_point = test_function.calculate_BSpline_1D(first_point, mode="Adam").cuda()
+
+            b_weak = (dfdx(pinn, x, t, order=1).cuda() * v \
+                + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x).mean() \
+                + dfdx(pinn, first_point, order=1) * v_at_first_point \
+                - dfdx(pinn, last_point, order=1) * v_at_last_point
+                # + dfdx(pinn, first_point, order=1) * v_at_first_point \
+                # - dfdx(pinn, last_point, order=1) * v_at_last_point
+            
+
+            # l_weak = (f(pinn, x)).mean() + v_at_first_point
+
+            loss = b_weak.pow(2)
         else:
 
             v = sp.calculate_BSpline_1D(x).cuda()
             v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
 
-            loss = dfdx(pinn, x, t, order=1).cuda() * v \
-                + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x
+            last_point = x[-1].reshape(-1, 1) #last point = 1
+            first_point = x[0].reshape(-1, 1) #first point = 0
+
+            v_at_last_point = sp.calculate_BSpline_1D(last_point, mode="NN").cuda()
+            v_at_first_point = sp.calculate_BSpline_1D(first_point, mode="NN").cuda()
+
+            b_weak = (dfdx(pinn, x, t, order=1).cuda() * v \
+                + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x).mean() \
+                + dfdx(pinn, first_point, order=1) * v_at_first_point \
+                - dfdx(pinn, last_point, order=1) * v_at_last_point
+                # + dfdx(pinn, first_point, order=1) * v_at_first_point \
+                # - dfdx(pinn, last_point, order=1) * v_at_last_point
+            
+
+            # l_weak = (f(pinn, x)).mean() + v_at_first_point
+
+            loss = b_weak.pow(2)
         #print all components of loss_weak
         logger.debug("Loss weak components:")
 
@@ -140,11 +170,7 @@ def interior_loss_weak(
         
     else:
         raise ValueError("Wrong dimensionality, must be 1 or 2")
-
-    if dims == 2:
-        return loss
-    elif dims == 1:
-        return loss.pow(2).mean()
+    return loss
 
 def interior_loss_colocation(
         pinn: PINN, 

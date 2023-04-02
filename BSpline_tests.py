@@ -50,7 +50,7 @@ general_parameters.precalculate()
 
 bs = B_Splines(
     knot_vector=general_parameters.knot_vector,
-    degree=3,
+    degree=2,
 )
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # x_domain = [0.0, 1.0]
@@ -64,11 +64,14 @@ bs = B_Splines(
 # spline_adam = bs.calculate_BSpline_1D(x, mode='Adam')
 # print(spline_NN)
 # print(spline_adam)
-x = torch.linspace(0,1,50)
-t = torch.linspace(0,1,1000)
+x = torch.linspace(0,1,10)
+t = torch.linspace(0,1,10)
 # print((bs._get_basis_functions_1D(x).cuda() @ bs.coefs.cuda()).shape)
 # print(bs._get_basis_functions_1D(x).shape)
 
-print(bs.calculate_BSpline_1D_deriv_dx(x, mode='Adam'))
+# print(bs.calculate_BSpline_1D_deriv_dx(x, mode='Adam'))
 # print(bs.calculate_BSpline_1D_deriv_dxdx(x, mode='NN', order=0))
+# print(bs.calculate_BSpline_1D_deriv_dx(x, mode='NN'))
+
+print(bs.calculate_BSpline_1D_deriv_dx(x, mode='Adam'))
 print(bs.calculate_BSpline_1D_deriv_dx(x, mode='NN'))
