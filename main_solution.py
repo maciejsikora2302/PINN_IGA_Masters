@@ -278,8 +278,8 @@ if __name__ == "__main__":
         # train the PINN
         for loss_fn, name in \
             [
-                # (loss_fn_weak, 'loss_fn_weak'),
-                (loss_fn_strong, 'loss_fn_strong'), 
+                (loss_fn_weak, 'loss_fn_weak'),
+                # (loss_fn_strong, 'loss_fn_strong'), 
                 # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
                 # (loss_fn_colocation, 'loss_fn_colocation')
             ]:
