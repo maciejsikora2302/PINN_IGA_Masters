@@ -187,9 +187,8 @@ if __name__ == "__main__":
                 NEURONS_PER_LAYER, 
                 pinning=False, 
                 act=nn.Tanh(), 
-                dim_layer_in=x.shape[0], 
-                dim_layer_out=N_SPLINE_coeff,
-                pinn_learns_coeff=general_parameters.pinn_learns_coeff
+                dim_layer_in=1, 
+                dim_layer_out=N_SPLINE_coeff
                 ).to(device)
 
             # In this case the coefficients don't matter
