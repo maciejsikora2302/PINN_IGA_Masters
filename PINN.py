@@ -22,10 +22,7 @@ class PINN(nn.Module):
         # self.layer_in = nn.Linear(2, dim_hidden)
         # self.layer_out = nn.Linear(dim_hidden, 1)
         if dims == 1:
-            if self.pinn_learns_coeff:
-                self.layer_in = nn.Linear(dim_layer_in, dim_hidden)
-            else:
-                self.layer_in = nn.Linear(dims, dim_hidden)
+            self.layer_in = nn.Linear(dims, dim_hidden)
             self.layer_out = nn.Linear(dim_hidden, dim_layer_out)
 
         num_middle = num_hidden - 1

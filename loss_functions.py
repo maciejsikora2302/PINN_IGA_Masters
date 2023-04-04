@@ -118,8 +118,8 @@ def interior_loss_weak(
 
             b_weak = (dfdx(pinn, x, t, order=1).cuda() * v \
                 + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x).mean() \
-                + dfdx(pinn, first_point, order=1) * v_at_first_point \
-                - dfdx(pinn, last_point, order=1) * v_at_last_point
+                + eps_interior * dfdx(pinn, first_point, order=1) * v_at_first_point \
+                - eps_interior * dfdx(pinn, last_point, order=1) * v_at_last_point
                 # + dfdx(pinn, first_point, order=1) * v_at_first_point \
                 # - dfdx(pinn, last_point, order=1) * v_at_last_point
             
@@ -559,17 +559,15 @@ def loss_PINN_learns_coeff(
         d2_sp_dx2 = spline._get_basis_functions_1D(x, order=2)
 
         # pinns return matrix of splines coefficients for all inputs with dimension 1 x number_of_coeffs
-        x = x.reshape(dims, x.shape[0])
         pinn_value = f(pinn, x)
         d_pinn_dx = dfdx(pinn, x, order=1)
-        d2_pinn_dx2 = dfdx(pinn, x, order=2)
+        d2_pinn_dx2 = dfdx(pinn, x, order=2)        
 
         # pinns returns matrix of splines coefficients for all inputs with dimension 
-        d_solution_dx = sp_value @ d_pinn_dx.T + d_sp_dx @ pinn_value.T
-        d2_solution_dx2 = sp_value @ d2_pinn_dx2.T + 2*d_sp_dx @ d_pinn_dx.T + d2_sp_dx2 @ pinn_value.T
+        d_solution_dx = sp_value @ d_pinn_dx + d_sp_dx @ pinn_value
+        d2_solution_dx2 = sp_value @ d2_pinn_dx2 + 2*d_sp_dx @ d_pinn_dx + d2_sp_dx2 @ pinn_value
         
         loss = d_solution_dx - eps_interior*d2_solution_dx2
-        loss = loss.flatten()
 
     elif dims == 2:
         raise NotImplementedError("So sorry... not implemented yet :c")
@@ -748,7 +746,7 @@ def compute_loss(
         if not pinn.pinning:
             final_loss += weight_b * boundary_loss(pinn, x, t, dims=dims)
 
-        return final_loss if not verbose else (final_loss, interior_loss_function(pinn, x, t), initial_loss(pinn, x, t, dims=dims), boundary_loss(pinn, x, t, dims=dims))
+        return final_loss
 
     elif dims == 2:
         final_loss = \
