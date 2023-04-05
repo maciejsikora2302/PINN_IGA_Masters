@@ -106,10 +106,6 @@ def compute_losses_and_plot_solution(
     # if general_parameters.pinn_learns_coeff:
     #     x = x.reshape(x.shape[0], x.shape[1])
 
-
-    if general_parameters.pinn_learns_coeff:
-        x = x.reshape(x.shape[1], x.shape[0])
-
     if dims == 1:
         pinn_values = f(pinn_trained.cuda(), x)
     else:
