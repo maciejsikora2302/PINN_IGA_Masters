@@ -88,7 +88,6 @@ def interior_loss_weak(
             v = test_function.calculate_BSpline_1D(x, mode="Adam").cuda()
             v_deriv_x = test_function.calculate_BSpline_1D_deriv_dx(x, mode="Adam").cuda()
 
-            last_point = x[-1].reshape(-1, 1) #last point = 1
             first_point = x[0].reshape(-1, 1) #first point = 0
 
             # v_at_last_point = test_function.calculate_BSpline_1D(last_point, mode="Adam").cuda()
@@ -108,18 +107,15 @@ def interior_loss_weak(
             v = sp.calculate_BSpline_1D(x).cuda()
             v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
 
-            last_point = x[-1].reshape(-1, 1) #last point = 1
             first_point = x[0].reshape(-1, 1) #first point = 0
 
-            v_at_last_point = sp.calculate_BSpline_1D(last_point, mode="NN").cuda()
-            v_at_first_point = sp.calculate_BSpline_1D(first_point, mode="NN").cuda()
+            # v_at_last_point = test_function.calculate_BSpline_1D(last_point, mode="Adam").cuda()
+            v_at_first_point = test_function.calculate_BSpline_1D(first_point).cuda()
 
             b_weak = (dfdx(pinn, x, t, order=1).cuda() * v \
                 + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x).mean() \
-                + eps_interior * dfdx(pinn, first_point, order=1) * v_at_first_point \
-                - eps_interior * dfdx(pinn, last_point, order=1) * v_at_last_point
-                # + dfdx(pinn, first_point, order=1) * v_at_first_point \
-                # - dfdx(pinn, last_point, order=1) * v_at_last_point
+                + f(pinn, first_point) * v_at_first_point \
+                - v_at_first_point
             
 
             # l_weak = (f(pinn, x)).mean() + v_at_first_point
@@ -280,26 +276,37 @@ def interior_loss_weak_and_strong(
             v = test_function.calculate_BSpline_1D(x, mode='Adam').cuda()
             v_deriv_x = test_function.calculate_BSpline_1D_deriv_dx(x, mode='Adam').cuda()
 
-            loss_weak = (
-                dfdx(pinn, x, order=1).cuda() * v
-                + eps_interior*dfdx(pinn, x, order=1) * v_deriv_x
-                )
+            first_point = x[0].reshape(-1, 1) #first point = 0
 
+            # v_at_last_point = test_function.calculate_BSpline_1D(last_point, mode="Adam").cuda()
+            v_at_first_point = test_function.calculate_BSpline_1D(first_point, mode="Adam").cuda()
+
+            loss_weak = (dfdx(pinn, x, t, order=1).cuda() * v \
+                + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x).mean() \
+                + f(pinn, first_point) * v_at_first_point \
+                - v_at_first_point
+            
             loss_strong = (
-                - eps_interior*dfdx(pinn, x, order=1)
-                + dfdx(pinn, x, order=2) 
+                - eps_interior*dfdx(pinn, x, order=2)
+                + dfdx(pinn, x, order=1) 
                 ) * v
         else:
+            v = sp.calculate_BSpline_1D(x).cuda()
             v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
 
-            loss_weak = (
-                dfdx(pinn, x, order=1).cuda() * v
-                + eps_interior*dfdx(pinn, x, order=1) * v_deriv_x
-                )
+            first_point = x[0].reshape(-1, 1) #first point = 0
 
+            # v_at_last_point = test_function.calculate_BSpline_1D(last_point, mode="Adam").cuda()
+            v_at_first_point = sp.calculate_BSpline_1D(first_point).cuda()
+
+            loss_weak = (dfdx(pinn, x, t, order=1).cuda() * v \
+                + eps_interior*dfdx(pinn, x, t, order=1) * v_deriv_x).mean() \
+                + f(pinn, first_point) * v_at_first_point \
+                - v_at_first_point
+            
             loss_strong = (
-                - eps_interior*dfdx(pinn, x, order=1)
-                + dfdx(pinn, x, order=2) 
+                - eps_interior*dfdx(pinn, x, order=2)
+                + dfdx(pinn, x, order=1) 
                 ) * v
         
 
