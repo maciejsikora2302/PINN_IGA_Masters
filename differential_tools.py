@@ -10,7 +10,11 @@ def f(pinn: PINN, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
     """Compute the value of the approximate solution from the NN model"""
 
     if t is None:
-        return pinn(x.cuda(), t)
+        value = pinn(x.cuda(), t)
+        if general_parameters.pinn_learns_coeff:
+            value = torch.mean(value, dim=1, keepdim=True)
+
+        return value
 
 
     # return pinn(x, t if t is not None else torch.zeros_like(x))
@@ -53,8 +57,6 @@ def df(output: torch.Tensor, input: torch.Tensor, order: int = 1) -> torch.Tenso
                 create_graph=True,
                 retain_graph=True,
             )[0]
-            #print(df_value.shape)
-
     # return df_value.cuda()
     return df_value
 
@@ -75,4 +77,5 @@ def dfdt_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor, mode: str =
 def dfdx(pinn: PINN, x: torch.Tensor, t: torch.Tensor = None, order: int = 1):
     """Derivative with respect to the spatial variable of arbitrary order"""
     f_value = f(pinn, x, t)
+
     return df(f_value, x, order=order)

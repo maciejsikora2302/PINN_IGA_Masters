@@ -187,9 +187,8 @@ if __name__ == "__main__":
                 NEURONS_PER_LAYER, 
                 pinning=False, 
                 act=nn.Tanh(), 
-                dim_layer_in=x.shape[0], 
-                dim_layer_out=N_SPLINE_coeff,
-                pinn_learns_coeff=general_parameters.pinn_learns_coeff
+                dim_layer_in=1, 
+                dim_layer_out=N_SPLINE_coeff
                 ).to(device)
 
             # In this case the coefficients don't matter
@@ -279,8 +278,8 @@ if __name__ == "__main__":
         for loss_fn, name in \
             [
                 # (loss_fn_weak, 'loss_fn_weak'),
-                (loss_fn_strong, 'loss_fn_strong'), 
-                # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
+                # (loss_fn_strong, 'loss_fn_strong'), 
+                (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
                 # (loss_fn_colocation, 'loss_fn_colocation')
             ]:
             logger.info(f"Training {'PINN' if not USE_SPLINE else 'splines'} for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
