@@ -1,14 +1,14 @@
-$epochs = 10000
+$epochs = 5000
 $layers = 5
 $neurons_per_layer = 20
 $learning_rate = 0.01
 $spline_degree = 4
 $weight_interior = 1.0
 $weight_boundary = 1.0
-$weight_initial = 1.0
+$weight_initial = 0.0
 
 $eps_interior_values = @(1.0, 0.1, 0.01)
-$n_points_x_values = @(10, 100, 1000)
+$n_points_x_values = @(10, 100)
 
 foreach ($eps_interior in $eps_interior_values) {
     foreach ($n_points_x in $n_points_x_values) {
