@@ -64,7 +64,7 @@ class B_Splines(torch.nn.Module):
       coefs = self.coefs if coefs is None else coefs
 
       if self.dims == 1:
-         x = x.flatten().cuda()
+         x = x.flatten()
       elif self.dims == 2:
          x = x.flatten()
       
