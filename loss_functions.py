@@ -631,20 +631,24 @@ def boundary_loss_PINN_learns_coeff(
         
 
         boundary_xi = x[-1].reshape(-1, 1) #last point = 1
-        boundary_xi.requires_grad=True
-        sp_value_xi = spline._get_basis_functions_1D(boundary_xi, order=0)
+        sp_value_xi = spline._get_basis_functions_1D(boundary_xi, order=0)[0]
         f_value_xi = f(pinn, boundary_xi)
-        boundary_loss_xi = sp_value_xi @ f_value_xi
-        
+        f_value_xi_tensor = f_value_xi * torch.ones_like(sp_value_xi)
+        boundary_loss_xi = sp_value_xi @ f_value_xi_tensor.T
+
 
         boundary_xf = x[0].reshape(-1, 1) #first point = 0
-        boundary_xf.requires_grad = True
-        sp_value_xf = spline._get_basis_functions_1D(boundary_xf, order=0)
+        sp_value_xf = spline._get_basis_functions_1D(boundary_xf, order=0)[0]
+
         f_value_xf = f(pinn, boundary_xf)
+        f_value_xf_tensor = f_value_xf * torch.ones_like(sp_value_xf)
+
         f_deriv_value_xf = dfdx(pinn, boundary_xf, order=2)
+        f_deriv_value_xf_tensor = f_deriv_value_xf * torch.ones_like(sp_value_xf)
+
         sp_deriv_value_xf = spline._get_basis_functions_1D(boundary_xf, order=1)
-        boundary_loss_xf = -eps_interior * (sp_value_xf @ f_deriv_value_xf + sp_deriv_value_xf @ f_value_xf) \
-                            + sp_value_xf @ f_value_xf - 1.0
+        boundary_loss_xf = -eps_interior * (sp_value_xf @ f_deriv_value_xf_tensor.T + sp_deriv_value_xf @ f_value_xf_tensor.T) \
+                            + sp_value_xf @ f_value_xf_tensor.T - 1.0
 
 
         return boundary_loss_xf.pow(2).mean() + boundary_loss_xi.pow(2).mean()
