@@ -81,7 +81,6 @@ def interior_loss_weak(
 
     if dims == 1:
         
-        x = x.cuda()
         eps_interior, sp, _, _, _, x = precalculations_1D(x, sp)
         
         if general_parameters.optimize_test_function:

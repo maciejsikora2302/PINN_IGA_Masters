@@ -82,12 +82,14 @@ def compute_losses_and_plot_solution(
     # logger.info(f"{'Initial loss:':<50}{Color.GREEN}{losses[2]:.5f}{Color.RESET}    ({losses[2]:.3E})")
     # logger.info(f"{'Bondary loss:':<50}{Color.GREEN}{losses[3]:.5f}{Color.RESET}    ({losses[3]:.3E})")
 
-    average_loss = running_average(loss_values, window=100)
+    # average_loss = running_average(loss_values, window=100)
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
     ax.set_title("Loss function convergence")
     ax.set_xlabel("Epoch number")
     ax.set_ylabel("Loss function value")
-    ax.plot(average_loss)
+    # ax.plot(average_loss)
+    #plot loss in log10 scale
+    ax.semilogy(loss_values)
 
     plt.savefig(f"{path}/loss_convergence.png")
 
@@ -196,13 +198,18 @@ def compute_losses_and_plot_solution(
     # write other important parameters to file
     with open(f"{path}/other_parameters.txt", "w") as file:
         dict_to_save = {
-            "pinn_learns_coeff": general_parameters.pinn_learns_coeff,
             "pinn_is_solution": general_parameters.pinn_is_solution,
             "pinn_learns_coeff": general_parameters.pinn_learns_coeff,
             "epochs": general_parameters.epochs,
             "learning_rate": general_parameters.learning_rate,
             "eps_interior": general_parameters.eps_interior,
             "n_points_x": general_parameters.n_points_x,
+            "weight_initial": general_parameters.weight_initial,
+            "weight_boundary": general_parameters.weight_boundary,
+            "weight_interior": general_parameters.weight_interior,
+            "layers": general_parameters.layers,
+            "neurons": general_parameters.neurons_per_layer,
+            "spline_degree": general_parameters.spline_degree,
         }
         file.write(json.dumps(dict_to_save))
 

@@ -50,6 +50,8 @@ def train_model(
                     SAVE_PATH = f"{path}/model.pt"
                     logger.debug(f"Saving model to {Color.YELLOW}{SAVE_PATH}{Color.RESET}")
                     torch.save(nn_approximator.state_dict(), SAVE_PATH)
+
+            torch.cuda.empty_cache()
             # if (epoch + 1) % how_often_to_display == 0:
             #     epoch_time = time.time() - start_time
             #     time_per_epoch.append(epoch_time)
