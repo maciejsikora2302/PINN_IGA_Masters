@@ -5,7 +5,7 @@ $learning_rate = 0.01
 $spline_degree = 4
 $weight_interior = 1.0
 $weight_boundary = 1.0
-$weight_initial = 1.0
+$weight_initial = 0.0
 
 
 ############################################################################################################

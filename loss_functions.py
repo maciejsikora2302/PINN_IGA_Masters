@@ -67,13 +67,86 @@ def precalculations_1D(x:torch.Tensor, sp: B_Splines = None, colocation: bool = 
         return eps_interior, sp, sp.degree, sp.coefs, v_coloc, x
 
 
+def interior_loss_weak_combined(
+        model, 
+        x: torch.Tensor, 
+        t: torch.Tensor, 
+        sp: B_Splines = None, 
+        dims: int = 2, 
+        test_function: B_Splines = None,
+        mode: str = "Adam",
+        use_spline: bool = False
+        ):
+    
+    if use_spline:
+        spline: B_Splines = model
+    else:
+        pinn: PINN = model
+
+    if dims == 1:
+        x = x.cuda()
+        eps_interior, sp, _, _, v = precalculations_1D(x, sp)
+        first_point = x[0].reshape(-1, 1)
+
+        if general_parameters.optimize_test_function:
+            v_deriv_x = test_function.calculate_BSpline_1D_deriv_dx(x, mode='Adam').cuda()
+            v = test_function.calculate_BSpline_1D(x, mode='Adam').cuda()
+            v_at_first_point = test_function.calculate_BSpline_1D(first_point, mode="Adam").cuda()
+
+            if use_spline:
+                loss = spline.calculate_BSpline_1D_deriv_dx(x, mode='Adam').cuda() * v \
+                    + eps_interior*spline.calculate_BSpline_1D_deriv_dx(x, mode='Adam').cuda() * v_deriv_x
+            else:
+                loss = (dfdx(pinn, x, t, order=1).cuda() * v \
+                    + eps_interior*dfdx(pinn, x, t, order=1).cuda() * v_deriv_x).mean() \
+                    + f(pinn, first_point) * v_at_first_point \
+                    - v_at_first_point
+
+        else:
+            v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x, mode='NN').cuda()
+
+            if use_spline:
+                loss = spline.calculate_BSpline_1D_deriv_dx(x, mode=mode).cuda() * v \
+                    + eps_interior*spline.calculate_BSpline_1D_deriv_dx(x, mode=mode).cuda() * v_deriv_x
+            else:
+                loss = dfdx(pinn, x, t, order=1).cuda() * v \
+                    + eps_interior*dfdx(pinn, x, t, order=1).cuda() * v_deriv_x
+
+    elif dims == 2:
+        eps_interior, sp, _, _, v = precalculations_2D(x, t, sp)
+
+        v_deriv_x = sp.calculate_BSpline_2D_deriv_dx(x, t) 
+        v_deriv_t = sp.calculate_BSpline_2D_deriv_dt(x, t) 
+
+        n_x = x.shape[0]
+        n_t = t.shape[0]
+
+        if use_spline:
+            loss = torch.trapezoid(torch.trapezoid(
+                spline.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).cpu() * v.cpu()
+                + eps_interior*spline.calculate_BSpline_2D_deriv_dx(x, t, mode=mode).cpu() * v_deriv_x.cpu()
+                + eps_interior*spline.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).cpu() * v_deriv_t.cpu()
+                , dx = 1/n_x), dx = 1/n_t)
+        else:
+            loss = torch.trapezoid(torch.trapezoid(
+                dfdt(pinn, x, t, order=1).cpu() * v.cpu()
+                + eps_interior*dfdx(pinn, x, t, order=1).cpu() * v_deriv_x.cpu()
+                + eps_interior*dfdt(pinn, x, t, order=1).cpu() * v_deriv_t.cpu()
+                , dx = 1/n_x), dx = 1/n_t)
+        
+    else:
+        raise ValueError("Wrong dimensionality, must be 1 or 2")
+
+    return loss.pow(2).mean()
+
 def interior_loss_weak(
         pinn: PINN,
         x: torch.Tensor, 
         t: torch.Tensor, 
         sp: B_Splines = None, 
         dims: int = 2, 
-        test_function: B_Splines = None
+        test_function: B_Splines = None,
+        mode: str = "Adam"
         ):
     #t here is x in Eriksson problem, x here is y in Erikkson problem
     # loss = dfdt(pinn, x, t, order=1) - eps*dfdt(pinn, x, t, order=2)-eps*dfdx(pinn, x, t, order=2)
@@ -81,12 +154,11 @@ def interior_loss_weak(
 
     if dims == 1:
         
-        x = x.cuda()
         eps_interior, sp, _, _, _, x = precalculations_1D(x, sp)
         
         if general_parameters.optimize_test_function:
-            v = test_function.calculate_BSpline_1D(x, mode="Adam").cuda()
             v_deriv_x = test_function.calculate_BSpline_1D_deriv_dx(x, mode="Adam").cuda()
+            v = test_function.calculate_BSpline_1D(x, mode="Adam").cuda()
 
             first_point = x[0].reshape(-1, 1) #first point = 0
 
@@ -631,15 +703,13 @@ def boundary_loss_PINN_learns_coeff(
         
 
         boundary_xi = x[-1].reshape(-1, 1) #last point = 1
-        sp_value_xi = spline._get_basis_functions_1D(boundary_xi, order=0)[0]
+        sp_value_xi = spline._get_basis_functions_1D(boundary_xi, order=0).flatten()[0] # We need to take only first basis function
         f_value_xi = f(pinn, boundary_xi)
-        f_value_xi_tensor = f_value_xi * torch.ones_like(sp_value_xi)
-        boundary_loss_xi = sp_value_xi @ f_value_xi_tensor.T
-
+        boundary_loss_xi = sp_value_xi * f_value_xi
+        
 
         boundary_xf = x[0].reshape(-1, 1) #first point = 0
-        sp_value_xf = spline._get_basis_functions_1D(boundary_xf, order=0)[0]
-
+        sp_value_xf = spline._get_basis_functions_1D(boundary_xf, order=0).flatten()[0]
         f_value_xf = f(pinn, boundary_xf)
         f_value_xf_tensor = f_value_xf * torch.ones_like(sp_value_xf)
 
@@ -647,8 +717,8 @@ def boundary_loss_PINN_learns_coeff(
         f_deriv_value_xf_tensor = f_deriv_value_xf * torch.ones_like(sp_value_xf)
 
         sp_deriv_value_xf = spline._get_basis_functions_1D(boundary_xf, order=1)
-        boundary_loss_xf = -eps_interior * (sp_value_xf @ f_deriv_value_xf_tensor.T + sp_deriv_value_xf @ f_value_xf_tensor.T) \
-                            + sp_value_xf @ f_value_xf_tensor.T - 1.0
+        boundary_loss_xf = -eps_interior * (sp_value_xf * f_deriv_value_xf + sp_deriv_value_xf * f_value_xf) \
+                            + sp_value_xf * f_value_xf - 1.0
 
 
         return boundary_loss_xf.pow(2).mean() + boundary_loss_xi.pow(2).mean()
