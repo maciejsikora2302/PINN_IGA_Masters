@@ -12,8 +12,9 @@ def f(pinn: PINN, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
     if t is None:
         value = pinn(x.cuda(), t)
         if general_parameters.pinn_learns_coeff:
-            value = torch.mean(value, dim=1, keepdim=True)
-
+            value = torch.mean(value, dim=0, keepdim=True)
+            value = torch.transpose(value, 1, 0)
+           
         return value
 
 
@@ -48,15 +49,15 @@ def df(output: torch.Tensor, input: torch.Tensor, order: int = 1) -> torch.Tenso
                 create_graph=True,
                 retain_graph=True,
             )[0]
-    else:
-        for _ in range(order):
-            df_value = torch.autograd.grad(
+        else:
+           df_value = torch.autograd.grad(
                 df_value,
                 input,
-                grad_outputs=torch.ones_like(input).cuda(),
+                grad_outputs=torch.ones(general_parameters.n_coeff).cuda(),
                 create_graph=True,
                 retain_graph=True,
-            )[0]
+            )[0] 
+            
     # return df_value.cuda()
     return df_value
 

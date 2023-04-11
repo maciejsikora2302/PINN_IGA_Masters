@@ -321,7 +321,8 @@ if __name__ == "__main__":
             spline=spline,
             weight_f=WEIGHT_INTERIOR, 
             weight_b=WEIGHT_BOUNDARY, 
-            dims=1 if general_parameters.one_dimension else 2
+            dims=1 if general_parameters.one_dimension else 2,
+            test_function = TEST_FUNCTION
         )
            
         logger.info(f"Training PINN to coefficients estimation for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{loss_fn}{Color.RESET} loss function")
