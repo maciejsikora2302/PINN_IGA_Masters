@@ -2,7 +2,7 @@ from PINN import PINN
 from differential_tools import dfdx, dfdt, f
 import torch
 import numpy as np
-from typing import Callable, Tuple, Union
+from typing import Callable, Tuple, Union, List
 from general_parameters import logger, Color, general_parameters, OUT_DATA_FOLDER
 from B_Splines import B_Splines
 import tqdm
@@ -11,7 +11,7 @@ import os
 
 
 def train_model(
-    nn_approximator: Union[PINN,B_Splines],
+    nn_approximator: Union[PINN,B_Splines,List[PINN]],
     loss_fn: Callable,
     loss_fn_name: str,
     learning_rate: int = 0.01,
@@ -20,15 +20,25 @@ def train_model(
     device="cuda",
     test_function: B_Splines=None
 ) -> Tuple[PINN, np.ndarray]:
-
-    if test_function is None:
-        optimizer = torch.optim.Adam(nn_approximator.parameters(), lr=learning_rate)
+    
+    if not general_parameters.pinn_learns_coeff:
+        if test_function is None:
+            optimizer = torch.optim.Adam(nn_approximator.parameters(), lr=learning_rate)
+        else:
+            parameters = [
+                {'params': nn_approximator.parameters()},
+                {'params': test_function.parameters()}
+            ]
+            optimizer = torch.optim.Adam(parameters, lr=learning_rate)
     else:
         parameters = [
-            {'params': nn_approximator.parameters()},
-            {'params': test_function.parameters()}
-        ]
+                {'params': pinn.parameters()} for pinn in nn_approximator
+            ]
+        if test_function is not None:
+            parameters += [{'params': test_function.parameters()}]
+            
         optimizer = torch.optim.Adam(parameters, lr=learning_rate)
+            
     loss_values = []
     lowest_current_loss = float("inf")
 
@@ -40,6 +50,7 @@ def train_model(
             loss.backward()
             optimizer.step()
             loss_values.append(loss.item())
+            
 
             if loss_values[-1] < lowest_current_loss:
                 lowest_current_loss = loss_values[-1]
