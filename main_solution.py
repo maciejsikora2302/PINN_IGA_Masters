@@ -95,6 +95,7 @@ USE_SPLINE = general_parameters.splines
 OPTIMIZE_TEST_FUNCTION = general_parameters.optimize_test_function
 PINN_LEARNS_coeff = general_parameters.pinn_learns_coeff
 N_SPLINE_coeff = general_parameters.n_coeff
+EPSILON_LIST = general_parameters.epsilon_list
 
 
 if __name__ == "__main__":
@@ -182,14 +183,18 @@ if __name__ == "__main__":
         logger.info(f"Creating PINN to learn spline coefficients with {Color.GREEN}{LAYERS}{Color.RESET} layers and {Color.GREEN}{NEURONS_PER_LAYER}{Color.RESET} neurons per layer")
         
         if general_parameters.one_dimension:
-            pinn = PINN(
-                LAYERS, 
-                NEURONS_PER_LAYER, 
-                pinning=False, 
-                act=nn.Tanh(), 
-                dim_layer_in=1, 
-                dim_layer_out=N_SPLINE_coeff
-                ).to(device)
+            
+            pinn_list = [
+                PINN(
+                    LAYERS, 
+                    NEURONS_PER_LAYER, 
+                    pinning=False, 
+                    act=nn.Tanh(), 
+                    dim_layer_in=1, 
+                    dim_layer_out=1
+                ).to(device) for _ in range(N_SPLINE_coeff)
+            ]
+
 
             # In this case the coefficients don't matter
             spline = B_Splines(KNOT_VECTOR, degree=SPLINE_DEGREE, dims=1)
@@ -322,12 +327,14 @@ if __name__ == "__main__":
             weight_f=WEIGHT_INTERIOR, 
             weight_b=WEIGHT_BOUNDARY, 
             dims=1 if general_parameters.one_dimension else 2,
-            test_function = TEST_FUNCTION
+            test_function = TEST_FUNCTION,
+            pinn_list = pinn_list,
+            epsilon_list = EPSILON_LIST
         )
            
         logger.info(f"Training PINN to coefficients estimation for {Color.YELLOW}{EPOCHS}{Color.RESET} epochs using {Color.YELLOW}{loss_fn}{Color.RESET} loss function")
 
-        model = pinn
+        model = pinn_list
         name = "Prediction of splines coefficients using PINN"
 
         start_time = time()
