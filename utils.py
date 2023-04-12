@@ -1,12 +1,14 @@
 import torch
 import os
 import numpy as np
-from general_parameters import logger, Color, OUT_DATA_FOLDER
+from general_parameters import logger, Color, OUT_DATA_FOLDER, general_parameters
 from loss_functions import compute_loss
 import matplotlib.pyplot as plt
 from NN_tools import f
 from plotting import plot_color
 from PINN import PINN
+from scipy.interpolate import BSpline
+import json
 
 def running_average(y, window=100):
     cumsum = np.cumsum(np.insert(y, 0, 0)) 
@@ -56,11 +58,21 @@ def compute_losses_and_plot_solution(
     if not os.path.exists(path):
         os.makedirs(path)
 
+
     logger.info(f"Creating plots and saving to files. Dimensions: {dims}")
 
     #save time to file
     with open(f"{path}/time.txt", "w") as time_file:
         time_file.write(f"{training_time:.2f}")
+
+    #save loss values to file
+    with open(f"{path}/loss_values.txt", "w") as loss_file:
+        for loss in loss_values:
+            loss_file.write(f"{loss:.5f},")
+    
+
+
+                            
 
     # logger.info(f"Computing final loss")
 
@@ -70,12 +82,14 @@ def compute_losses_and_plot_solution(
     # logger.info(f"{'Initial loss:':<50}{Color.GREEN}{losses[2]:.5f}{Color.RESET}    ({losses[2]:.3E})")
     # logger.info(f"{'Bondary loss:':<50}{Color.GREEN}{losses[3]:.5f}{Color.RESET}    ({losses[3]:.3E})")
 
-    average_loss = running_average(loss_values, window=100)
+    # average_loss = running_average(loss_values, window=100)
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
     ax.set_title("Loss function convergence")
     ax.set_xlabel("Epoch number")
     ax.set_ylabel("Loss function value")
-    ax.plot(average_loss)
+    # ax.plot(average_loss)
+    #plot loss in log10 scale
+    ax.semilogy(loss_values)
 
     plt.savefig(f"{path}/loss_convergence.png")
 
@@ -83,35 +97,82 @@ def compute_losses_and_plot_solution(
     # z = f(pinn_trained.to(device), x, t)
     # color = plot_color(z.cpu(), x.cpu(), t.cpu(), N_POINTS_X, N_POINTS_T)
     # plt.plot(x_init, u_init, label="Initial condition")
-    # plt.plot(x_init, pinn_init.flatten().detach(), label="PINN solution")
+    # plt.plot(x_init, pinn_values.flatten().detach(), label="PINN solution")
     # plt.legend()
     # plt.savefig("./imgs/initial_condition2.png")
 
-    pinn_init = f(pinn_trained.cuda(), x_init.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
+    # print(pinn_trained.cuda())
+    # print(x_init.reshape(-1, 1))
+    # print(torch.zeros_like(x_init))
 
-    fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
-    ax.set_title("Initial condition difference")
-    ax.set_xlabel("x")
-    ax.set_ylabel("u")
-    ax.plot(x_init.cpu(), u_init, label="Initial condition")
-    ax.plot(x_init.cpu(), pinn_init.cpu().flatten().detach(), label="PINN solution")
-    ax.legend()
-    plt.savefig(f"{path}/initial_condition.png")
+    # if general_parameters.pinn_learns_coeff:
+    #     x = x.reshape(x.shape[0], x.shape[1])
+
+    if dims == 1 and not general_parameters.pinn_learns_coeff:
+        pinn_values = f(pinn_trained.cuda(), x)
+    elif dims == 2 and not general_parameters.pinn_learns_coeff:
+        pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
+
+    if not general_parameters.pinn_learns_coeff:
+        fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+        ax.set_title("Initial condition difference")
+        ax.set_xlabel("x")
+        ax.set_ylabel("u")
+        ax.plot(x_init.cpu(), u_init.cpu(), label="Initial condition")
+        ax.plot(x_init.cpu(), pinn_values.cpu().flatten().detach(), label="PINN solution")
+        ax.legend()
+        plt.savefig(f"{path}/initial_condition.png")
 
     # from IPython.display import HTML
     # ani = plot_solution(pinn_trained.cpu(), x.cpu(), t.cpu())
     # HTML(ani.to_html5_video())
 
     # plt.plot(x_init, u_init, label="Initial condition")
-    # plt.plot(x_init, pinn_init.flatten().detach(), label="PINN solution")
+    # plt.plot(x_init, pinn_values.flatten().detach(), label="PINN solution")
     # plt.legend()
 
-    pinn_init = f(pinn_trained.cuda(), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
+    # pinn_values = f(pinn_trained.cuda(), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
+    # pinn_values = f(pinn_trained.cuda(), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
+    if dims == 1:
+        if general_parameters.pinn_is_solution:
+            pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1)).cpu().flatten().detach()
+        elif general_parameters.pinn_learns_coeff:
+            
+            coeff = []
+
+            for eps in general_parameters.epsilon_list:
+                eps = torch.Tensor(eps).unsqueeze(0)
+                for pinn in pinn_trained:
+                    coeff.append(
+                        f(pinn, eps).cpu().flatten().detach()
+                    )
+
+            spline = BSpline(general_parameters.knot_vector, coeff, general_parameters.spline_degree)
+
+            # It's a spline, which coefficients were predicted by PINN
+            pinn_values = torch.Tensor(spline(x.cpu().detach())).flatten()
+    else:
+        pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1), t.reshape(-1,1))
+
+
+    #save x to file
+    with open(f"{path}/x.txt", "w") as x_file:
+        for x_value in x_init:
+            x_file.write(f"{x_value:.5f},")
+
+    #save pinn values to file
+    with open(f"{path}/pinn_values.txt", "w") as pinn_values_file:
+        for pinn_value in pinn_values:
+            pinn_values_file.write(f"{pinn_value:.5f},")
+
+
     fig, ax = plt.subplots(figsize=(14, 10), dpi=100)
     ax.set_title("Solution profile")
     ax.set_xlabel("x")
     ax.set_ylabel("u")
-    ax.plot(x_init, pinn_init.cpu().flatten().detach(), label="PINN solution")
+    ax.plot(x_init.cpu(), pinn_values, label="PINN solution")
+    # if general_parameters.pinn_learns_coeff:
+    #     ax.plot(x_init.cpu(), f(pinn_trained.cuda(), x).cpu().flatten().detach(), label="Learned coeffs")
     ax.legend()
     plt.savefig(f"{path}/solution_profile.png")
 
@@ -121,7 +182,9 @@ def compute_losses_and_plot_solution(
     ax.set_xlabel("x")
     ax.set_ylabel("u")
     ax.set_ylim(-0.1, 1.1)
-    ax.plot(x_init, pinn_init.cpu().flatten().detach(), label="PINN solution")
+    ax.plot(x_init.cpu(), pinn_values, label="PINN solution")
+    # if general_parameters.pinn_learns_coeff:
+    #     ax.plot(x_init.cpu(), f(pinn_trained.cuda(), x).cpu().flatten().detach(), label="Learned coeffs")
     ax.legend()
     plt.savefig(f"{path}/solution_profile_normalized.png")
     
@@ -129,22 +192,52 @@ def compute_losses_and_plot_solution(
     with open(f"{path}/solution_profile.txt", "w") as file:
         file.write(','.join([str(x) for x in x_init]))
         file.write('\n')
-        y = pinn_init.flatten().detach()
+        y = pinn_values
         file.write(','.join([str(x) for x in y]))
+
+
+    #write parameters of pinn clas to file
+    with open(f"{path}/model_parameters.txt", "w") as file:
+        file.write(str(pinn_trained))
     
+    # write other important parameters to file
+    with open(f"{path}/other_parameters.txt", "w") as file:
+        dict_to_save = {
+            "pinn_is_solution": general_parameters.pinn_is_solution,
+            "pinn_learns_coeff": general_parameters.pinn_learns_coeff,
+            "epochs": general_parameters.epochs,
+            "learning_rate": general_parameters.learning_rate,
+            "eps_interior": general_parameters.eps_interior,
+            "n_points_x": general_parameters.n_points_x,
+            "weight_initial": general_parameters.weight_initial,
+            "weight_boundary": general_parameters.weight_boundary,
+            "weight_interior": general_parameters.weight_interior,
+            "layers": general_parameters.layers,
+            "neurons": general_parameters.neurons_per_layer,
+            "spline_degree": general_parameters.spline_degree,
+        }
+        file.write(json.dumps(dict_to_save))
 
 
-
-
-    if t is not None:
+    if dims == 2:
+        pass
         # Assuming x and t are PyTorch Tensor objects, and pinn_innit contains the solution tensor in 2D
         # Convert PyTorch Tensor to NumPy array
-        pinn_innit = pinn_innit.detach().numpy()
+        # pinn_innit = pinn_values.cpu().detach().numpy()
+        print(x.shape, t.shape)
+        print(pinn_trained)
+        pinn_values = f(pinn_trained.cuda(), x, t)
+        print(pinn_values.shape)
+        print(pinn_values)
+        # x, t = x.cpu().detach().numpy(), t.cpu().detach().numpy()
+        # print(x.shape, t.shape)
 
-        # Plot the image using Matplotlib
-        plt.imshow(pinn_innit, cmap='jet', origin='lower', extent=[t.min(), t.max(), x.min(), x.max()])
-        plt.colorbar()
-        plt.xlabel('Time')
-        plt.ylabel('Position')
-        plt.title('Solution')
-        plt.show()
+        
+        # # Plot the image using Matplotlib
+        # plt.imshow(pinn_innit, cmap='jet', origin='lower', extent=[t.min(), t.max(), x.min(), x.max()])
+        # plt.colorbar()
+        # plt.xlabel('X')
+        # plt.ylabel('Y')
+        # plt.title('Solution')
+        # plt.savefig(f"{path}/solution_2d.png")
+        # plt.show()
