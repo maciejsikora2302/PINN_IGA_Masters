@@ -108,19 +108,20 @@ def compute_losses_and_plot_solution(
     # if general_parameters.pinn_learns_coeff:
     #     x = x.reshape(x.shape[0], x.shape[1])
 
-    if dims == 1:
+    if dims == 1 and not general_parameters.pinn_learns_coeff:
         pinn_values = f(pinn_trained.cuda(), x)
-    else:
+    elif dims == 2 and not general_parameters.pinn_learns_coeff:
         pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
 
-    fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
-    ax.set_title("Initial condition difference")
-    ax.set_xlabel("x")
-    ax.set_ylabel("u")
-    ax.plot(x_init.cpu(), u_init.cpu(), label="Initial condition")
-    ax.plot(x_init.cpu(), pinn_values.cpu().flatten().detach(), label="PINN solution")
-    ax.legend()
-    plt.savefig(f"{path}/initial_condition.png")
+    if not general_parameters.pinn_learns_coeff:
+        fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+        ax.set_title("Initial condition difference")
+        ax.set_xlabel("x")
+        ax.set_ylabel("u")
+        ax.plot(x_init.cpu(), u_init.cpu(), label="Initial condition")
+        ax.plot(x_init.cpu(), pinn_values.cpu().flatten().detach(), label="PINN solution")
+        ax.legend()
+        plt.savefig(f"{path}/initial_condition.png")
 
     # from IPython.display import HTML
     # ani = plot_solution(pinn_trained.cpu(), x.cpu(), t.cpu())
@@ -136,9 +137,17 @@ def compute_losses_and_plot_solution(
         if general_parameters.pinn_is_solution:
             pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1)).cpu().flatten().detach()
         elif general_parameters.pinn_learns_coeff:
+            
+            coeff = []
 
-            pinn_values = f(pinn_trained.cuda(), x)
-            spline = BSpline(general_parameters.knot_vector, pinn_values.cpu().flatten().detach(), general_parameters.spline_degree)
+            for eps in general_parameters.epsilon_list:
+                eps = torch.Tensor(eps).unsqueeze(0)
+                for pinn in pinn_trained:
+                    coeff.append(
+                        f(pinn, eps).cpu().flatten().detach()
+                    )
+
+            spline = BSpline(general_parameters.knot_vector, coeff, general_parameters.spline_degree)
 
             # It's a spline, which coefficients were predicted by PINN
             pinn_values = torch.Tensor(spline(x.cpu().detach())).flatten()
@@ -208,8 +217,6 @@ def compute_losses_and_plot_solution(
             "spline_degree": general_parameters.spline_degree,
         }
         file.write(json.dumps(dict_to_save))
-
-
 
 
     if dims == 2:

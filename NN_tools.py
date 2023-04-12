@@ -51,7 +51,7 @@ def train_model(
             optimizer.step()
             loss_values.append(loss.item())
             
-
+            
             if loss_values[-1] < lowest_current_loss:
                 lowest_current_loss = loss_values[-1]
                 if general_parameters.save:
