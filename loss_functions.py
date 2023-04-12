@@ -4,7 +4,7 @@ from differential_tools import dfdx, dfdt, f, f_spline, dfdx_spline, dfdt_spline
 import numpy as np
 from B_Splines import B_Splines
 from general_parameters import general_parameters, logger
-from typing import Callable
+from typing import Callable, List
 import math
 
 def initial_condition(x) -> torch.Tensor:
@@ -616,7 +616,7 @@ def interior_loss_weak_and_strong_spline(
 
 
 def loss_PINN_learns_coeff(
-        pinn: PINN,
+        pinn_list: List[PINN],
         spline: B_Splines, 
         x:torch.Tensor, 
         t: torch.Tensor = None, 
@@ -639,15 +639,28 @@ def loss_PINN_learns_coeff(
         d_sp_dx = spline._get_basis_functions_1D(x, order=1)
         d2_sp_dx2 = spline._get_basis_functions_1D(x, order=2)
 
-        # pinns return matrix of splines coefficients for all inputs with dimension 1 x number_of_coeffs
-        pinn_value = f(pinn, x)
-        d_pinn_dx = dfdx(pinn, x, order=1)
-        d2_pinn_dx2 = dfdx(pinn, x, order=2)      
+        n_eps = len(general_parameters.epsilon_list)
+        n_coeffs = general_parameters.n_coeff
 
-        # pinns returns matrix of splines coefficients for all inputs with dimension 
-        solution = sp_value @ pinn_value
-        d_solution_dx = sp_value @ d_pinn_dx + d_sp_dx @ pinn_value
-        d2_solution_dx2 = sp_value @ d2_pinn_dx2 + 2*d_sp_dx @ d_pinn_dx + d2_sp_dx2 @ pinn_value
+        # Initialize matrix of zeros for storing pinns' values for different values of epsilon
+        pinn_value = torch.zeros(
+            n_eps,
+            n_coeffs
+        )
+        # pinns will form matrix of splines coefficients with dimension number_of_epsilons x number_of_coeffs
+        pinn_value = f(pinn_list[0], general_parameters.epsilon_list)
+
+        for pinn in pinn_list[1:]:
+            temp = f(pinn, general_parameters.epsilon_list) # Dimension == 1 x number_of_epsilons
+            pinn_value = torch.cat((
+                pinn_value,
+                temp.flatten().unsqueeze(1)
+            ), dim=1)
+        print(pinn_value.shape)
+
+        solution = pinn_value @  sp_value
+        d_solution_dx = pinn_value @ d_sp_dx 
+        d2_solution_dx2 = pinn_value @ d2_sp_dx2
         
         if general_parameters.optimize_test_function:
             
@@ -690,6 +703,7 @@ def loss_PINN_learns_coeff(
 
     elif dims == 2:
         raise NotImplementedError("So sorry... not implemented yet :c")
+
     return (loss_weak.pow(2) + loss_strong.pow(2)).mean()
 
 
