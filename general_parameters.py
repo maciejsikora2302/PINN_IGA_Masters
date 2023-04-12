@@ -2,6 +2,8 @@ import logging
 import datetime
 import os
 import torch
+from additional_utils import get_unequaly_distribution_points
+LOG_LEVEL = logging.DEBUG
 LOG_LEVEL = logging.INFO
 
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -21,7 +23,7 @@ formatter = logging.Formatter('%(levelname)s -- %(message)s')
 file_handler = logging.FileHandler(f'{OUT_DATA_FOLDER}/text_log_{TIMESTAMP}.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
-logging.basicConfig(level=LOG_LEVEL, format='%(levelname)s -- %(message)s')
+logging.basicConfig(format='%(levelname)s -- %(message)s')
 
 class Color:
     RED = '\033[91m'
@@ -51,24 +53,70 @@ class GeneralParameters:
             learning_rate = None, \
             eps_interior = None, \
             spline_degree = None, \
+            save = None, \
+            one_dimension = None, \
+            uneven_distribution = None, \
+            splines = None, \
+            pinn_is_solution = None, \
+            pinn_learns_coeff = None, \
+            optimize_test_function = None, \
+            epsilon_list = None, \
             device = None):
         
         self.length = 1. if length is None else length
         self.total_time = 1. if total_time is None else total_time
-        self.n_points_x = 150 if n_points_x is None else n_points_x
+        self.n_points_x = 100 if n_points_x is None else n_points_x
         self.n_points_t = 150 if n_points_t is None else n_points_t
         self.n_points_init = 300 if n_points_init is None else n_points_init
-        self.weight_interior = 0.5 if weight_interior is None else weight_interior
-        self.weight_initial = 150.0 if weight_initial is None else weight_initial
-        self.weight_boundary = 1.0 if weight_boundary is None else weight_boundary
+        self.weight_interior = 50.0 if weight_interior is None else weight_interior
+        self.weight_initial = .5 if weight_initial is None else weight_initial
+        self.weight_boundary = 5.0 if weight_boundary is None else weight_boundary
         self.layers = 4 if layers is None else layers
         self.neurons_per_layer = 20 if neurons_per_layer is None else neurons_per_layer
         self.epochs = 50_000 if epochs is None else epochs
         self.learning_rate = 0.0025 if learning_rate is None else learning_rate
-        self.eps_interior = 1e-3 if eps_interior is None else eps_interior
+        self.eps_interior = 1e-1 if eps_interior is None else eps_interior
         self.spline_degree = 3 if spline_degree is None else spline_degree
-        self.knot_vector_length = int(20 / self.eps_interior)
-        self.coefs_vector_length = int(self.knot_vector_length - self.spline_degree - 1)
-        self.knot_vector = torch.ones(self.knot_vector_length)
+        self.save = False if save is None else save
+        self.one_dimension = False if one_dimension is None else one_dimension
+        self.uneven_distribution = False if uneven_distribution is None else uneven_distribution
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if device is None else device
+        self.splines = False if splines is None else splines
+        self.pinn_is_solution = False if pinn_is_solution is None else pinn_is_solution
+        self.pinn_learns_coeff = False if pinn_learns_coeff is None else pinn_learns_coeff
+        self.optimize_test_function = False if optimize_test_function is None else optimize_test_function
+        self.epsilon_list = torch.linspace(0.01, 0.1, 10, requires_grad=True).unsqueeze(0).mT.cuda() if epsilon_list is None else epsilon_list
+    
+    def precalculate(self):
+
+
+        if self.pinn_is_solution or self.splines or self.pinn_learns_coeff:
+            self.knot_vector = torch.linspace(0, 1, self.n_points_x)
+            self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), self.knot_vector, torch.ones(self.spline_degree-1)))
+            self.n_coeff = len(self.knot_vector) - self.spline_degree - 1
+
+
+        # elif self.pinn_learns_coeff:
+        #     self.n_edge_knots = self.spline_degree * 2
+        #     self.n_internal_knots = self.n_points_x - self.n_edge_knots
+        #     self.n_coefs = self.n_internal_knots + self.spline_degree - 1
+
+        #     if general_parameters.uneven_distribution:
+        #         internal_knots = get_unequaly_distribution_points(eps=self.eps_interior, density_range=0.2, n=self.n_internal_knots, device='cpu')
+        #     else:
+        #         internal_knots = torch.linspace(0, 1, self.n_internal_knots)
+
+        #     self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), 
+        #                                 internal_knots,
+        #                                 torch.ones(self.spline_degree-1)))
+
+            # self.knot_vector = torch.linspace(0, 1, self.n_points_x)
+            # self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), 
+            #                             self.knot_vector[self.spline_degree-1:self.n_points_x-(self.spline_degree-1)],
+            #                             torch.ones(self.spline_degree-1)))
+            
+                
+
+    
 
 general_parameters = GeneralParameters()
