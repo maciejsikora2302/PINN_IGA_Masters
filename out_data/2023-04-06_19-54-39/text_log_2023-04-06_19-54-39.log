@@ -5,7 +5,7 @@ INFO -- ========================================================================
 INFO -- Learning parameters
 INFO -- Length:                                           [92m1.0[0m
 INFO -- Total time:                                       [92m1.0[0m
-INFO -- Number of points in x:                            [92m100[0m
+INFO -- Number of points in x:                            [92m150[0m
 INFO -- Number of points in initial condition:            [92m300[0m
 INFO -- Weight for interior loss:                         [92m1.0[0m
 INFO -- Weight for initial condition loss:                [92m0.0[0m
@@ -18,5 +18,3 @@ INFO -- ========================================================================
 INFO -- 
 INFO -- Creating PINN with [92m4[0m layers and [92m20[0m neurons per layer
 INFO -- Training PINN for [93m7000[0m epochs using [93mloss_fn_weak_and_strong[0m loss function
-INFO -- Training took [92m1848.94[0m seconds
-INFO -- Creating plots and saving to files. Dimensions: 1
