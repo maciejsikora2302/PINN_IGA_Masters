@@ -3,6 +3,7 @@ import datetime
 import os
 import torch
 from additional_utils import get_unequaly_distribution_points
+from B_Splines import B_Splines
 LOG_LEVEL = logging.DEBUG
 LOG_LEVEL = logging.INFO
 
@@ -62,12 +63,19 @@ class GeneralParameters:
         self.pinn_learns_coeff = args.pinn_learns_coeff
         self.optimize_test_function = args.optimize_test_function
         self.epsilon_list = args.epsilon_list
+        self.test_function = None
 
     def precalculate(self):
         if self.pinn_is_solution or self.splines or self.pinn_learns_coeff:
             self.knot_vector = torch.linspace(0, 1, self.n_points_x)
             self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), self.knot_vector, torch.ones(self.spline_degree-1)))
             self.n_coeff = len(self.knot_vector) - self.spline_degree - 1
+        if general_parameters.optimize_test_function:
+            self.test_function = B_Splines(
+                    general_parameters.knot_vector,
+                    general_parameters.spline_degree,
+                    dims=1 if general_parameters.one_dimension else 2
+                )
 
             
 general_parameters = GeneralParameters()

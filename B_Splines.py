@@ -1,13 +1,13 @@
 import scipy.interpolate as spi
 import torch
 from copy import deepcopy
-from general_parameters import general_parameters
 
 class B_Splines(torch.nn.Module):
 
-   def __init__(self, knot_vector: torch.Tensor, degree: int, coefs: torch.Tensor = None, dims: int = 1):
+   def __init__(self, knot_vector: torch.Tensor, degree: int, coefs: torch.Tensor = None, dims: int = 1, n_coeff: int = None):
 
       super().__init__()
+      self.n_coeff = n_coeff
       self.knot_vector = knot_vector
       self.degree = degree
       self.coefs = torch.nn.Parameter(10.0 * torch.rand(len(self.knot_vector) - self.degree - 1) if coefs is None else coefs)
@@ -200,7 +200,7 @@ class B_Splines(torch.nn.Module):
       
       elif mode == 'Adam':
 
-         n = general_parameters.n_coeff
+         n = self.n_coeff
 
          def _B(x: torch.Tensor, k: int, i: int, t: torch.Tensor) -> torch.Tensor:
             """
