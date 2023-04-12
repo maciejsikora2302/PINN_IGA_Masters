@@ -85,7 +85,7 @@ class GeneralParameters:
         self.pinn_is_solution = False if pinn_is_solution is None else pinn_is_solution
         self.pinn_learns_coeff = False if pinn_learns_coeff is None else pinn_learns_coeff
         self.optimize_test_function = False if optimize_test_function is None else optimize_test_function
-        self.epsilon_list = torch.linspace(0.1, 1, 10) if epsilon_list is None else epsilon_list
+        self.epsilon_list = torch.linspace(0.1, 1, 10, requires_grad=True).unsqueeze(0).mT if epsilon_list is None else epsilon_list
     
     def precalculate(self):
 
