@@ -121,14 +121,7 @@ if __name__ == "__main__":
     logger.info("")
 
 
-    if general_parameters.optimize_test_function:
-                TEST_FUNCTION = B_Splines(
-                    general_parameters.knot_vector,
-                    general_parameters.spline_degree,
-                    dims=1 if general_parameters.one_dimension else 2
-                )
-    else:
-        TEST_FUNCTION = None
+
 
     if general_parameters.splines:
 
@@ -183,6 +176,37 @@ if __name__ == "__main__":
     # assert check_gradient(nn_approximator, x, t)
     # to add new loss functions, add them to the list below and add the corresponding function to the array of functions in train pinn block below
     
+    def train_and_plot(model, loss_fn, loss_fn_name, general_parameters, x, x_init, u_init, device, test_function):
+        logger.info(f"Training {'PINN' if not general_parameters.splines else 'splines'} for {Color.YELLOW}{general_parameters.epochs}{Color.RESET} epochs using {Color.YELLOW}{loss_fn_name}{Color.RESET} loss function")
+
+        start_time = time()
+        model_trained, loss_values = train_model(
+            model,
+            loss_fn=loss_fn,
+            loss_fn_name=loss_fn_name,
+            learning_rate=general_parameters.learning_rate,
+            max_epochs=general_parameters.epochs,
+            test_function=test_function)
+        end_time = time()
+
+        training_time = end_time - start_time
+
+        logger.info(f"Training took {Color.GREEN}{training_time:.2f}{Color.RESET} seconds")
+
+        compute_losses_and_plot_solution(
+            pinn_trained=model_trained,
+            x=x,
+            device=device,
+            loss_values=loss_values,
+            x_init=x_init,
+            u_init=u_init,
+            N_POINTS_X=general_parameters.n_points_x,
+            N_POINTS_T=general_parameters.n_points_t,
+            loss_fn_name=loss_fn_name,
+            training_time=training_time,
+            dims=1 if general_parameters.one_dimension else 2
+        )
+
     if general_parameters.pinn_is_solution or general_parameters.splines:
 
         def get_loss_fn(loss_type, general_parameters, x, test_function):
@@ -216,93 +240,60 @@ if __name__ == "__main__":
         loss_fn_colocation = get_loss_fn('colocation', general_parameters, x, TEST_FUNCTION)
 
 
+    if general_parameters.pinn_is_solution or general_parameters.splines:
+        loss_functions = [
+            # (loss_fn_weak, 'loss_fn_weak'),
+            # (loss_fn_strong, 'loss_fn_strong'),
+            (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'),
+            # (loss_fn_colocation, 'loss_fn_colocation')
+        ]
 
-        # logger.info(f"Computing initial condition loss")
-        # logger.info(f"{'Initial condition loss weak:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=general_parameters.weight_interior, weight_i=general_parameters.weight_interior, weight_b=general_parameters.weight_boundary, interior_loss_function = interior_loss_weak, dims = 1):.12f}{Color.RESET}")
-        # logger.info(f"{'Initial condition loss strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=general_parameters.weight_interior, weight_i=general_parameters.weight_interior, weight_b=general_parameters.weight_boundary, interior_loss_function = interior_loss_strong, dims = 1):.12f}{Color.RESET}")
-        # logger.info(f"{'Initial condition loss weak and strong:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=general_parameters.weight_interior, weight_i=general_parameters.weight_interior, weight_b=general_parameters.weight_boundary, interior_loss_function = interior_loss_weak_and_strong, dims = 1):.12f}{Color.RESET}")
-        # logger.info(f"{'Initial condition loss colocation:':<50}{Color.GREEN}{compute_loss(pinn, x=x, weight_f=general_parameters.weight_interior, weight_i=general_parameters.weight_interior, weight_b=general_parameters.weight_boundary, interior_loss_function = interior_loss_colocation, dims = 1):.12f}{Color.RESET}")
+        for loss_fn, name in loss_functions:
+            model = spline if general_parameters.splines else pinn
+            train_and_plot(model, loss_fn, name, general_parameters, x, x_init, u_init, device, TEST_FUNCTION)
 
-        # train the PINN
-        for loss_fn, name in \
-            [
-                # (loss_fn_weak, 'loss_fn_weak'),
-                # (loss_fn_strong, 'loss_fn_strong'), 
-                (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'), 
-                # (loss_fn_colocation, 'loss_fn_colocation')
-            ]:
-            logger.info(f"Training {'PINN' if not general_parameters.splines else 'splines'} for {Color.YELLOW}{general_parameters.epochs}{Color.RESET} epochs using {Color.YELLOW}{name}{Color.RESET} loss function")
-
-            model = pinn if not general_parameters.splines else spline
-
-            start_time = time()
-            model_trained, loss_values = train_model(
-                model,
-                loss_fn=loss_fn, 
-                loss_fn_name=name, 
-                learning_rate=general_parameters.learning_rate, 
-                max_epochs=general_parameters.epochs,
-                test_function=TEST_FUNCTION)
-            end_time = time()
-
-            training_time = end_time - start_time
-
-            logger.info(f"Training took {Color.GREEN}{training_time:.2f}{Color.RESET} seconds")
-
-            compute_losses_and_plot_solution(
-                pinn_trained=model_trained,\
-                x=x,\
-                device = device, \
-                loss_values=loss_values, \
-                x_init=x_init, \
-                u_init=u_init, \
-                general_parameters.n_points_x=general_parameters.n_points_x, \
-                general_parameters.n_points_t=general_parameters.n_points_t, \
-                loss_fn_name=name, \
-                training_time=training_time, \
-                dims=1 if general_parameters.one_dimension else 2
-            )
     elif general_parameters.pinn_learns_coeff:
-
         loss_fn = partial(
             compute_loss_PINN_learns_coeff,
             x=x,
             spline=spline,
-            weight_f=general_parameters.weight_interior, 
-            weight_b=general_parameters.weight_boundary, 
+            weight_f=general_parameters.weight_interior,
+            weight_b=general_parameters.weight_boundary,
             dims=1 if general_parameters.one_dimension else 2,
-            test_function = TEST_FUNCTION
+            test_function=TEST_FUNCTION
         )
-           
-        logger.info(f"Training PINN to coefficients estimation for {Color.YELLOW}{general_parameters.epochs}{Color.RESET} epochs using {Color.YELLOW}{loss_fn}{Color.RESET} loss function")
 
-        model = pinn_list
         name = "Prediction of splines coefficients using PINN"
+        model = pinn_list
 
-        start_time = time()
-        model_trained, loss_values = train_model(
-            model,
-            loss_fn=loss_fn, 
-            loss_fn_name=name, 
-            learning_rate=general_parameters.learning_rate, 
-            max_epochs=general_parameters.epochs,
-            test_function=TEST_FUNCTION)
-        end_time = time()
+        train_and_plot(model, loss_fn, name, general_parameters, x, x_init, u_init, device, TEST_FUNCTION)
+    
+    
 
-        training_time = end_time - start_time
+    # if general_parameters.pinn_is_solution or general_parameters.splines:
+    #     loss_functions = [
+    #         # (loss_fn_weak, 'loss_fn_weak'),
+    #         # (loss_fn_strong, 'loss_fn_strong'),
+    #         (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'),
+    #         # (loss_fn_colocation, 'loss_fn_colocation')
+    #     ]
 
-        logger.info(f"Training took {Color.GREEN}{training_time:.2f}{Color.RESET} seconds")
+    #     for loss_fn, name in loss_functions:
+    #         model = spline if general_parameters.splines else pinn
+    #         train_and_plot(model, loss_fn, name, general_parameters, x, x_init, u_init, device, TEST_FUNCTION)
 
-        compute_losses_and_plot_solution(
-            pinn_trained=model_trained,\
-            x=x,\
-            device = device, \
-            loss_values=loss_values, \
-            x_init=x_init, \
-            u_init=u_init, \
-            general_parameters.n_points_x=general_parameters.n_points_x, \
-            general_parameters.n_points_t=general_parameters.n_points_t, \
-            loss_fn_name=name, \
-            training_time=training_time, \
-            dims=1 if general_parameters.one_dimension else 2
-        )
+    # elif general_parameters.pinn_learns_coeff:
+    #     loss_fn = partial(
+    #         compute_loss_PINN_learns_coeff,
+    #         x=x,
+    #         spline=spline,
+    #         weight_f=general_parameters.weight_interior,
+    #         weight_b=general_parameters.weight_boundary,
+    #         dims=1 if general_parameters.one_dimension else 2,
+    #         test_function=TEST_FUNCTION
+    #     )
+
+    #     name = "Prediction of splines coefficients using PINN"
+    #     model = pinn_list
+
+    #     train_and_plot(model, loss_fn, name, general_parameters, x, x_init, u_init, device, TEST_FUNCTION)
