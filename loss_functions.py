@@ -4,7 +4,7 @@ from differential_tools import dfdx, dfdt, f, f_spline, dfdx_spline, dfdt_spline
 import numpy as np
 from B_Splines import B_Splines
 from general_parameters import general_parameters, logger
-from typing import Callable
+from typing import Callable, List
 import math
 
 def initial_condition(x) -> torch.Tensor:
@@ -616,11 +616,13 @@ def interior_loss_weak_and_strong_spline(
 
 
 def loss_PINN_learns_coeff(
-        pinn: PINN,
+        pinn_list: List[PINN],
         spline: B_Splines, 
         x:torch.Tensor, 
         t: torch.Tensor = None, 
+        sp: B_Splines = None,
         dims: int = 1,
+        test_function: B_Splines = None
         ):
 
     
@@ -628,27 +630,81 @@ def loss_PINN_learns_coeff(
     
     if dims == 1:
         x = x.cuda()
-        
+
+        eps_interior, sp, _, _, v, x = precalculations_1D(x, sp)
+
         # splines have to return matrix function vector for all inputs, so we need to return matrix with dimension
         # input_dim x number_of_coeffs
         sp_value = spline._get_basis_functions_1D(x, order=0)
         d_sp_dx = spline._get_basis_functions_1D(x, order=1)
         d2_sp_dx2 = spline._get_basis_functions_1D(x, order=2)
 
-        # pinns return matrix of splines coefficients for all inputs with dimension 1 x number_of_coeffs
-        pinn_value = f(pinn, x)
-        d_pinn_dx = dfdx(pinn, x, order=1)
-        d2_pinn_dx2 = dfdx(pinn, x, order=2)        
+        n_eps = len(general_parameters.epsilon_list)
+        n_coeffs = general_parameters.n_coeff
 
-        # pinns returns matrix of splines coefficients for all inputs with dimension 
-        d_solution_dx = sp_value @ d_pinn_dx + d_sp_dx @ pinn_value
-        d2_solution_dx2 = sp_value @ d2_pinn_dx2 + 2*d_sp_dx @ d_pinn_dx + d2_sp_dx2 @ pinn_value
+        # Initialize matrix of zeros for storing pinns' values for different values of epsilon
+        pinn_value = torch.zeros(
+            n_eps,
+            n_coeffs
+        )
+        # pinns will form matrix of splines coefficients with dimension number_of_epsilons x number_of_coeffs
+        pinn_value = f(pinn_list[0], general_parameters.epsilon_list)
+
+        for pinn in pinn_list[1:]:
+            temp = f(pinn, general_parameters.epsilon_list) # Dimension == 1 x number_of_epsilons
+            pinn_value = torch.cat((
+                pinn_value,
+                temp.flatten().unsqueeze(1)
+            ), dim=1)
+        print(pinn_value.shape)
+
+        solution = pinn_value @  sp_value
+        d_solution_dx = pinn_value @ d_sp_dx 
+        d2_solution_dx2 = pinn_value @ d2_sp_dx2
         
-        loss = d_solution_dx - eps_interior*d2_solution_dx2
+        if general_parameters.optimize_test_function:
+            
+            v = test_function.calculate_BSpline_1D(x, mode='Adam').cuda()
+            v_deriv_x = test_function.calculate_BSpline_1D_deriv_dx(x, mode='Adam').cuda()
+
+            first_point = x[0].reshape(-1, 1) #first point = 0
+
+            # v_at_last_point = test_function.calculate_BSpline_1D(last_point, mode="Adam").cuda()
+            v_at_first_point = test_function.calculate_BSpline_1D(first_point, mode="Adam").cuda()
+
+            loss_weak = (d_solution_dx * v \
+                + eps_interior * d_solution_dx * v_deriv_x).mean() \
+                + solution * v_at_first_point \
+                - v_at_first_point
+            
+            loss_strong = (
+                - eps_interior*d2_solution_dx2
+                + d_solution_dx 
+                ) * v
+        else:
+            v = sp.calculate_BSpline_1D(x).cuda()
+            v_deriv_x = sp.calculate_BSpline_1D_deriv_dx(x).cuda()
+
+            first_point = x[0].reshape(-1, 1) #first point = 0
+
+            # v_at_last_point = test_function.calculate_BSpline_1D(last_point, mode="Adam").cuda()
+            v_at_first_point = sp.calculate_BSpline_1D(first_point).cuda()
+
+            loss_weak = (d_solution_dx * v \
+                + eps_interior * d_solution_dx * v_deriv_x).mean() \
+                + solution * v_at_first_point \
+                - v_at_first_point
+            
+            loss_strong = (
+                - eps_interior*d2_solution_dx2
+                + d_solution_dx 
+                ) * v
+        
 
     elif dims == 2:
         raise NotImplementedError("So sorry... not implemented yet :c")
-    return loss.pow(2).mean()
+
+    return (loss_weak.pow(2) + loss_strong.pow(2)).mean()
 
 
 def boundary_loss_spline(
@@ -703,18 +759,23 @@ def boundary_loss_PINN_learns_coeff(
         
 
         boundary_xi = x[-1].reshape(-1, 1) #last point = 1
-        sp_value_xi = spline._get_basis_functions_1D(boundary_xi, order=0).flatten()[0] # We need to take only first basis function
+        sp_value_xi = spline._get_basis_functions_1D(boundary_xi, order=0).flatten()
+
         f_value_xi = f(pinn, boundary_xi)
-        boundary_loss_xi = sp_value_xi * f_value_xi
+        boundary_loss_xi = sp_value_xi @ f_value_xi
         
 
         boundary_xf = x[0].reshape(-1, 1) #first point = 0
-        sp_value_xf = spline._get_basis_functions_1D(boundary_xf, order=0).flatten()[0]
+        sp_value_xf = spline._get_basis_functions_1D(boundary_xf, order=0).flatten()
         f_value_xf = f(pinn, boundary_xf)
-        f_deriv_value_xf = dfdx(pinn, boundary_xf, order=2)
-        sp_deriv_value_xf = spline._get_basis_functions_1D(boundary_xf, order=1)
-        boundary_loss_xf = -eps_interior * (sp_value_xf * f_deriv_value_xf + sp_deriv_value_xf * f_value_xf) \
-                            + sp_value_xf * f_value_xf - 1.0
+
+        f_deriv_value_xf = dfdx(pinn, boundary_xf, order=1)
+
+        # f_deriv_value_xf_tensor = f_deriv_value_xf * torch.ones_like(sp_value_xf)
+
+        sp_deriv_value_xf = spline._get_basis_functions_1D(boundary_xf, order=1)[0]
+        boundary_loss_xf = -eps_interior * (sp_value_xf @ f_deriv_value_xf + sp_deriv_value_xf @ f_value_xf) \
+                            + sp_value_xf @ f_value_xf - 1.0
 
 
         return boundary_loss_xf.pow(2).mean() + boundary_loss_xi.pow(2).mean()
@@ -878,6 +939,7 @@ def compute_loss_PINN_learns_coeff(
     x: torch.Tensor = None, t: torch.Tensor = None, 
     weight_f = 1.0, weight_b = 1.0,
     dims: int = 2,
+    test_function: B_Splines = None
 ) -> torch.float:
     """Compute the full loss function as interior loss + boundary loss
     This custom loss function is fully defined with differentiable tensors therefore
@@ -891,10 +953,9 @@ def compute_loss_PINN_learns_coeff(
     if dims == 1:
         t = None
         final_loss = \
-            weight_f * loss_PINN_learns_coeff(pinn, spline, x, t, dims=dims)
+            weight_f * loss_PINN_learns_coeff(pinn, spline, x, t, dims=dims, test_function=test_function)
         if not pinn.pinning:
             final_loss += weight_b * boundary_loss_PINN_learns_coeff(pinn, spline, x, t, dims=dims)
-
         return final_loss
     
     elif dims == 2:

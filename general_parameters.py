@@ -60,6 +60,7 @@ class GeneralParameters:
             pinn_is_solution = None, \
             pinn_learns_coeff = None, \
             optimize_test_function = None, \
+            epsilon_list = None, \
             device = None):
         
         self.length = 1. if length is None else length
@@ -84,6 +85,7 @@ class GeneralParameters:
         self.pinn_is_solution = False if pinn_is_solution is None else pinn_is_solution
         self.pinn_learns_coeff = False if pinn_learns_coeff is None else pinn_learns_coeff
         self.optimize_test_function = False if optimize_test_function is None else optimize_test_function
+        self.epsilon_list = torch.linspace(0.1, 1, 10, requires_grad=True).unsqueeze(0).mT if epsilon_list is None else epsilon_list
     
     def precalculate(self):
 
