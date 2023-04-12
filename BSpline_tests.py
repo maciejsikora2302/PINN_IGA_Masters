@@ -73,7 +73,7 @@ t = torch.linspace(0,1,10).cuda()
 # print(bs.calculate_BSpline_1D_deriv_dxdx(x, mode='NN', order=0))
 # print(bs.calculate_BSpline_1D_deriv_dx(x, mode='NN'))
 
-print(bs.calculate_BSpline_1D(x, mode='Adam'))
-print(bs.calculate_BSpline_1D(x, mode='NN'))
+print(bs.calculate_BSpline_1D_deriv_dx(x, mode='Adam'))
+print(bs.calculate_BSpline_1D_deriv_dx(x, mode='NN'))
 
-print(bs.coefs.cuda() @ bs._get_basis_functions_1D(x, order=0).T)
+print(bs.coefs.cuda() @ bs._get_basis_functions_1D(x, order=1).T)
