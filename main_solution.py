@@ -15,6 +15,37 @@ from NN_tools import train_model
 from pprint import pprint
 
 
+def train_and_plot(model, loss_fn, loss_fn_name, general_parameters, x, x_init, u_init, device, test_function):
+    logger.info(f"Training {'PINN' if not general_parameters.splines else 'splines'} for {Color.YELLOW}{general_parameters.epochs}{Color.RESET} epochs using {Color.YELLOW}{loss_fn_name}{Color.RESET} loss function")
+
+    start_time = time()
+    model_trained, loss_values = train_model(
+        model,
+        loss_fn=loss_fn,
+        loss_fn_name=loss_fn_name,
+        learning_rate=general_parameters.learning_rate,
+        max_epochs=general_parameters.epochs,
+        test_function=test_function)
+    end_time = time()
+
+    training_time = end_time - start_time
+
+    logger.info(f"Training took {Color.GREEN}{training_time:.2f}{Color.RESET} seconds")
+
+    compute_losses_and_plot_solution(
+        pinn_trained=model_trained,
+        x=x,
+        device=device,
+        loss_values=loss_values,
+        x_init=x_init,
+        u_init=u_init,
+        N_POINTS_X=general_parameters.n_points_x,
+        N_POINTS_T=general_parameters.n_points_t,
+        loss_fn_name=loss_fn_name,
+        training_time=training_time,
+        dims=1 if general_parameters.one_dimension else 2
+    )
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f"Device: {device}")
 
@@ -176,36 +207,7 @@ if __name__ == "__main__":
     # assert check_gradient(nn_approximator, x, t)
     # to add new loss functions, add them to the list below and add the corresponding function to the array of functions in train pinn block below
     
-    def train_and_plot(model, loss_fn, loss_fn_name, general_parameters, x, x_init, u_init, device, test_function):
-        logger.info(f"Training {'PINN' if not general_parameters.splines else 'splines'} for {Color.YELLOW}{general_parameters.epochs}{Color.RESET} epochs using {Color.YELLOW}{loss_fn_name}{Color.RESET} loss function")
 
-        start_time = time()
-        model_trained, loss_values = train_model(
-            model,
-            loss_fn=loss_fn,
-            loss_fn_name=loss_fn_name,
-            learning_rate=general_parameters.learning_rate,
-            max_epochs=general_parameters.epochs,
-            test_function=test_function)
-        end_time = time()
-
-        training_time = end_time - start_time
-
-        logger.info(f"Training took {Color.GREEN}{training_time:.2f}{Color.RESET} seconds")
-
-        compute_losses_and_plot_solution(
-            pinn_trained=model_trained,
-            x=x,
-            device=device,
-            loss_values=loss_values,
-            x_init=x_init,
-            u_init=u_init,
-            N_POINTS_X=general_parameters.n_points_x,
-            N_POINTS_T=general_parameters.n_points_t,
-            loss_fn_name=loss_fn_name,
-            training_time=training_time,
-            dims=1 if general_parameters.one_dimension else 2
-        )
 
     if general_parameters.pinn_is_solution or general_parameters.splines:
 
