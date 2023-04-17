@@ -21,15 +21,14 @@ def train_model(
     test_function: B_Splines=None
 ) -> Tuple[PINN, np.ndarray]:
     
+
     if not general_parameters.pinn_learns_coeff:
-        if test_function is None:
-            optimizer = torch.optim.Adam(nn_approximator.parameters(), lr=learning_rate)
-        else:
-            parameters = [
-                {'params': nn_approximator.parameters()},
-                {'params': test_function.parameters()}
-            ]
-            optimizer = torch.optim.Adam(parameters, lr=learning_rate)
+
+        parameters = [{'params': nn_approximator.parameters()}]
+        if test_function is not None:
+            parameters.append({'params': test_function.parameters()})
+
+        optimizer = torch.optim.Adam(parameters, lr=learning_rate)
     else:
         parameters = [
                 {'params': pinn.parameters()} for pinn in nn_approximator
