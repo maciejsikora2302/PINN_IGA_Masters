@@ -154,16 +154,14 @@ if __name__ == "__main__":
 
 
 
-    if general_parameters.splines:
+    logger.info(f"Creating {Color.GREEN}{'1D' if general_parameters.one_dimension else '2D'}{Color.RESET} BSpline")
+    spline = B_Splines(general_parameters.knot_vector, degree=general_parameters.spline_degree, dims=1 if general_parameters.one_dimension else 2)
 
-        logger.info(f"Creating {Color.GREEN}{'1D' if general_parameters.one_dimension else '2D'}{Color.RESET} BSpline")
-        spline = B_Splines(general_parameters.knot_vector, degree=general_parameters.spline_degree, dims=1 if general_parameters.one_dimension else 2)
     
-    elif general_parameters.pinn_learns_coeff:
+    if general_parameters.pinn_learns_coeff:
         logger.info(f"Creating PINN to learn spline coefficients with {Color.GREEN}{general_parameters.layers}{Color.RESET} layers and {Color.GREEN}{general_parameters.neurons_per_layer}{Color.RESET} neurons per layer")
         
         if general_parameters.one_dimension:
-            
             pinn_list = [
                 PINN(
                     general_parameters.layers, 
@@ -175,10 +173,8 @@ if __name__ == "__main__":
                 ).to(device) for _ in range(general_parameters.n_coeff)
             ]
 
-
-            # In this case the coefficients don't matter
-            spline = B_Splines(general_parameters.knot_vector, degree=general_parameters.spline_degree, dims=1)
-        elif not general_parameters.one_dimension:
+        else:
+            raise Exception("Double check this part of the code")
             pinn = PINN(
                 general_parameters.layers, 
                 general_parameters.neurons_per_layer, 
@@ -188,21 +184,17 @@ if __name__ == "__main__":
                 dim_layer_out=general_parameters.n_coeff,
                 pinn_learns_coeff=general_parameters.pinn_learns_coeff,
                 ).to(device)
-            
-            spline = B_Splines(general_parameters.knot_vector, degree=general_parameters.spline_degree, dims=2)
-
-        else:
-            raise Exception("Unknown dimensionality")
     else:
         
         logger.info(f"Creating PINN with {Color.GREEN}{general_parameters.layers}{Color.RESET} layers and {Color.GREEN}{general_parameters.neurons_per_layer}{Color.RESET} neurons per layer")
-
-        if general_parameters.one_dimension:
-            pinn = PINN(general_parameters.layers, general_parameters.neurons_per_layer, pinning=False, act=nn.Tanh(), pinn_learns_coeff=general_parameters.pinn_learns_coeff).to(device)
-        elif not general_parameters.one_dimension:
-            pinn = PINN(general_parameters.layers, general_parameters.neurons_per_layer, pinning=False, act=nn.Tanh(), pinn_learns_coeff=general_parameters.pinn_learns_coeff, dims=2).to(device)
-        else:
-            raise Exception("Unknown dimensionality")
+        pinn = PINN(
+            general_parameters.layers, 
+            general_parameters.neurons_per_layer, 
+            pinning=False, 
+            act=nn.Tanh(), 
+            pinn_learns_coeff=general_parameters.pinn_learns_coeff, 
+            dims=1 if general_parameters.one_dimension else 2
+            ).to(device)
 
     # assert check_gradient(nn_approximator, x, t)
     # to add new loss functions, add them to the list below and add the corresponding function to the array of functions in train pinn block below
@@ -213,13 +205,11 @@ if __name__ == "__main__":
 
         def get_loss_fn(loss_type, general_parameters, x, test_function):
             if loss_type == 'weak':
-                interior_loss_func = interior_loss_weak_spline if general_parameters.splines else interior_loss_weak
+                interior_loss_func = interior_loss_weak
             elif loss_type == 'strong':
-                interior_loss_func = interior_loss_strong_spline if general_parameters.splines else interior_loss_strong
+                interior_loss_func = interior_loss_strong
             elif loss_type == 'weak_and_strong':
-                interior_loss_func = interior_loss_weak_and_strong_spline if general_parameters.splines else interior_loss_weak_and_strong
-            elif loss_type == 'colocation':
-                interior_loss_func = interior_loss_colocation_spline if general_parameters.splines else interior_loss_colocation
+                interior_loss_func = interior_loss_weak_and_strong
             else:
                 raise ValueError("Invalid loss_type provided.")
             
