@@ -28,20 +28,21 @@ foreach ($eps_interior in $eps_interior_values) {
             --optimize_test_function ```
             --pinn_is_solution ```
             --save" | Out-String
-        python main_solution.py `
-            --n_points_x $n_points_x `
-            --epochs $epochs `
-            --eps_interior $eps_interior `
-            --weight_interior $weight_interior `
-            --weight_boundary $weight_boundary `
-            --weight_initial $weight_initial `
-            --layers $layers `
-            --neurons_per_layer $neurons_per_layer `
-            --learning_rate $learning_rate `
-            --spline_degree $spline_degree `
-            --one_dimension `
-            --optimize_test_function `
-            --pinn_is_solution `
-            --save
+        exit 0
+        # python main_solution.py `
+        #     --n_points_x $n_points_x `
+        #     --epochs $epochs `
+        #     --eps_interior $eps_interior `
+        #     --weight_interior $weight_interior `
+        #     --weight_boundary $weight_boundary `
+        #     --weight_initial $weight_initial `
+        #     --layers $layers `
+        #     --neurons_per_layer $neurons_per_layer `
+        #     --learning_rate $learning_rate `
+        #     --spline_degree $spline_degree `
+        #     --one_dimension `
+        #     --optimize_test_function `
+        #     --pinn_is_solution `
+        #     --save
     }
 }

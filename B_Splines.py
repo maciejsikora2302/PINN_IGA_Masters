@@ -122,7 +122,7 @@ class B_Splines(torch.nn.Module):
 
       return torch.outer(spline_x, spline_t)
    
-   def _de_Boor_derivative(x: torch.Tensor, t: torch.Tensor, c: torch.Tensor, p: int):
+   def _de_Boor_derivative(self, x: torch.Tensor, t: torch.Tensor, c: torch.Tensor, p: int):
          """
          Evaluates first order derivative of a linear combination of B-Splines basis functions
 
