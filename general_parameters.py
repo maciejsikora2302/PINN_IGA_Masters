@@ -40,6 +40,8 @@ class Color:
 
 class GeneralParameters:
     def __init__(self, args):
+        if args is None:
+            return
         self.length = args.length
         self.total_time = args.total_time
         self.n_points_x = args.n_points_x
@@ -78,4 +80,4 @@ class GeneralParameters:
                 )
 
             
-general_parameters = GeneralParameters()
+general_parameters = GeneralParameters(None)

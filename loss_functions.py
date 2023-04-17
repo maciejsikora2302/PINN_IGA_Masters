@@ -1,13 +1,14 @@
 from PINN import PINN
 import torch
-from differential_tools import dfdx, dfdt, f, f_spline, dfdx_spline, dfdt_spline
+from differential_tools import dfdx, dfdt, f
 import numpy as np
 from B_Splines import B_Splines
-from general_parameters import general_parameters, logger
+from general_parameters import general_parameters
 from typing import Callable, List
 import math
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device_cpu = torch.device('cpu')
 
 def initial_condition(x) -> torch.Tensor:
     res = torch.sin(math.pi*x).reshape(-1,1)
@@ -27,8 +28,8 @@ def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: b
     #coefs random floats between 0 and 1 as a tensor
     coefs = torch.Tensor(np.random.rand(coefs_vector_length))
 
-    if generate_test_functions:
-        test_function = B_Splines(linspace, degree, coefs=coefs, dims=dims) if test_function is None else test_function
+    
+    test_function = B_Splines(linspace, degree, coefs=coefs, dims=dims) if generate_test_functions else None
 
     return test_function, x
 
@@ -56,9 +57,9 @@ def interior_loss_weak(
         dims: int = 1, 
         ):
     
-    assert dims in [1, 2]
-    assert isinstance(model, (PINN, B_Splines))
-    assert x is not None
+    assert dims in [1, 2], "Only 1D and 2D are supported"
+    assert isinstance(model, (PINN, B_Splines)), "model must be a PINN or a B_Splines"
+    assert x is not None, "x must be a tensor"
 
     mode = "Adam" if general_parameters.optimize_test_function else "NN"
 
@@ -175,9 +176,9 @@ def interior_loss_strong(
 
         loss = torch.trapezoid(torch.trapezoid(
 
-            ((dfdt(pinn, x, t, order=1).cpu() 
-                            - eps_interior*dfdt(pinn, x, t, order=2).cpu()
-                            - eps_interior*dfdx(pinn, x, t, order=2).cpu()) * v.cpu()).pow(2)
+            ((dfdt(pinn, x, t, order=1).to(device_cpu) 
+                            - eps_interior*dfdt(pinn, x, t, order=2).to(device_cpu)
+                            - eps_interior*dfdx(pinn, x, t, order=2).to(device_cpu)) * v.to(device_cpu)).pow(2)
 
                             , dx=1/n_x), dx=1/n_t)
 
@@ -219,7 +220,7 @@ def interior_loss_weak_and_strong(
             
             dfdx_model = dfdx(model, x, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)
             dfdxdx_model = dfdx(model, x, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dxdx(x, mode=mode).to(device)
-            model_value_at_first_point = f(model, x[0].reshape(-1, 1)) if isinstance(model, PINN) else f_spline(model, x[0].reshape(-1, 1), mode=mode)
+            model_value_at_first_point = f(model, x[0].reshape(-1, 1))
 
             weak = _get_loss_weak(
                 eps_interior = eps_interior,
@@ -246,8 +247,8 @@ def interior_loss_weak_and_strong(
 
             raise Exception("Implement 2D interior loss weak and strong")
             
-            dfdt_model = dfdt(model, x, t, order=1).cpu()
-            dfdx_model = dfdx(model, x, t, order=1).cpu()
+            dfdt_model = dfdt(model, x, t, order=1).to(device_cpu)
+            dfdx_model = dfdx(model, x, t, order=1).to(device_cpu)
             # Calculate the loss using the variables above
             loss = torch.trapezoid(
                 torch.trapezoid(
@@ -328,11 +329,11 @@ def boundary_loss(
             
             boundary_xi = x[-1].reshape(-1, 1) #last point = 1
             boundary_loss_xi = f(model, boundary_xi) 
+            boundary_xf = x[0].reshape(-1, 1) #first point = 0
 
             dfdx_model = dfdx(model, boundary_xf, order=1)
             f_model = f(model, boundary_xf)
             
-            boundary_xf = x[0].reshape(-1, 1) #first point = 0
             boundary_loss_xf = -general_parameters.eps_interior * dfdx_model + f_model-1.0
 
             return boundary_loss_xf.pow(2).mean() + boundary_loss_xi.pow(2).mean()

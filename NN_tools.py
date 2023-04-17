@@ -16,27 +16,22 @@ def train_model(
     loss_fn_name: str,
     learning_rate: int = 0.01,
     max_epochs: int = 1_000,
-    how_often_to_display: int = 20,
-    device="cuda",
     test_function: B_Splines=None
 ) -> Tuple[PINN, np.ndarray]:
     
 
-    if not general_parameters.pinn_learns_coeff:
-
+    if isinstance(nn_approximator, PINN):
         parameters = [{'params': nn_approximator.parameters()}]
-        if test_function is not None:
-            parameters.append({'params': test_function.parameters()})
-
-        optimizer = torch.optim.Adam(parameters, lr=learning_rate)
-    else:
+    if isinstance(nn_approximator, List[PINN]):
         parameters = [
                 {'params': pinn.parameters()} for pinn in nn_approximator
             ]
-        if test_function is not None:
-            parameters += [{'params': test_function.parameters()}]
+
+    if test_function is not None:
+        parameters.append({'params': test_function.parameters()})
             
-        optimizer = torch.optim.Adam(parameters, lr=learning_rate)
+
+    optimizer = torch.optim.Adam(parameters, lr=learning_rate)
             
     loss_values = []
     lowest_current_loss = float("inf")
@@ -62,16 +57,6 @@ def train_model(
                     torch.save(nn_approximator.state_dict(), SAVE_PATH)
 
             torch.cuda.empty_cache()
-            # if (epoch + 1) % how_often_to_display == 0:
-            #     epoch_time = time.time() - start_time
-            #     time_per_epoch.append(epoch_time)
-            #     avg_time_per_epoch = sum(time_per_epoch[-to_estimate:]) / min(to_estimate, len(time_per_epoch))
-            #     remaining_epochs = max_epochs - epoch - 1
-            #     remaining_time = avg_time_per_epoch * remaining_epochs
-            #     remaining_minutes, remaining_seconds = divmod(remaining_time, 60)
-            #     remaining_time_str = f"{int(remaining_minutes):02d}:{int(remaining_seconds):02d}"
-                # logger.info(f"Epoch: {Color.MAGENTA}{epoch + 1}/{max_epochs}{Color.RESET} - Loss: {Color.YELLOW}{float(loss):>12f}{Color.RESET} - Time remaining: {remaining_time_str}")
-                
 
         except KeyboardInterrupt:
             logger.info(f"Training interrupted by user at epoch {Color.RED}{epoch + 1}{Color.RESET}")

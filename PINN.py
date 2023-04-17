@@ -19,12 +19,12 @@ class PINN(nn.Module):
         self.dim_layer_in = dim_layer_in
         self.dim_layer_out = dim_layer_out
         self.pinn_learns_coeff = pinn_learns_coeff
-        # self.layer_in = nn.Linear(2, dim_hidden)
-        # self.layer_out = nn.Linear(dim_hidden, 1)
+
         if dims == 1:
             self.layer_in = nn.Linear(dims, dim_hidden)
             self.layer_out = nn.Linear(dim_hidden, dim_layer_out)
-
+        else:
+            raise NotImplementedError('Only 1D PINNs are implemented at the moment')
         num_middle = num_hidden - 1
         self.middle_layers = nn.ModuleList(
             [nn.Linear(dim_hidden, dim_hidden) for _ in range(num_middle)]
@@ -33,35 +33,19 @@ class PINN(nn.Module):
 
     def forward(self, x, t):
 
-        if self.dims == 1:
-            x_stack = torch.cat([x], dim=1)
-            out = self.act(self.layer_in(x_stack))
-            for layer in self.middle_layers:
-                out = self.act(layer(out))
-            logits = self.layer_out(out)
+        x_stack = torch.cat([x], dim=1) if self.dims == 1 else torch.cat([x, t], dim=1)
 
-            # if requested pin the boundary conditions 
-            # using a surrogate model: (x - 0) * (x - L) * NN(x)
-            if self.pinning:
-                logits *= (x - x[0]) * (x - x[-1])
-            
-            return logits
+        out = self.act(self.layer_in(x_stack))
+        for layer in self.middle_layers:
+            out = self.act(layer(out))
+        logits = self.layer_out(out)
 
-
-        else:
-
-            x_stack = torch.cat([x, t], dim=1)        
-            out = self.act(self.layer_in(x_stack))
-            for layer in self.middle_layers:
-                out = self.act(layer(out))
-            logits = self.layer_out(out)
-
-        # if requested pin the boundary conditions 
-        # using a surrogate model: (x - 0) * (x - L) * NN(x)
         if self.pinning:
             logits *= (x - x[0]) * (x - x[-1])
         
         return logits
+    
+
     def __str__(self) -> str:
         json_repr = {
             "num_hidden": self.num_hidden,
