@@ -246,6 +246,7 @@ if __name__ == "__main__":
             train_and_plot(model, loss_fn, name, x, x_init, u_init, test_function)
 
     elif general_parameters.pinn_learns_coeff:
+        loss_fn_weak_and_strong = get_loss_fn('weak_and_strong', x, test_function)
         loss_fn = partial(
             compute_loss,
             x=x,
@@ -253,10 +254,10 @@ if __name__ == "__main__":
             weight_f=general_parameters.weight_interior,
             weight_b=general_parameters.weight_boundary,
             dims=1 if general_parameters.one_dimension else 2,
-            test_function=test_function
+            test_function=loss_fn_weak_and_strong
         )
 
         name = "Prediction of splines coefficients using PINN"
         model = pinn_list
 
-        train_and_plot(model, loss_fn, name, x, x_init, u_init, test_function)
+        train_and_plot(model, loss_fn, name, x, x_init, u_init, loss_fn_weak_and_strong)
