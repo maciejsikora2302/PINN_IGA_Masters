@@ -23,6 +23,11 @@ def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: b
 
     if general_parameters.pinn_is_solution:
         x = torch.rand_like(x)
+        #sort x
+        x = torch.sort(x, dim=0)[0]
+        #set first element to 0 and last to 1
+        x[0] = 0
+        x[-1] = 1
         x.requires_grad_(True)
 
     #coefs random floats between 0 and 1 as a tensor
@@ -238,6 +243,8 @@ def interior_loss_weak_and_strong(
                 v = v
             )
 
+            del dfdx_model, dfdxdx_model
+
 
 
         elif dims == 2:
@@ -305,6 +312,13 @@ def interior_loss_weak_and_strong(
                 - general_parameters.epsilon_list * d2_solution_dx2
                 + d_solution_dx 
                 ) * v
+            
+            _get_loss_strong(
+                eps_interior = eps_interior,
+                dfdxdx_model = dfdxdx_model,
+                dfdx_model = dfdx_model,
+                v = v
+            )
 
         elif dims == 2:
             raise NotImplementedError("So sorry... not implemented yet :c")

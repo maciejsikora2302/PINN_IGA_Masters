@@ -86,10 +86,10 @@ def compute_losses_and_plot_solution(
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
     ax.set_title("Loss function convergence")
     ax.set_xlabel("Epoch number")
-    ax.set_ylabel("Loss function value")
+    ax.set_ylabel("Loss function value in log scale")
     # ax.plot(average_loss)
     #plot loss in log10 scale
-    ax.semilogy(loss_values)
+    ax.plot(np.log10(loss_values))
 
     plt.savefig(f"{path}/loss_convergence.png")
 

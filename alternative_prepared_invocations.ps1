@@ -28,7 +28,6 @@ foreach ($eps_interior in $eps_interior_values) {
             --optimize_test_function ```
             --pinn_is_solution ```
             --save" | Out-String
-        exit 0
         # python main_solution.py `
         #     --n_points_x $n_points_x `
         #     --epochs $epochs `

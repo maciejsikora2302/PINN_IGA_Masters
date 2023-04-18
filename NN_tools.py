@@ -22,7 +22,7 @@ def train_model(
 
     if isinstance(nn_approximator, PINN):
         parameters = [{'params': nn_approximator.parameters()}]
-    if isinstance(nn_approximator, List[PINN]):
+    if isinstance(nn_approximator, list):
         parameters = [
                 {'params': pinn.parameters()} for pinn in nn_approximator
             ]
@@ -43,7 +43,11 @@ def train_model(
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            loss_values.append(loss.item())
+
+            #cast loss to numpy
+            loss = loss.detach().cpu().numpy()
+
+            loss_values.append(loss)
             
             
             if loss_values[-1] < lowest_current_loss:
