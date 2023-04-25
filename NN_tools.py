@@ -43,12 +43,11 @@ def train_model(
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
+            # print("Allocated memory: ", torch.cuda.memory_allocated())
+            
             #cast loss to numpy
             loss = loss.detach().cpu().numpy()
-
             loss_values.append(loss)
-            
             
             if loss_values[-1] < lowest_current_loss:
                 lowest_current_loss = loss_values[-1]
