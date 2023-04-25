@@ -122,7 +122,6 @@ def _get_loss_strong(**kwargs):
     v = kwargs["v"]
     dfdx_model = kwargs["dfdx_model"]
     dfdxdx_model = kwargs["dfdxdx_model"]
-
     strong = (
             - eps_interior * dfdxdx_model
             + dfdx_model
@@ -156,7 +155,6 @@ def interior_loss_strong(
     if dims == 1:
 
         v = test_function.calculate_BSpline_1D(x, mode=mode).to(device)
-        
         dfdxdx_model = dfdx(model, x, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dxdx(x, mode=mode).to(device)
         dfdx_model = dfdx(model, x, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)
 

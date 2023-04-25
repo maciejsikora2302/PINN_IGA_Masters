@@ -19,8 +19,6 @@ class B_Splines(torch.nn.Module):
       self.dims = dims
       self.losses = []
 
-      self.saved_splines = {} # x, k, i, t -> Tensor
-
    def _get_basis_functions_1D(self, x: torch.Tensor, order: int = 0) -> torch.Tensor:
       """
       Function returns tensor of B-spline basis functions calculated using scipy framework. This method will be helpful to
@@ -78,25 +76,21 @@ class B_Splines(torch.nn.Module):
       """
       Function calculates i-th spline function with degree equals to k
       """
-      if (x, k, i, t) in self.saved_splines.keys():
-         return self.saved_splines[(x,k,i,t)]
-      else:
-         if k == 0:
-            first_condition = t[i] <= x
-            second_condition = t[i+1] > x
+      if k == 0:
+         first_condition = t[i] <= x
+         second_condition = t[i+1] > x
 
-            mask = torch.logical_and(first_condition, second_condition)
-            return mask
-         if t[i+k] == t[i]:
-            c1 = torch.zeros_like(x)
-         else:
-            c1 = (x - t[i])/(t[i+k] - t[i]) * self._B(x, k-1, i, t)
-         if t[i+k+1] == t[i+1]:
-            c2 = torch.zeros_like(x)
-         else:
-            c2 = (t[i+k+1] - x)/(t[i+k+1] - t[i+1]) * self._B(x, k-1, i+1, t)
-         self.saved_splines[(x,k,i,t)] = c1 + c2
-         return c1 + c2
+         mask = torch.logical_and(first_condition, second_condition)
+         return mask
+      if t[i+k] == t[i]:
+         c1 = torch.zeros_like(x)
+      else:
+         c1 = (x - t[i])/(t[i+k] - t[i]) * self._B(x, k-1, i, t)
+      if t[i+k+1] == t[i+1]:
+         c2 = torch.zeros_like(x)
+      else:
+         c2 = (t[i+k+1] - x)/(t[i+k+1] - t[i+1]) * self._B(x, k-1, i+1, t)
+      return c1 + c2
 
    def calculate_BSpline_1D(self, x: torch.Tensor, mode: str = 'NN', coefs: torch.Tensor = None, return_bs_stacked: bool = False) -> torch.Tensor:
       """
@@ -110,9 +104,11 @@ class B_Splines(torch.nn.Module):
       
       if mode == 'Adam':
          
-         basis_functions = torch.stack([self._B(x, self.degree, basis_function_idx, self.knot_vector) for basis_function_idx in range(n)])
-         
-         return torch.matmul(coefs.to(device), basis_functions.to(device)) if not return_bs_stacked else basis_functions
+         with torch.no_grad():
+            basis_functions = torch.stack([self._B(x, self.degree, basis_function_idx, self.knot_vector) for basis_function_idx in range(n)])
+         # return torch.matmul(coefs.to(device), basis_functions.to(device)) if not return_bs_stacked else basis_functions
+
+         return torch.matmul(coefs.to(device), basis_functions)
       
       else:
 
