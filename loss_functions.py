@@ -139,7 +139,7 @@ def interior_loss_strong(
     
     assert dims in [1, 2]
     assert isinstance(model, (PINN, B_Splines))
-    assert isinstance(test_function, B_Splines)
+    # assert isinstance(test_function, B_Splines)
     assert x is not None
 
 
@@ -428,5 +428,7 @@ def compute_loss(
         
 
     final_loss += weight_b * boundary_loss(model, x, t, dims=dims)
+
+    # print(final_loss)
 
     return final_loss

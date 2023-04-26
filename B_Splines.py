@@ -1,6 +1,5 @@
 import scipy.interpolate as spi
 import torch
-from copy import deepcopy
 import math
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -14,7 +13,7 @@ class B_Splines(torch.nn.Module):
       self.knot_vector = knot_vector
       self.degree = degree
       self.n_coeff = len(self.knot_vector) - self.degree - 1 if dims == 1 else (len(self.knot_vector) - self.degree - 1)**2
-      # self.coefs = torch.nn.Parameter(torch.rand(self.n_coeff) if coefs is None else coefs)
+      # self.coefs = torch.nn.Parameter(10.0 * torch.rand(self.n_coeff) if coefs is None else coefs)
       self.coefs = torch.nn.Parameter(torch.ones(self.n_coeff)) if coefs is None else coefs
       self.dims = dims
       self.losses = []
@@ -104,11 +103,9 @@ class B_Splines(torch.nn.Module):
       
       if mode == 'Adam':
          
-         with torch.no_grad():
-            basis_functions = torch.stack([self._B(x, self.degree, basis_function_idx, self.knot_vector) for basis_function_idx in range(n)])
-         # return torch.matmul(coefs.to(device), basis_functions.to(device)) if not return_bs_stacked else basis_functions
+         basis_functions = torch.stack([self._B(x, self.degree, basis_function_idx, self.knot_vector) for basis_function_idx in range(n)])
 
-         return torch.matmul(coefs.to(device), basis_functions)
+         return torch.matmul(coefs.to(device), basis_functions.to(device)) if not return_bs_stacked else basis_functions
       
       else:
 
@@ -218,9 +215,8 @@ class B_Splines(torch.nn.Module):
 
       if mode == 'NN':
          x = x.to(device_cpu).detach()
-         knot_vector = deepcopy(self.knot_vector)
          tck = (
-               knot_vector.detach(),
+               self.knot_vector.detach(),
                coefs.detach(),
                self.degree
             )
@@ -235,7 +231,7 @@ class B_Splines(torch.nn.Module):
          p = self.degree
          t = self.knot_vector
          c = coefs
-
+         
          coefs = [p*(p-1)/(t[i+p]-t[i+1]) * ( (c[i+2] - c[i+1])/(t[i+p+2] - t[i+2]) - ( c[i+1] - c[i] )/( t[i+p+1] - t[i+1] ) ) for i in range(n-2)]
          
          coefs = torch.Tensor(coefs)
@@ -250,11 +246,41 @@ class B_Splines(torch.nn.Module):
       """
       x = x.flatten()
       t = t.flatten()
-      raise NotImplementedError("Not implemented yet")
-      return torch.outer(
-         self.calculate_BSpline_1D_deriv_dx(x, mode=mode, coefs=self.coefs).to(device_cpu),
-         self.calculate_BSpline_1D(t, mode=mode, coefs=self.coefs_2).to(device_cpu)
+
+      if mode == 'NN':
+         tck = (
+            self.knot_vector.to(device_cpu).detach(),
+            self.knot_vector.to(device_cpu).detach(),
+            self.coefs.to(device_cpu).detach(),
+            self.degree,
+            self.degree
          )
+
+         spline_2d = spi.bisplev(
+            x.to(device_cpu),
+            t.to(device_cpu),
+            tck,
+            dx=1
+         )
+      
+      elif mode == 'Adam':
+         
+         n = int(math.sqrt(self.n_coeff))
+
+         basis_functions_dx = torch.stack([self.degree * (self._B(x, self.degree - 1, basis_function_idx, self.knot_vector) / (self.knot_vector[basis_function_idx + self.degree] - self.knot_vector[basis_function_idx]) - self._B(x, self.degree - 1, basis_function_idx + 1, self.knot_vector) / (self.knot_vector[basis_function_idx + self.degree + 1] - self.knot_vector[basis_function_idx + 1])) for basis_function_idx in range(1, n)])
+         basis_functions_dx = torch.vstack((torch.zeros_like(x), basis_functions_dx))
+
+         basis_functions_t = torch.stack([self._B(t, self.degree, basis_function_idx, self.knot_vector) for basis_function_idx in range(n)])
+
+      
+         coefs_dim_1 = basis_functions_dx.shape[0]
+         coefs_dim_2 = basis_functions_t.shape[0]
+
+         spline_2d = basis_functions_dx.T @ self.coefs.reshape(coefs_dim_1, coefs_dim_2) @ basis_functions_t
+
+
+      return torch.Tensor(spline_2d)
+
    
    def calculate_BSpline_2D_deriv_dxdx(self, x: torch.Tensor, t: torch.Tensor, mode: str = None) -> torch.Tensor:
       """
