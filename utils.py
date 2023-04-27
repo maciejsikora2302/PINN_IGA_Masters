@@ -2,13 +2,13 @@ import torch
 import os
 import numpy as np
 from general_parameters import logger, Color, OUT_DATA_FOLDER, general_parameters
-from loss_functions import compute_loss
 import matplotlib.pyplot as plt
 from NN_tools import f
-from plotting import plot_color
 from PINN import PINN
 from scipy.interpolate import BSpline
 import json
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def running_average(y, window=100):
     cumsum = np.cumsum(np.insert(y, 0, 0)) 
@@ -86,10 +86,10 @@ def compute_losses_and_plot_solution(
     fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
     ax.set_title("Loss function convergence")
     ax.set_xlabel("Epoch number")
-    ax.set_ylabel("Loss function value")
+    ax.set_ylabel("Loss function value in log scale")
     # ax.plot(average_loss)
     #plot loss in log10 scale
-    ax.semilogy(loss_values)
+    ax.plot(np.log10(loss_values))
 
     plt.savefig(f"{path}/loss_convergence.png")
 
@@ -101,7 +101,7 @@ def compute_losses_and_plot_solution(
     # plt.legend()
     # plt.savefig("./imgs/initial_condition2.png")
 
-    # print(pinn_trained.cuda())
+    # print(pinn_trained.to(device))
     # print(x_init.reshape(-1, 1))
     # print(torch.zeros_like(x_init))
 
@@ -109,9 +109,9 @@ def compute_losses_and_plot_solution(
     #     x = x.reshape(x.shape[0], x.shape[1])
 
     if dims == 1 and not general_parameters.pinn_learns_coeff:
-        pinn_values = f(pinn_trained.cuda(), x)
+        pinn_values = f(pinn_trained.to(device), x)
     elif dims == 2 and not general_parameters.pinn_learns_coeff:
-        pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
+        pinn_values = f(pinn_trained.to(device), x.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
 
     if not general_parameters.pinn_learns_coeff:
         fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
@@ -131,11 +131,11 @@ def compute_losses_and_plot_solution(
     # plt.plot(x_init, pinn_values.flatten().detach(), label="PINN solution")
     # plt.legend()
 
-    # pinn_values = f(pinn_trained.cuda(), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
-    # pinn_values = f(pinn_trained.cuda(), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
+    # pinn_values = f(pinn_trained.to(device), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
+    # pinn_values = f(pinn_trained.to(device), torch.zeros_like(x_init).reshape(-1,1)+0.5, x_init.reshape(-1, 1))
     if dims == 1:
         if general_parameters.pinn_is_solution:
-            pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1)).cpu().flatten().detach()
+            pinn_values = f(pinn_trained.to(device), x.reshape(-1, 1)).cpu().flatten().detach()
         elif general_parameters.pinn_learns_coeff:
             
             coeff = []
@@ -152,7 +152,7 @@ def compute_losses_and_plot_solution(
             # It's a spline, which coefficients were predicted by PINN
             pinn_values = torch.Tensor(spline(x.cpu().detach())).flatten()
     else:
-        pinn_values = f(pinn_trained.cuda(), x.reshape(-1, 1), t.reshape(-1,1))
+        pinn_values = f(pinn_trained.to(device), x.reshape(-1, 1), t.reshape(-1,1))
 
 
     #save x to file
@@ -172,7 +172,7 @@ def compute_losses_and_plot_solution(
     ax.set_ylabel("u")
     ax.plot(x_init.cpu(), pinn_values, label="PINN solution")
     # if general_parameters.pinn_learns_coeff:
-    #     ax.plot(x_init.cpu(), f(pinn_trained.cuda(), x).cpu().flatten().detach(), label="Learned coeffs")
+    #     ax.plot(x_init.cpu(), f(pinn_trained.to(device), x).cpu().flatten().detach(), label="Learned coeffs")
     ax.legend()
     plt.savefig(f"{path}/solution_profile.png")
 
@@ -184,7 +184,7 @@ def compute_losses_and_plot_solution(
     ax.set_ylim(-0.1, 1.1)
     ax.plot(x_init.cpu(), pinn_values, label="PINN solution")
     # if general_parameters.pinn_learns_coeff:
-    #     ax.plot(x_init.cpu(), f(pinn_trained.cuda(), x).cpu().flatten().detach(), label="Learned coeffs")
+    #     ax.plot(x_init.cpu(), f(pinn_trained.to(device), x).cpu().flatten().detach(), label="Learned coeffs")
     ax.legend()
     plt.savefig(f"{path}/solution_profile_normalized.png")
     
@@ -226,7 +226,7 @@ def compute_losses_and_plot_solution(
         # pinn_innit = pinn_values.cpu().detach().numpy()
         print(x.shape, t.shape)
         print(pinn_trained)
-        pinn_values = f(pinn_trained.cuda(), x, t)
+        pinn_values = f(pinn_trained.to(device), x, t)
         print(pinn_values.shape)
         print(pinn_values)
         # x, t = x.cpu().detach().numpy(), t.cpu().detach().numpy()

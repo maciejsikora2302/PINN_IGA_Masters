@@ -5,33 +5,26 @@ from general_parameters import general_parameters
 import scipy.interpolate as spi
 from scipy.interpolate import BSpline
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def f(pinn: PINN, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
+def f(model, x: torch.Tensor, t: torch.Tensor = None, mode: str = 'Adam') -> torch.Tensor:
     """Compute the value of the approximate solution from the NN model"""
 
-    if t is None:
-        value = pinn(x.cuda(), t)
-           
-        return value
+    assert isinstance(model, (PINN, B_Splines)), 'The model must be a PINN or B_splines instance'
 
+    if isinstance(model, PINN):
+        value = model(x.to(device), t)
 
-    # return pinn(x, t if t is not None else torch.zeros_like(x))
+    elif isinstance(model, B_Splines):
 
-def f_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor = None, mode: str = 'Adam') -> torch.Tensor:
-    """Compute the value of the approximate solution from the spline model"""
+        if model.dims == 1:
+            value = model.calculate_BSpline_1D(x, mode=mode)
 
-    if spline.dims == 1:
-        return spline.calculate_BSpline_1D(x, mode=mode).cuda()
-    elif spline.dims == 2:
-        return spline.calculate_BSpline_2D(x, t, mode=mode)
+        elif model.dims == 2:
+            value = model.calculate_BSpline_2D(x, t, mode=mode)
 
-def dfdx_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor = None, mode: str = 'Adam') -> torch.Tensor:
-    """Compute the value of the approximate derivative solution from the spline model w.r.t. x"""
+    return value.to(device)
 
-    if spline.dims == 1:
-        return spline.calculate_BSpline_1D_deriv_dx(x, mode=mode).cuda()
-    elif spline.dims == 2:
-        return spline.calculate_BSpline_2D_deriv_dx(x, t, mode=mode)
 
 def df(output: torch.Tensor, input: torch.Tensor, order: int = 1) -> torch.Tensor:
     """Compute neural network derivative with respect to input features using PyTorch autograd engine"""
@@ -45,26 +38,33 @@ def df(output: torch.Tensor, input: torch.Tensor, order: int = 1) -> torch.Tenso
             create_graph=True,
             retain_graph=True,
         )[0]
-            
-    # return df_value.cuda()
+
     return df_value
 
-# def tmp(spline, x, t, coeff):
-#     return spline(x, t, coeff)
 
-def dfdt(pinn: PINN, x: torch.Tensor, t: torch.Tensor, order: int = 1):
+def dfdt(model, x: torch.Tensor, t: torch.Tensor, order: int = 1, mode: str = 'Adam'):
     """Derivative with respect to the time variable of arbitrary order"""
-    f_value = f(pinn, x, t)
-    return df(f_value, t, order=order)
+    assert isinstance(model, (PINN, B_Splines)), 'The model must be a PINN or B_splines instance'
 
-def dfdt_spline(spline: B_Splines, x: torch.Tensor, t: torch.Tensor, mode: str = 'Adam'):
-    """Derivative of spline with respect to the time variable of the first order"""
-    
-    return spline.calculate_BSpline_2D_deriv_dt(x, t, mode=mode)
+    if isinstance(model, PINN):
+        f_value = f(model, x, t)
+        value = df(f_value, t, order=order)
+    elif isinstance(model, B_Splines):
+        value = model.calculate_BSpline_2D_deriv_dt(x, t, mode=mode)
 
+    return value.to(device)
 
-def dfdx(pinn: PINN, x: torch.Tensor, t: torch.Tensor = None, order: int = 1):
+def dfdx(model, x: torch.Tensor, t: torch.Tensor = None, order: int = 1, mode: str = 'Adam'):
     """Derivative with respect to the spatial variable of arbitrary order"""
-    f_value = f(pinn, x, t)
+    assert isinstance(model, (PINN, B_Splines)), 'The model must be a PINN or B_splines instance'
 
-    return df(f_value, x, order=order)
+    if isinstance(model, PINN):
+        f_value = f(model, x, t)
+        value = df(f_value, x, order=order)
+    elif isinstance(model, B_Splines):
+        if model.dims == 1:
+            value = model.calculate_BSpline_1D_deriv_dx(x, mode=mode)
+        elif model.dims == 2:
+            value = model.calculate_BSpline_2D_deriv_dx(x, t, mode=mode)
+    
+    return value.to(device)
