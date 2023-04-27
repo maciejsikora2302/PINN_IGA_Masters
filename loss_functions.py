@@ -143,9 +143,9 @@ def interior_loss_weak(
                                                 dims = dims)
     test_function = test_function if general_parameters.optimize_test_function else generated_test_function
 
-    v =                     test_function.calculate_BSpline_1D(x, mode=mode)                    if dims == 1 else test_function.calculate_BSpline_2D(x, t, mode=mode)
+    v =                     test_function(x, mode=mode)                    if dims == 1 else test_function(x, t, mode=mode)
     v_deriv_x =             test_function.calculate_BSpline_1D_deriv_dx(x, mode=mode)           if dims == 1 else test_function.calculate_BSpline_2D_deriv_dx(x, t, mode=mode)
-    v_at_first_point =      test_function.calculate_BSpline_1D(x[0].reshape(-1, 1), mode=mode)  if dims == 1 else test_function.calculate_BSpline_2D(x[0].reshape(-1, 1), t[0].reshape(-1, 1), mode=mode)
+    v_at_first_point =      test_function(x[0].reshape(-1, 1), mode=mode)  if dims == 1 else test_function(x[0].reshape(-1, 1), t[0].reshape(-1, 1), mode=mode)
 
     if dims == 1:
         
@@ -258,7 +258,6 @@ def interior_loss_strong(
 
 
 
-
 def interior_loss_weak_and_strong(
         model,
         x: torch.Tensor, 
@@ -279,16 +278,18 @@ def interior_loss_weak_and_strong(
                                                 x = x, t = t, \
                                                 generate_test_functions = True if not general_parameters.optimize_test_function else False, \
                                                 dims = dims)
+
     test_function = test_function if general_parameters.optimize_test_function else generated_test_function
 
-    v =                     test_function.calculate_BSpline_1D(x, mode=mode).to(device)                     if dims == 1 else test_function.calculate_BSpline_2D(x, t, mode=mode).to(device)
-    v_deriv_x =             test_function.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)            if dims == 1 else test_function.calculate_BSpline_2D_deriv_dx(x, t, mode=mode).to(device)
-    v_at_first_point =      test_function.calculate_BSpline_1D(x[0].reshape(-1, 1), mode=mode).to(device)   if dims == 1 else test_function.calculate_BSpline_2D(x[0].reshape(-1, 1), t[0].reshape(-1, 1), mode=mode).to(device)
+    with torch.no_grad():
+        v =                     test_function(x, mode=mode).to(device)                     if dims == 1 else test_function(x, t, mode=mode).to(device)
+        v_deriv_x =             test_function.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)            if dims == 1 else test_function.calculate_BSpline_2D_deriv_dx(x, t, mode=mode).to(device)
+        v_at_first_point =      test_function(x[0].reshape(-1, 1), mode=mode).to(device)   if dims == 1 else test_function.calculate_BSpline_2D(x[0].reshape(-1, 1), t[0].reshape(-1, 1), mode=mode).to(device)
 
 
     if not general_parameters.pinn_learns_coeff:
         if dims == 1:
-            
+
             dfdx_model = dfdx(model, x, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)
             dfdxdx_model = dfdx(model, x, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dxdx(x, mode=mode).to(device)
             model_value_at_first_point = f(model, x[0].reshape(-1, 1))
@@ -333,6 +334,7 @@ def interior_loss_weak_and_strong(
         
         loss = weak.pow(2) + strong.pow(2)
         loss = loss.mean()
+
 
         return loss
 
