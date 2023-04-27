@@ -65,6 +65,11 @@ def compute_losses_and_plot_solution(
     with open(f"{path}/time.txt", "w") as time_file:
         time_file.write(f"{training_time:.2f}")
 
+    #if loss values is vertical vector, make it horizontal
+    if loss_values is not None and len(loss_values.shape) == 3:
+        loss_values = loss_values.flatten()
+    # print(f"loss_values.shape = {loss_values.shape}")
+    # print(f"loss_values = {loss_values}")
     #save loss values to file
     with open(f"{path}/loss_values.txt", "w") as loss_file:
         for loss in loss_values:

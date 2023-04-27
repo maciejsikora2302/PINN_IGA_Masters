@@ -1,3 +1,4 @@
+import sys
 from PINN import PINN
 from differential_tools import dfdx, dfdt, f
 import torch
@@ -36,8 +37,10 @@ def train_model(
     loss_values = []
     lowest_current_loss = float("inf")
 
+    # print(torch.cuda.memory_summary())
 
-    for epoch in tqdm.tqdm(range(max_epochs), desc=f"{Color.BLUE}INFO -- {loss_fn_name}: {Color.RESET}", unit=" epoch"):
+    # with torch.profiler.profile(profile_memory=True, activities=[torch.profiler.ProfilerActivity.CPU], with_stack=True) as prof:
+    for epoch in tqdm.tqdm(range(max_epochs), desc=f"{Color.BLUE}INFO -- {loss_fn_name}: {Color.RESET}", unit=" epoch", disable=False):
         try:
             loss: torch.Tensor = loss_fn(nn_approximator)
             optimizer.zero_grad()
@@ -48,8 +51,11 @@ def train_model(
             loss = loss.detach().cpu().numpy()
 
             loss_values.append(loss)
-            
-            
+            # print(f"Loss: {loss}")
+            # print(f"Sum of bytes allocated: {prof.key_averages().total_bytes_allocated / 1e9} GB")
+            # summed = sum(map(lambda x: sys.getsizeof(x), loss_values))
+            # print(f"summed bytes: {summed}")
+
             if loss_values[-1] < lowest_current_loss:
                 lowest_current_loss = loss_values[-1]
                 if general_parameters.save:
@@ -61,36 +67,73 @@ def train_model(
                     torch.save(nn_approximator.state_dict(), SAVE_PATH)
 
             torch.cuda.empty_cache()
+            
 
-        except KeyboardInterrupt:
-            logger.info(f"Training interrupted by user at epoch {Color.RED}{epoch + 1}{Color.RESET}")
+        except Exception as e:
+            logger.info(f"Training interrupted at epoch {Color.RED}{epoch + 1}{Color.RESET}")
+            logger.exception(f"Exception occurred: {e}")
             break
+    # print(torch.cuda.memory_summary())
+
+    # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    # print(prof)
+    # print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
+    # prof.export_chrome_trace("trace.json")
+
+    # for epoch in tqdm.tqdm(range(max_epochs), desc=f"{Color.BLUE}INFO -- {loss_fn_name}: {Color.RESET}", unit=" epoch"):
+    #     try:
+    #         loss: torch.Tensor = loss_fn(nn_approximator)
+    #         optimizer.zero_grad()
+    #         loss.backward()
+    #         optimizer.step()
+
+    #         #cast loss to numpy
+    #         loss = loss.detach().cpu().numpy()
+
+    #         loss_values.append(loss)
+            
+            
+    #         if loss_values[-1] < lowest_current_loss:
+    #             lowest_current_loss = loss_values[-1]
+    #             if general_parameters.save:
+    #                 path = f"{OUT_DATA_FOLDER}/{loss_fn_name}"
+    #                 if not os.path.exists(path):
+    #                     os.makedirs(path)
+    #                 SAVE_PATH = f"{path}/model.pt"
+    #                 logger.debug(f"Saving model to {Color.YELLOW}{SAVE_PATH}{Color.RESET}")
+    #                 torch.save(nn_approximator.state_dict(), SAVE_PATH)
+
+    #         torch.cuda.empty_cache()
+
+    #     except KeyboardInterrupt:
+    #         logger.info(f"Training interrupted by user at epoch {Color.RED}{epoch + 1}{Color.RESET}")
+    #         break
     return nn_approximator, np.array(loss_values)
 
 
-def check_gradient(nn_approximator: PINN, x: torch.Tensor, t: torch.Tensor) -> bool:
+# def check_gradient(nn_approximator: PINN, x: torch.Tensor, t: torch.Tensor) -> bool:
 
-    eps = 1e-4
+#     eps = 1e-4
     
-    dfdx_fd = (f(nn_approximator, x + eps, t) - f(nn_approximator, x - eps, t)) / (2 * eps)
-    dfdx_autodiff = dfdx(nn_approximator, x, t, order=1)
-    is_matching_x = torch.allclose(dfdx_fd.T, dfdx_autodiff.T, atol=1e-2, rtol=1e-2)
+#     dfdx_fd = (f(nn_approximator, x + eps, t) - f(nn_approximator, x - eps, t)) / (2 * eps)
+#     dfdx_autodiff = dfdx(nn_approximator, x, t, order=1)
+#     is_matching_x = torch.allclose(dfdx_fd.T, dfdx_autodiff.T, atol=1e-2, rtol=1e-2)
 
-    dfdt_fd = (f(nn_approximator, x, t + eps) - f(nn_approximator, x, t - eps)) / (2 * eps)
-    dfdt_autodiff = dfdt(nn_approximator, x, t, order=1)
-    is_matching_t = torch.allclose(dfdt_fd.T, dfdt_autodiff.T, atol=1e-2, rtol=1e-2)
+#     dfdt_fd = (f(nn_approximator, x, t + eps) - f(nn_approximator, x, t - eps)) / (2 * eps)
+#     dfdt_autodiff = dfdt(nn_approximator, x, t, order=1)
+#     is_matching_t = torch.allclose(dfdt_fd.T, dfdt_autodiff.T, atol=1e-2, rtol=1e-2)
     
-    eps = 1e-2
+#     eps = 1e-2
 
-    d2fdx2_fd = (f(nn_approximator, x + eps, t) - 2 * f(nn_approximator, x, t) + f(nn_approximator, x - eps, t)) / (eps ** 2)
-    d2fdx2_autodiff = dfdx(nn_approximator, x, t, order=2)
-    is_matching_x2 = torch.allclose(d2fdx2_fd.T, d2fdx2_autodiff.T, atol=1e-2, rtol=1e-2)
+#     d2fdx2_fd = (f(nn_approximator, x + eps, t) - 2 * f(nn_approximator, x, t) + f(nn_approximator, x - eps, t)) / (eps ** 2)
+#     d2fdx2_autodiff = dfdx(nn_approximator, x, t, order=2)
+#     is_matching_x2 = torch.allclose(d2fdx2_fd.T, d2fdx2_autodiff.T, atol=1e-2, rtol=1e-2)
 
-    d2fdt2_fd = (f(nn_approximator, x, t + eps) - 2 * f(nn_approximator, x, t) + f(nn_approximator, x, t - eps)) / (eps ** 2)
-    d2fdt2_autodiff = dfdt(nn_approximator, x, t, order=2)
-    is_matching_t2 = torch.allclose(d2fdt2_fd.T, d2fdt2_autodiff.T, atol=1e-2, rtol=1e-2)
+#     d2fdt2_fd = (f(nn_approximator, x, t + eps) - 2 * f(nn_approximator, x, t) + f(nn_approximator, x, t - eps)) / (eps ** 2)
+#     d2fdt2_autodiff = dfdt(nn_approximator, x, t, order=2)
+#     is_matching_t2 = torch.allclose(d2fdt2_fd.T, d2fdt2_autodiff.T, atol=1e-2, rtol=1e-2)
     
-    return is_matching_x and is_matching_t and is_matching_x2 and is_matching_t2
+#     return is_matching_x and is_matching_t and is_matching_x2 and is_matching_t2
 
 def sin_act(x):
     return torch.sin(x)
