@@ -91,16 +91,18 @@ def interior_loss_basic(
         n_x = x.shape[0]
         n_t = t.shape[0]
 
+        dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
+        dfdx_model = dfdx(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dx(x, t, mode=mode).to(device)
 
-        raise Exception("Implement 2D interior loss basic")
+        basic = _get_loss_basic(
+            eps_interior = eps_interior,
+            dfdxdx_model = dfdxdx_model,
+            dfdx_model = dfdx_model
+        )
 
-        loss = torch.trapezoid(torch.trapezoid(
+        loss = basic.pow(2)
 
-            ((dfdt(pinn, x, t, order=1).to(device_cpu) 
-                            - eps_interior*dfdt(pinn, x, t, order=2).to(device_cpu)
-                            - eps_interior*dfdx(pinn, x, t, order=2).to(device_cpu)) * v.to(device_cpu)).pow(2)
-
-                            , dx=1/n_x), dx=1/n_t)
+        loss = torch.trapezoid(torch.trapezoid(basic, dx=1/n_x), dx=1/n_t)
 
     return loss
 
@@ -419,19 +421,21 @@ def boundary_loss(
         else:
             t_raw = torch.unique(t).reshape(-1, 1).detach()
             t_raw.requires_grad = True
-            
-            boundary_left = torch.ones_like(t_raw, requires_grad=True) * x[0]
-            boundary_loss_left = f(model, boundary_left, t_raw)
-
-            boundary_right = torch.ones_like(t_raw, requires_grad=True) * x[-1]
-
-            boundary_loss_right = f(model, boundary_right, t_raw)
 
             x_raw = torch.unique(x).reshape(-1, 1).detach()
             x_raw.requires_grad = True
+            
+            # LOSS(x, 0)
+            boundary_left = torch.ones_like(t_raw, requires_grad=True) * x[0]
+            boundary_loss_left = f(model, x_raw, boundary_left)
 
+            # LOSS(1, t)
+            boundary_right = torch.ones_like(t_raw, requires_grad=True) * x[-1]
+            boundary_loss_right = f(model, boundary_right, t_raw)
+
+            # LOSS(x,1)
             boundary_top = torch.ones_like(x_raw, requires_grad=True) * t[-1]
-            boundary_loss_top = f(model, boundary_top, x_raw)
+            boundary_loss_top = f(model, x_raw, boundary_top)
 
             return boundary_loss_left.pow(2).mean() + boundary_loss_right.pow(2).mean() + boundary_loss_top.pow(2).mean()
     else:
@@ -453,19 +457,19 @@ def initial_loss(model, x:torch.Tensor, t: torch.Tensor = None):
 
     assert isinstance(model, (PINN, B_Splines)), "model must be PINN or B_Splines"
 
-    # initial condition loss on both the function and its
-    # time first-order derivative
-    x_raw = torch.unique(x).reshape(-1, 1).detach()
-    x_raw.requires_grad = True
+    # initial condition 
+    t_raw = torch.unique(t).reshape(-1, 1).detach()
+    t_raw.requires_grad = True
 
-    f_initial = initial_condition(x_raw)
-    t_initial = torch.zeros_like(x_raw)
-    t_initial.requires_grad = True
+    f_initial = initial_condition(torch.pi * t_raw)
+    x_initial = torch.zeros_like(t_raw)
+    x_initial.requires_grad = True
 
-    initial_loss_f = f(model, x_raw, t_initial) - f_initial 
-    initial_loss_df = dfdt(model, x_raw, t_initial, order=1)
+    initial_loss_f = f(model, x_initial, t_raw) - f_initial 
+    # initial_loss_df = dfdt(model, x_raw, t_initial, order=1)
 
-    return initial_loss_f.pow(2).mean() + initial_loss_df.pow(2).mean()
+    # LOSS(0, t)
+    return initial_loss_f.pow(2).mean()
 
 def compute_loss(
     model,
@@ -490,11 +494,9 @@ def compute_loss(
         weight_f * interior_loss_function(model, x, t, dims=dims, test_function=test_function)
 
     if dims == 2:
-        final_loss += weight_i * initial_loss(model, x, t, dims=dims)
+        final_loss += weight_i * initial_loss(model, x, t)
         
 
     final_loss += weight_b * boundary_loss(model, x, t, dims=dims)
-
-    # print(final_loss)
 
     return final_loss

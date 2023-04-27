@@ -111,7 +111,7 @@ def compute_losses_and_plot_solution(
     if dims == 1 and not general_parameters.pinn_learns_coeff:
         pinn_values = f(pinn_trained.to(device), x)
     elif dims == 2 and not general_parameters.pinn_learns_coeff:
-        pinn_values = f(pinn_trained.to(device), x.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1))
+        pinn_values = f(pinn_trained.to(device), x.reshape(-1, 1), torch.zeros_like(x_init).reshape(-1,1).to(device))
 
     if not general_parameters.pinn_learns_coeff:
         fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
