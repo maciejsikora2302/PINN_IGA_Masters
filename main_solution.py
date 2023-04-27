@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
         # x_raw = torch.linspace(x_domain[0], x_domain[1], steps=general_parameters.n_points_x, requires_grad=True)
         t_raw = torch.linspace(t_domain[0], t_domain[1], steps=general_parameters.n_points_t, requires_grad=True, device=device)
-        grids = torch.meshgrid(x_raw, t_raw, indexing="ij")
+        grids = torch.meshgrid(x_raw.to(device), t_raw.to(device), indexing="ij")
 
         x = grids[0].flatten().reshape(-1, 1).to(device)
         t = grids[1].flatten().reshape(-1, 1).to(device)
@@ -220,6 +220,7 @@ if __name__ == "__main__":
             return partial(
                 compute_loss,
                 x=x,
+                t=t if not general_parameters.one_dimension else None,
                 weight_f=general_parameters.weight_interior,
                 weight_i=general_parameters.weight_initial,
                 weight_b=general_parameters.weight_boundary,
