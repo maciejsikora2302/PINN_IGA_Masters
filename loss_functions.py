@@ -10,8 +10,19 @@ import math
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device_cpu = torch.device('cpu')
 
-def initial_condition(x) -> torch.Tensor:
-    res = torch.sin(math.pi*x).reshape(-1,1)
+def initial_condition(x, t:torch.Tensor = None) -> torch.Tensor:
+    if t is None:
+        res = torch.sin(math.pi*x).reshape(-1,1)
+
+    else:
+        
+        xt = torch.cartesian_prod(torch.flatten(x), torch.flatten(t))
+        # print(xt.shape)
+        res = []
+        for x, t in xt:
+            res.append(torch.sin(math.pi*x)*torch.sin(math.pi*t))
+
+        res = torch.stack(res).reshape(-1,1)
     return res
 
 
@@ -190,10 +201,22 @@ def _get_loss_strong(**kwargs):
     v = kwargs["v"]
     dfdx_model = kwargs["dfdx_model"]
     dfdxdx_model = kwargs["dfdxdx_model"]
-    strong = (
-            - eps_interior * dfdxdx_model
-            + dfdx_model
-            ) * v
+    dims = dims["dims"]
+
+    if dims == 1:
+        strong = (
+                - eps_interior * dfdxdx_model
+                + dfdx_model
+                ) * v
+    elif dims == 2:
+
+        dfdt_model = kwargs["dfdt_model"]
+        dfdtdt_model = kwargs["dfdtdt_model"]
+
+        strong = (
+                - eps_interior * (dfdxdx_model + dfdtdt_model)
+                + dfdt_model
+                ) * v
         
     return strong
 
@@ -242,16 +265,20 @@ def interior_loss_strong(
         n_x = x.shape[0]
         n_t = t.shape[0]
 
+        v = test_function.calculate_BSpline_2D(x, t, mode=mode).to(device)
+        dfdtdt_model = dfdt(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dtdt(x, t, mode=mode).to(device)
+        dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
+        dfdt_model = dfdt(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dt(x, t, mode=mode).to(device)
 
-        raise Exception("Implement 2D interior loss strong")
-
-        loss = torch.trapezoid(torch.trapezoid(
-
-            ((dfdt(pinn, x, t, order=1).to(device_cpu) 
-                            - eps_interior*dfdt(pinn, x, t, order=2).to(device_cpu)
-                            - eps_interior*dfdx(pinn, x, t, order=2).to(device_cpu)) * v.to(device_cpu)).pow(2)
-
-                            , dx=1/n_x), dx=1/n_t)
+        strong = _get_loss_strong(
+            eps_interior = eps_interior,
+            dfdxdx_model = dfdxdx_model,
+            dfdtdt_model = dfdtdt_model,
+            dfdx_model = dfdt_model,
+            v = v
+        )
+        
+        loss = torch.trapezoid(torch.trapezoid(strong.pow(2), dx=1/n_x), dx=1/n_t)
 
     return loss
 
@@ -466,7 +493,7 @@ def initial_loss(model, x:torch.Tensor, t: torch.Tensor = None):
     x_raw = torch.unique(x).reshape(-1, 1).detach()
     x_raw.requires_grad = True
 
-    f_initial = initial_condition(t_raw)
+    f_initial = initial_condition(x_raw, t_raw)
 
     t_initial = torch.zeros_like(t_raw)
     t_initial.requires_grad = True

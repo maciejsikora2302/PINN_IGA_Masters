@@ -1,0 +1,1 @@
+{"pinn_is_solution": true, "pinn_learns_coeff": false, "epochs": 100, "learning_rate": 0.00125, "eps_interior": 0.1, "n_points_x": 10, "weight_initial": 0.0, "weight_boundary": 1.0, "weight_interior": 1.0, "layers": 4, "neurons": 20, "spline_degree": 3}

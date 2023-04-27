@@ -1,0 +1,34 @@
+INFO -- Device: cuda
+INFO -- [92mTwo dimentional problem[0m
+INFO -- 
+INFO -- ================================================================================
+INFO -- Learning parameters
+INFO -- Length:                                           [92m1.0[0m
+INFO -- Total time:                                       [92m1.0[0m
+INFO -- Number of points in x:                            [92m10[0m
+INFO -- Number of points in t:                            [92m10[0m
+INFO -- Number of points in initial condition:            [92m300[0m
+INFO -- Weight for interior loss:                         [92m1.0[0m
+INFO -- Weight for initial condition loss:                [92m0.0[0m
+INFO -- Weight for boundary loss:                         [92m1.0[0m
+INFO -- Layers:                                           [92m4[0m
+INFO -- Neurons per layer:                                [92m20[0m
+INFO -- Epochs:                                           [92m100[0m
+INFO -- Learning rate:                                    [92m0.00125[0m
+INFO -- ================================================================================
+INFO -- 
+INFO -- Creating [92m2D[0m BSpline
+INFO -- Creating PINN with [92m4[0m layers and [92m20[0m neurons per layer
+INFO -- Training PINN for [93m100[0m epochs using [93mloss_fn_basic[0m loss function
+INFO -- Training interrupted at epoch [91m1[0m
+ERROR -- Exception occurred: The size of tensor a (100) must match the size of tensor b (10) at non-singleton dimension 0
+Traceback (most recent call last):
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\NN_tools.py", line 45, in train_model
+    loss: torch.Tensor = loss_fn(nn_approximator)
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\loss_functions.py", line 508, in compute_loss
+    final_loss += weight_i * initial_loss(model, x, t)
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\loss_functions.py", line 479, in initial_loss
+    initial_loss_f = f(model, x_raw, t_initial) - f_initial
+RuntimeError: The size of tensor a (100) must match the size of tensor b (10) at non-singleton dimension 0
+INFO -- Training took [92m1.07[0m seconds
+INFO -- Creating plots and saving to files. Dimensions: 2

@@ -14,7 +14,7 @@ from NN_tools import train_model
 from pprint import pprint
 
 
-def train_and_plot(model, loss_fn, loss_fn_name, x, x_init, u_init, test_function):
+def train_and_plot(model, loss_fn, loss_fn_name, x, x_init, t, test_function):
     logger.info(f"Training {'PINN' if not general_parameters.splines else 'splines'} for {Color.YELLOW}{general_parameters.epochs}{Color.RESET} epochs using {Color.YELLOW}{loss_fn_name}{Color.RESET} loss function")
 
     start_time = time()
@@ -34,10 +34,10 @@ def train_and_plot(model, loss_fn, loss_fn_name, x, x_init, u_init, test_functio
     compute_losses_and_plot_solution(
         pinn_trained=model_trained,
         x=x,
+        t=t,
         device=device,
         loss_values=loss_values,
         x_init=x_init,
-        u_init=u_init,
         N_POINTS_X=general_parameters.n_points_x,
         N_POINTS_T=general_parameters.n_points_t,
         loss_fn_name=loss_fn_name,
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     else:
         logger.info(f"{Color.GREEN}Two dimentional problem{Color.RESET}")
 
-        t_domain = [0.0, general_parameters.total_time]
+        t_domain = [0.0, 1.0]
 
         # x_raw = torch.linspace(x_domain[0], x_domain[1], steps=general_parameters.n_points_x, requires_grad=True)
         t_raw = torch.linspace(t_domain[0], t_domain[1], steps=general_parameters.n_points_t, requires_grad=True, device=device)
@@ -247,7 +247,7 @@ if __name__ == "__main__":
 
         for loss_fn, name in loss_functions:
             model = spline if general_parameters.splines else pinn
-            train_and_plot(model, loss_fn, name, x, x_init, u_init, test_function)
+            train_and_plot(model, loss_fn, name, x, x_init, t if not general_parameters.one_dimension else None, test_function)
 
     elif general_parameters.pinn_learns_coeff:
         loss_fn_weak_and_strong = get_loss_fn('weak_and_strong', x, test_function)
@@ -264,4 +264,4 @@ if __name__ == "__main__":
         name = "Prediction of splines coefficients using PINN"
         model = pinn_list
 
-        train_and_plot(model, loss_fn, name, x, x_init, u_init, loss_fn_weak_and_strong)
+        train_and_plot(model, loss_fn, name, x, x_init, loss_fn_weak_and_strong)

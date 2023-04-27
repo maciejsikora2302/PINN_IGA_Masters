@@ -30,9 +30,9 @@ class PINN(nn.Module):
 
         self.act = act
 
-    def forward(self, x, t):
+    def forward(self, x: torch.Tensor, t: torch.Tensor):
         
-        x_stack = torch.cat([x], dim=1) if self.dims == 1 else torch.cat([x, t], dim=1)
+        x_stack = torch.cat([x], dim=1) if self.dims == 1 else torch.cartesian_prod(torch.flatten(x), torch.flatten(t))
 
         out = self.act(self.layer_in(x_stack))
         for layer in self.middle_layers:

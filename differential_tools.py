@@ -32,11 +32,13 @@ def df(output: torch.Tensor, input: torch.Tensor, order: int = 1) -> torch.Tenso
 
     df_value = output
 
+
     for _ in range(order):
         df_value = torch.autograd.grad(
             df_value,
             input,
-            grad_outputs=torch.ones_like(input),
+            # grad_outputs=torch.ones_like(input),
+            grad_outputs=torch.ones_like(df_value),
             create_graph=True,
             retain_graph=True,
         )[0]
