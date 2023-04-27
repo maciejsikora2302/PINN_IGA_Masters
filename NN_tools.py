@@ -46,16 +46,12 @@ def train_model(
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
+            # print("Allocated memory: ", torch.cuda.memory_allocated())
+            
             #cast loss to numpy
             loss = loss.detach().cpu().numpy()
-
             loss_values.append(loss)
-            # print(f"Loss: {loss}")
-            # print(f"Sum of bytes allocated: {prof.key_averages().total_bytes_allocated / 1e9} GB")
-            # summed = sum(map(lambda x: sys.getsizeof(x), loss_values))
-            # print(f"summed bytes: {summed}")
-
+            
             if loss_values[-1] < lowest_current_loss:
                 lowest_current_loss = loss_values[-1]
                 if general_parameters.save:

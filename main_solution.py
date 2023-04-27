@@ -9,7 +9,7 @@ from B_Splines import B_Splines
 from general_parameters import general_parameters, logger, Color, TIMESTAMP, OUT_DATA_FOLDER
 from utils import compute_losses_and_plot_solution
 from additional_utils import get_unequaly_distribution_points
-from loss_functions import interior_loss_strong, interior_loss_weak, interior_loss_weak_and_strong, compute_loss, initial_condition
+from loss_functions import interior_loss_basic ,interior_loss_strong, interior_loss_weak, interior_loss_weak_and_strong, compute_loss, initial_condition
 from NN_tools import train_model
 from pprint import pprint
 
@@ -207,6 +207,7 @@ if __name__ == "__main__":
         def get_loss_fn(loss_type, x, test_function):
 
             loss_fn_dict = {
+                'basic': interior_loss_basic,
                 'weak': interior_loss_weak,
                 'strong': interior_loss_strong,
                 'weak_and_strong': interior_loss_weak_and_strong
@@ -227,6 +228,7 @@ if __name__ == "__main__":
                 test_function=test_function
             )
 
+        loss_fn_basic = get_loss_fn('basic', x, test_function=None)
         loss_fn_weak = get_loss_fn('weak', x, test_function)
         loss_fn_strong = get_loss_fn('strong', x, test_function)
         loss_fn_weak_and_strong = get_loss_fn('weak_and_strong', x, test_function)
@@ -235,9 +237,10 @@ if __name__ == "__main__":
 
     if general_parameters.pinn_is_solution or general_parameters.splines:
         loss_functions = [
-            (loss_fn_weak, 'loss_fn_weak'),
-            (loss_fn_strong, 'loss_fn_strong'),
-            (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'),
+            (loss_fn_basic, 'loss_fn_basic')
+            # (loss_fn_weak, 'loss_fn_weak'),
+            # (loss_fn_strong, 'loss_fn_strong'),
+            # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'),
             # (loss_fn_colocation, 'loss_fn_colocation')
         ]
 

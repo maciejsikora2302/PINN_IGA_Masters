@@ -38,6 +38,72 @@ def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: b
 
     return test_function, x
 
+def _get_loss_basic(**kwargs):
+    eps_interior = kwargs["eps_interior"]
+    dfdx_model = kwargs["dfdx_model"]
+    dfdxdx_model = kwargs["dfdxdx_model"]
+    basic = (
+            - eps_interior * dfdxdx_model
+            + dfdx_model
+            )
+        
+    return basic
+
+
+def interior_loss_basic(
+        model,
+        x: torch.Tensor, 
+        t: torch.Tensor, 
+        test_function: B_Splines = None,
+        dims: int = 1, 
+        ):
+    
+    assert dims in [1, 2]
+    assert isinstance(model, (PINN, B_Splines))
+    # assert isinstance(test_function, B_Splines)
+    assert x is not None
+
+
+    mode = "Adam" if general_parameters.optimize_test_function else "NN"
+
+    eps_interior = general_parameters.eps_interior
+    _, x = precalculations(\
+                                                x = x, t = t, \
+                                                generate_test_functions = False, \
+                                                dims = dims)
+    if dims == 1:
+
+        dfdxdx_model = dfdx(model, x, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dxdx(x, mode=mode).to(device)
+        dfdx_model = dfdx(model, x, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)
+
+        basic = _get_loss_basic(
+            eps_interior = eps_interior,
+            dfdxdx_model = dfdxdx_model,
+            dfdx_model = dfdx_model
+        )
+        
+        loss = basic.pow(2).mean()
+        
+        
+
+    elif dims == 2:
+
+        n_x = x.shape[0]
+        n_t = t.shape[0]
+
+
+        raise Exception("Implement 2D interior loss basic")
+
+        loss = torch.trapezoid(torch.trapezoid(
+
+            ((dfdt(pinn, x, t, order=1).to(device_cpu) 
+                            - eps_interior*dfdt(pinn, x, t, order=2).to(device_cpu)
+                            - eps_interior*dfdx(pinn, x, t, order=2).to(device_cpu)) * v.to(device_cpu)).pow(2)
+
+                            , dx=1/n_x), dx=1/n_t)
+
+    return loss
+
 def _get_loss_weak(**kwargs):
     eps_interior = kwargs["eps_interior"]
     v = kwargs["v"]
@@ -122,7 +188,6 @@ def _get_loss_strong(**kwargs):
     v = kwargs["v"]
     dfdx_model = kwargs["dfdx_model"]
     dfdxdx_model = kwargs["dfdxdx_model"]
-
     strong = (
             - eps_interior * dfdxdx_model
             + dfdx_model
@@ -140,7 +205,7 @@ def interior_loss_strong(
     
     assert dims in [1, 2]
     assert isinstance(model, (PINN, B_Splines))
-    assert isinstance(test_function, B_Splines) or test_function is None
+    # assert isinstance(test_function, B_Splines)
     assert x is not None
 
 
@@ -156,7 +221,6 @@ def interior_loss_strong(
     if dims == 1:
 
         v = test_function.calculate_BSpline_1D(x, mode=mode).to(device)
-        
         dfdxdx_model = dfdx(model, x, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dxdx(x, mode=mode).to(device)
         dfdx_model = dfdx(model, x, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)
 
@@ -428,5 +492,7 @@ def compute_loss(
         
 
     final_loss += weight_b * boundary_loss(model, x, t, dims=dims)
+
+    # print(final_loss)
 
     return final_loss
