@@ -425,17 +425,17 @@ def boundary_loss(
             x_raw = torch.unique(x).reshape(-1, 1).detach()
             x_raw.requires_grad = True
             
-            # LOSS(x, 0)
-            boundary_left = torch.ones_like(t_raw, requires_grad=True) * x[0]
-            boundary_loss_left = f(model, x_raw, boundary_left)
+            # LOSS(0, t)
+            boundary_left = torch.ones_like(x_raw, requires_grad=True) * x[0]
+            boundary_loss_left = f(model, boundary_left, t_raw)
+
+            # LOSS(x, 1)
+            boundary_right = torch.ones_like(t_raw, requires_grad=True) * t[-1]
+            boundary_loss_right = f(model, x_raw, boundary_right)
 
             # LOSS(1, t)
-            boundary_right = torch.ones_like(t_raw, requires_grad=True) * x[-1]
-            boundary_loss_right = f(model, boundary_right, t_raw)
-
-            # LOSS(x,1)
-            boundary_top = torch.ones_like(x_raw, requires_grad=True) * t[-1]
-            boundary_loss_top = f(model, x_raw, boundary_top)
+            boundary_top = torch.ones_like(x_raw, requires_grad=True) * x[-1]
+            boundary_loss_top = f(model, boundary_top, t_raw)
 
             return boundary_loss_left.pow(2).mean() + boundary_loss_right.pow(2).mean() + boundary_loss_top.pow(2).mean()
     else:
@@ -458,17 +458,17 @@ def initial_loss(model, x:torch.Tensor, t: torch.Tensor = None):
     assert isinstance(model, (PINN, B_Splines)), "model must be PINN or B_Splines"
 
     # initial condition 
-    t_raw = torch.unique(t).reshape(-1, 1).detach()
-    t_raw.requires_grad = True
+    x_raw = torch.unique(x).reshape(-1, 1).detach()
+    x_raw.requires_grad = True
 
-    f_initial = initial_condition(torch.pi * t_raw)
-    x_initial = torch.zeros_like(t_raw)
-    x_initial.requires_grad = True
+    f_initial = initial_condition(x_raw)
+    t_initial = torch.zeros_like(x_raw)
+    t_initial.requires_grad = True
 
-    initial_loss_f = f(model, x_initial, t_raw) - f_initial 
+    initial_loss_f = f(model, x_raw, t_initial) - f_initial 
     # initial_loss_df = dfdt(model, x_raw, t_initial, order=1)
 
-    # LOSS(0, t)
+    # LOSS(x, 0)
     return initial_loss_f.pow(2).mean()
 
 def compute_loss(
