@@ -50,6 +50,7 @@ class PINN(nn.Module):
         json_repr = {
             "num_hidden": self.num_hidden,
             "dim_hidden": self.dim_hidden,
+            
             "act": str(self.act),
             "pinning": self.pinning,
             "dims": self.dims,

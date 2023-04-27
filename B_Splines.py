@@ -33,12 +33,17 @@ class B_Splines(torch.nn.Module):
          coefs = torch.zeros(n_coefs)
          coefs[idx] = 1.0
          tck = (
-            self.knot_vector.to(device_cpu).detach(),
-            coefs.to(device_cpu).detach(),
+            self.knot_vector.to(device_cpu),
+            coefs.to(device_cpu),
             self.degree
          )
+         # tck = (
+         #    self.knot_vector.to(device_cpu).detach(),
+         #    coefs.to(device_cpu).detach(),
+         #    self.degree
+         # )
 
-         BS = spi.splev(x.to(device_cpu).detach(), tck, der=order, ext=0)
+         BS = spi.splev(x.to(device_cpu), tck, der=order, ext=0)
          basis_functions.append(BS)
 
       return torch.Tensor(basis_functions).T.to(device)
@@ -109,6 +114,7 @@ class B_Splines(torch.nn.Module):
       
       else:
 
+         # tck = (self.knot_vector, coefs, self.degree)
          tck = (self.knot_vector.detach(), coefs.detach(), self.degree)
          
          return torch.Tensor(spi.splev(x.to(device_cpu).detach(), tck, der=0)).to(device)
@@ -152,19 +158,26 @@ class B_Splines(torch.nn.Module):
       coefs = self.coefs if coefs is None else coefs
 
       if mode == 'NN':
+         # x = x.to(device_cpu)
+         knot_vector = self.knot_vector
          x = x.to(device_cpu).detach()
          knot_vector = self.knot_vector
 
          #repeat and add first and last element of knot_vector twice
          # knot_vector = torch.cat((knot_vector[0].repeat(2), knot_vector, knot_vector[-1].repeat(2)))
 
+         # tck = (
+         #       knot_vector,
+         #       coefs,
+         #       self.degree
+         #    )
          tck = (
-               knot_vector.detach(),
+               knot_vector,
                coefs.detach(),
                self.degree
             )
          
-         return torch.Tensor(spi.splev(x, tck, der=1))
+         return torch.Tensor(spi.splev(x, tck, der=1)).to(device)
       
       elif mode == 'Adam':
          x = x.flatten().to(device_cpu)
@@ -192,6 +205,13 @@ class B_Splines(torch.nn.Module):
                coefs.detach(),
                self.degree
             )
+         # x = x.to(device_cpu).detach()
+         # knot_vector = self.knot_vector.clone().detach()
+         # tck = (
+         #       knot_vector,
+         #       coefs.detach(),
+         #       self.degree
+         #    )
          return torch.Tensor(spi.splev(x, tck, der=2))
       
       elif mode == 'Adam':
@@ -357,9 +377,12 @@ class B_Splines(torch.nn.Module):
 
       return torch.Tensor(spline_2d)
    
-   def forward(self, x: torch.Tensor, t: torch.Tensor = None) -> torch.Tensor:
+   def forward(self, x: torch.Tensor, mode:str, t: torch.Tensor = None) -> torch.Tensor:
+
+      # x_copy = x.clone().detach()
+      # x_copy.requires_grad = True
 
       if self.dims == 1:
-         return self.calculate_BSpline_1D(x)
+         return self.calculate_BSpline_1D(x, mode=mode)
       elif self.dims == 2:
-         return self.calculate_BSpline_2D(x, t)
+         return self.calculate_BSpline_2D(x, t, mode=mode)
