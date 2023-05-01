@@ -10,7 +10,6 @@ import tqdm
 import os
 
 
-
 def train_model(
     nn_approximator: Union[PINN,B_Splines,List[PINN]],
     loss_fn: Callable,
@@ -21,7 +20,7 @@ def train_model(
 ) -> Tuple[PINN, np.ndarray]:
     
 
-    if isinstance(nn_approximator, PINN):
+    if isinstance(nn_approximator, (PINN, B_Splines)):
         parameters = [{'params': nn_approximator.parameters()}]
     if isinstance(nn_approximator, list):
         parameters = [

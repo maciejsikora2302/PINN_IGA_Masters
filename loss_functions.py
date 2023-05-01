@@ -201,7 +201,7 @@ def _get_loss_strong(**kwargs):
     v = kwargs["v"]
     dfdx_model = kwargs["dfdx_model"]
     dfdxdx_model = kwargs["dfdxdx_model"]
-    dims = dims["dims"]
+    dims = kwargs["dims"]
 
     if dims == 1:
         strong = (
@@ -253,7 +253,8 @@ def interior_loss_strong(
             eps_interior = eps_interior,
             dfdxdx_model = dfdxdx_model,
             dfdx_model = dfdx_model,
-            v = v
+            v = v,
+            dims=dims
         )
         
         loss = strong.pow(2).mean()
@@ -531,5 +532,7 @@ def compute_loss(
         
 
     final_loss += weight_b * boundary_loss(model, x, t, dims=dims)
+
+    print(final_loss)
 
     return final_loss

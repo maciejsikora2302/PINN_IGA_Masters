@@ -83,18 +83,28 @@ class B_Splines(torch.nn.Module):
       if k == 0:
          first_condition = t[i] <= x
          second_condition = t[i+1] > x
-
+         
          mask = torch.logical_and(first_condition, second_condition)
 
+         if i == self.degree:
+            mask[0] = True
+
+         if i == self.n_coeff-1:
+            mask[-1] = True
+         
          return mask.float()
+      
       if t[i+k] == t[i]:
          c1 = torch.zeros_like(x)
       else:
          c1 = (x - t[i])/(t[i+k] - t[i]) * self._B(x, k-1, i, t)
+
       if t[i+k+1] == t[i+1]:
+
          c2 = torch.zeros_like(x)
       else:
          c2 = (t[i+k+1] - x)/(t[i+k+1] - t[i+1]) * self._B(x, k-1, i+1, t)
+      
       return c1 + c2
 
    def calculate_BSpline_1D(self, x: torch.Tensor, mode: str = 'NN', coefs: torch.Tensor = None, return_bs_stacked: bool = False) -> torch.Tensor:
@@ -107,14 +117,14 @@ class B_Splines(torch.nn.Module):
 
       x = x.flatten()
       
+      
       if mode == 'Adam':
-         
          basis_functions = torch.stack([self._B(x, self.degree, basis_function_idx, self.knot_vector) for basis_function_idx in range(n)])
+         
          return torch.matmul(coefs.to(device), basis_functions.to(device)) if not return_bs_stacked else basis_functions
       
       else:
 
-         # tck = (self.knot_vector, coefs, self.degree)
          tck = (self.knot_vector.detach(), coefs.detach(), self.degree)
          
          return torch.Tensor(spi.splev(x.to(device_cpu).detach(), tck, der=0)).to(device)
