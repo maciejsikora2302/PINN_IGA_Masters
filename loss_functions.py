@@ -15,14 +15,8 @@ def initial_condition(x, t:torch.Tensor = None) -> torch.Tensor:
         res = torch.sin(math.pi*x).reshape(-1,1)
 
     else:
-        
-        xt = torch.cartesian_prod(torch.flatten(x), torch.flatten(t))
-        # print(xt.shape)
-        res = []
-        for x, t in xt:
-            res.append(torch.sin(math.pi*x)*torch.sin(math.pi*t))
-
-        res = torch.stack(res).reshape(-1,1)
+        xt = torch.cartesian_prod(torch.flatten(x), t)        
+        res = torch.sin(torch.pi * xt).to(device)
     return res
 
 
@@ -41,6 +35,16 @@ def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: b
         x[-1] = 1
         x.requires_grad_(True)
 
+        if dims == 2:
+            t = torch.rand_like(t)
+
+            # sort t
+            t = torch.sort(t, dim=0)[0]
+
+            t[0] = 0
+            t[-1] = 1
+            t.requires_grad_(True)
+
     #coefs random floats between 0 and 1 as a tensor
     coefs = torch.Tensor(np.random.rand(coefs_vector_length))
 
@@ -51,12 +55,24 @@ def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: b
 
 def _get_loss_basic(**kwargs):
     eps_interior = kwargs["eps_interior"]
-    dfdx_model = kwargs["dfdx_model"]
     dfdxdx_model = kwargs["dfdxdx_model"]
-    basic = (
-            - eps_interior * dfdxdx_model
-            + dfdx_model
-            )
+    dims = kwargs["dims"]
+    
+    if dims == 1:
+        dfdx_model = kwargs["dfdx_model"]
+
+        basic = (
+                - eps_interior * dfdxdx_model
+                + dfdx_model
+                )
+    elif dims == 2:
+        dfdtdt_model = kwargs["dfdtdt_model"]
+        dfdt_model = kwargs["dfdt_model"]
+
+        basic = (
+            -eps_interior * (dfdxdx_model + dfdtdt_model)
+            + dfdt_model
+        )
         
     return basic
 
@@ -90,7 +106,8 @@ def interior_loss_basic(
         basic = _get_loss_basic(
             eps_interior = eps_interior,
             dfdxdx_model = dfdxdx_model,
-            dfdx_model = dfdx_model
+            dfdx_model = dfdx_model,
+            dims=dims
         )
         
         loss = basic.pow(2).mean()
@@ -103,12 +120,15 @@ def interior_loss_basic(
         n_t = t.shape[0]
 
         dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
-        dfdx_model = dfdx(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dx(x, t, mode=mode).to(device)
+        dfdtdt_model = dfdt(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dtdt(x, t, mode=mode).to(device)
+        dfdt_model = dfdt(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
 
         basic = _get_loss_basic(
             eps_interior = eps_interior,
             dfdxdx_model = dfdxdx_model,
-            dfdx_model = dfdx_model
+            dfdtdt_model = dfdtdt_model,
+            dfdt_model = dfdt_model,
+            dims = dims
         )
 
         loss = basic.pow(2)
@@ -456,11 +476,11 @@ def boundary_loss(
             x_raw.requires_grad = True
             
             # LOSS(0, t)
-            boundary_left = torch.ones_like(x_raw, requires_grad=True) * x[0]
+            boundary_left = torch.ones_like(x_raw, requires_grad=True) * x[0] #zeros
             boundary_loss_left = f(model, boundary_left, t_raw)
 
             # LOSS(x, 1)
-            boundary_right = torch.ones_like(t_raw, requires_grad=True) * t[-1]
+            boundary_right = torch.ones_like(t_raw, requires_grad=True) * t[-1] #ones
             boundary_loss_right = f(model, x_raw, boundary_right)
 
             # LOSS(1, t)
@@ -494,12 +514,12 @@ def initial_loss(model, x:torch.Tensor, t: torch.Tensor = None):
     x_raw = torch.unique(x).reshape(-1, 1).detach()
     x_raw.requires_grad = True
 
-    f_initial = initial_condition(x_raw, t_raw)
+    t_zero = torch.Tensor([0]).to(device)
+    t_zero.requires_grad = True
 
-    t_initial = torch.zeros_like(t_raw)
-    t_initial.requires_grad = True
+    f_initial = initial_condition(x_raw, t_zero)
 
-    initial_loss_f = f(model, x_raw, t_initial) - f_initial 
+    initial_loss_f = f(model, x_raw, t_zero) - f_initial 
     # initial_loss_df = dfdt(model, x_raw, t_initial, order=1)
 
     # LOSS(x, 0)
@@ -532,7 +552,5 @@ def compute_loss(
         
 
     final_loss += weight_b * boundary_loss(model, x, t, dims=dims)
-
-    print(final_loss)
 
     return final_loss
