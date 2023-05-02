@@ -135,15 +135,31 @@ def _get_loss_weak(**kwargs):
     eps_interior = kwargs["eps_interior"]
     v = kwargs["v"]
     v_deriv_x = kwargs["v_deriv_x"]
-    v_at_first_point = kwargs["v_at_first_point"]
+    dims = kwargs["dims"]
     dfdx_model = kwargs["dfdx_model"]
-    model_value_at_first_point = kwargs["model_value_at_first_point"]
 
+    if dims == 1:
+        v_at_first_point = kwargs["v_at_first_point"]
+        model_value_at_first_point = kwargs["model_value_at_first_point"]
 
-    weak = (dfdx_model * v \
-            + eps_interior * dfdx_model * v_deriv_x).mean() \
-            + model_value_at_first_point * v_at_first_point \
-            - v_at_first_point
+        weak = (dfdx_model * v \
+                + eps_interior * dfdx_model * v_deriv_x).mean() \
+                + model_value_at_first_point * v_at_first_point \
+                - v_at_first_point
+    elif dims == 2:
+        dfdt_model = kwargs["dfdt_model"]
+        sin_pi_x = kwargs["sin_pi_x"]
+        cos_pi_x = kwargs["cos_pi_x"]
+        v_deriv_t = kwargs["v_deriv_t"]
+        pi = torch.pi
+
+        b_uv = (eps_interior * (dfdx_model * v_deriv_x + dfdt_model * v_deriv_t) \
+                + dfdt_model * v)
+        
+        I_v = (eps_interior * (sin_pi_x * dfdt_model - pi * cos_pi_x * dfdx_model) \
+               + sin_pi_x * v)
+        
+        weak = b_uv - I_v
         
     return weak
 
@@ -168,14 +184,14 @@ def interior_loss_weak(
                                                 dims = dims)
     test_function = test_function if general_parameters.optimize_test_function else generated_test_function
 
-    v =                     test_function(x, mode=mode)                    if dims == 1 else test_function(x, t, mode=mode)
-    v_deriv_x =             test_function.calculate_BSpline_1D_deriv_dx(x, mode=mode)           if dims == 1 else test_function.calculate_BSpline_2D_deriv_dx(x, t, mode=mode)
-    v_at_first_point =      test_function(x[0].reshape(-1, 1), mode=mode)  if dims == 1 else test_function(x[0].reshape(-1, 1), t[0].reshape(-1, 1), mode=mode)
+    v =                     test_function.calculate_BSpline_1D(x, mode=mode).to(device)          if dims == 1 else test_function.calculate_BSpline_2D(x, t, mode=mode).to(device)
+    v_deriv_x =             test_function.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device) if dims == 1 else test_function.calculate_BSpline_2D_deriv_dx(x, t, mode=mode).to(device)
 
     if dims == 1:
-        
-        dfdx_model = dfdx(model, x, order=1).to(device)
+
+        v_at_first_point = test_function.calculate_BSpline_1D(x[0].reshape(-1, 1), mode=mode)
         model_value_at_first_point = f(model, x[0].reshape(-1, 1))
+        dfdx_model = dfdx(model, x, order=1).to(device)
 
         weak = _get_loss_weak(
             eps_interior = eps_interior,
@@ -183,11 +199,14 @@ def interior_loss_weak(
             v_deriv_x = v_deriv_x,
             v_at_first_point = v_at_first_point,
             dfdx_model = dfdx_model,
-            model_value_at_first_point = model_value_at_first_point
+            model_value_at_first_point = model_value_at_first_point,
+            dims = dims
         )
 
         # Calculate loss as the square of b_weak
         loss = weak.pow(2)
+
+        loss = loss.mean()
 
     elif dims == 2:
         # Calculate the number of points in x and t
@@ -195,17 +214,31 @@ def interior_loss_weak(
         n_t = t.shape[0]
         
         v_deriv_t = test_function.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
+        dfdt_model = dfdt(model, x, t, order=1).to(device)
+        dfdx_model = dfdx(model, x, t, order=1).to(device)
+        sin_pi_x = initial_condition(x).to(device)
+        cos_pi_x = torch.cos(torch.pi * x).to(device)
 
-        dfdt_model = dfdt(model, x, t, order=1)
-        dfdx_model = dfdx(model, x, t, order=1)
-        # Calculate the loss using the variables above
+        weak = _get_loss_weak(
+            eps_interior = eps_interior,
+            v = v,
+            v_deriv_x = v_deriv_x,
+            v_deriv_t = v_deriv_t,
+            dfdx_model = dfdx_model,
+            dfdt_model = dfdt_model,
+            sin_pi_x = sin_pi_x,
+            cos_pi_x = cos_pi_x,
+            dims = dims
+        )
+
+        
         loss = torch.trapezoid(
             torch.trapezoid(
-                (dfdt_model * v
-                + eps_interior*dfdx_model * v_deriv_x
-                + eps_interior*dfdt_model * v_deriv_t).pow(2),
+                        weak,
                 dx=1/n_x),
             dx=1/n_t)
+        
+        loss = loss.pow(2)
 
     return loss
 
@@ -324,11 +357,6 @@ def interior_loss_weak_and_strong(
                                                 dims = dims)
 
     test_function = test_function if general_parameters.optimize_test_function else generated_test_function
-
-    with torch.no_grad():
-        v =                     test_function(x, mode=mode).to(device)                     if dims == 1 else test_function(x, t, mode=mode).to(device)
-        v_deriv_x =             test_function.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)            if dims == 1 else test_function.calculate_BSpline_2D_deriv_dx(x, t, mode=mode).to(device)
-        v_at_first_point =      test_function(x[0].reshape(-1, 1), mode=mode).to(device)   if dims == 1 else test_function.calculate_BSpline_2D(x[0].reshape(-1, 1), t[0].reshape(-1, 1), mode=mode).to(device)
 
 
     if not general_parameters.pinn_learns_coeff:
@@ -546,5 +574,5 @@ def compute_loss(
         final_loss += weight_i * initial_loss(model, x, t)
         
     final_loss += weight_b * boundary_loss(model, x, t, dims=dims)
-    # print(final_loss)
+
     return final_loss

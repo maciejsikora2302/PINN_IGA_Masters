@@ -257,8 +257,8 @@ class B_Splines(torch.nn.Module):
          )
 
          spline_2d = spi.bisplev(
-            x.to(device_cpu),
-            t.to(device_cpu),
+            x.to(device_cpu).detach().numpy(),
+            t.to(device_cpu).detach().numpy(),
             tck,
             dx=1
          )
@@ -271,7 +271,7 @@ class B_Splines(torch.nn.Module):
          coefs_dim_1 = basis_functions_dx.shape[0]
          coefs_dim_2 = basis_functions_t.shape[0]
 
-         spline_2d = basis_functions_dx.T @ self.coefs.reshape(coefs_dim_1, coefs_dim_2) @ basis_functions_t
+         spline_2d = basis_functions_dx.T @ self.coefs.reshape(coefs_dim_1, coefs_dim_2).to(device) @ basis_functions_t
 
 
       return torch.Tensor(spline_2d)
