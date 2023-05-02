@@ -17,7 +17,6 @@ def initial_condition(x: torch.Tensor) -> torch.Tensor:
 
 def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: bool , dims: int = 1):
     degree = general_parameters.spline_degree
-    coefs_vector_length = general_parameters.n_coeff
 
     linspace = general_parameters.knot_vector
 
@@ -42,11 +41,8 @@ def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: b
     #         t = t.unique()
     #         t.requires_grad_(True)
 
-    #coefs random floats between 0 and 1 as a tensor
-    coefs = torch.Tensor(np.random.rand(coefs_vector_length))
-
     
-    test_function = B_Splines(linspace, degree, coefs=coefs, dims=dims) if generate_test_functions else None
+    test_function = B_Splines(linspace, degree, dims=dims) if generate_test_functions else None
 
     return test_function, x
 

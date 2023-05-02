@@ -13,8 +13,8 @@ class B_Splines(torch.nn.Module):
       self.knot_vector = knot_vector
       self.degree = degree
       self.n_coeff = len(self.knot_vector) - self.degree - 1 if dims == 1 else (len(self.knot_vector) - self.degree - 1)**2
-      # self.coefs = torch.nn.Parameter(10.0 * torch.rand(self.n_coeff) if coefs is None else coefs)
-      self.coefs = torch.nn.Parameter(torch.ones(self.n_coeff)) if coefs is None else coefs
+      self.coefs = torch.nn.Parameter(torch.rand(self.n_coeff) if coefs is None else coefs)
+      # self.coefs = torch.nn.Parameter(torch.ones(self.n_coeff)) if coefs is None else coefs
       self.dims = dims
       self.losses = []
 
