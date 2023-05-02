@@ -10,13 +10,8 @@ import math
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device_cpu = torch.device('cpu')
 
-def initial_condition(x, t:torch.Tensor = None) -> torch.Tensor:
-    if t is None:
-        res = torch.sin(math.pi*x).reshape(-1,1)
-
-    else:
-        xt = torch.cartesian_prod(torch.flatten(x), t)        
-        res = torch.sin(torch.pi * xt).to(device)
+def initial_condition(x: torch.Tensor) -> torch.Tensor:
+    res = torch.sin(torch.pi*x).reshape(-1,1)
     return res
 
 
@@ -26,24 +21,26 @@ def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: b
 
     linspace = general_parameters.knot_vector
 
-    if general_parameters.pinn_is_solution:
-        x = torch.rand_like(x)
-        #sort x
-        x = torch.sort(x, dim=0)[0]
-        #set first element to 0 and last to 1
-        x[0] = 0
-        x[-1] = 1
-        x.requires_grad_(True)
+    # if general_parameters.pinn_is_solution:
+    #     x = torch.rand_like(x)
+    #     #sort x
+    #     x = torch.sort(x, dim=0)[0]
+    #     #set first element to 0 and last to 1
+    #     x[0] = 0
+    #     x[-1] = 1
+    #     x = x.unique()
+    #     x.requires_grad_(True)
 
-        if dims == 2:
-            t = torch.rand_like(t)
+    #     if dims == 2:
+    #         t = torch.rand_like(t)
 
-            # sort t
-            t = torch.sort(t, dim=0)[0]
+    #         # sort t
+    #         t = torch.sort(t, dim=0)[0]
 
-            t[0] = 0
-            t[-1] = 1
-            t.requires_grad_(True)
+    #         t[0] = 0
+    #         t[-1] = 1
+    #         t = t.unique()
+    #         t.requires_grad_(True)
 
     #coefs random floats between 0 and 1 as a tensor
     coefs = torch.Tensor(np.random.rand(coefs_vector_length))
@@ -98,6 +95,7 @@ def interior_loss_basic(
                                                 x = x, t = t, \
                                                 generate_test_functions = False, \
                                                 dims = dims)
+
     if dims == 1:
 
         dfdxdx_model = dfdx(model, x, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dxdx(x, mode=mode).to(device)
@@ -133,7 +131,7 @@ def interior_loss_basic(
 
         loss = basic.pow(2)
 
-        loss = torch.trapezoid(torch.trapezoid(basic, dx=1/n_x), dx=1/n_t)
+        loss = torch.trapezoid(torch.trapezoid(loss, dx=1/n_t), dx=1/n_x)
 
     return loss
 
@@ -219,11 +217,12 @@ def interior_loss_weak(
 def _get_loss_strong(**kwargs):
     eps_interior = kwargs["eps_interior"]
     v = kwargs["v"]
-    dfdx_model = kwargs["dfdx_model"]
     dfdxdx_model = kwargs["dfdxdx_model"]
     dims = kwargs["dims"]
 
     if dims == 1:
+        dfdx_model = kwargs["dfdx_model"]
+
         strong = (
                 - eps_interior * dfdxdx_model
                 + dfdx_model
@@ -289,16 +288,17 @@ def interior_loss_strong(
         v = test_function.calculate_BSpline_2D(x, t, mode=mode).to(device)
         dfdtdt_model = dfdt(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dtdt(x, t, mode=mode).to(device)
         dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
-        dfdt_model = dfdt(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dt(x, t, mode=mode).to(device)
+        dfdt_model = dfdt(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
 
         strong = _get_loss_strong(
             eps_interior = eps_interior,
             dfdxdx_model = dfdxdx_model,
             dfdtdt_model = dfdtdt_model,
-            dfdx_model = dfdt_model,
-            v = v
+            dfdt_model = dfdt_model,
+            v = v,
+            dims = dims
         )
-        
+
         loss = torch.trapezoid(torch.trapezoid(strong.pow(2), dx=1/n_x), dx=1/n_t)
 
     return loss
@@ -506,20 +506,19 @@ def boundary_loss(
 def initial_loss(model, x:torch.Tensor, t: torch.Tensor = None):
 
     assert isinstance(model, (PINN, B_Splines)), "model must be PINN or B_Splines"
-
-    # initial condition 
-    t_raw = torch.unique(t).reshape(-1, 1).detach()
-    t_raw.requires_grad = True
     
     x_raw = torch.unique(x).reshape(-1, 1).detach()
     x_raw.requires_grad = True
 
-    t_zero = torch.Tensor([0]).to(device)
-    t_zero.requires_grad = True
+    # t_initial = torch.zeros_like(x_raw).to(device)
+    # t_initial.requires_grad = True
 
-    f_initial = initial_condition(x_raw, t_zero)
+    t_initial = torch.Tensor([0]).to(device)
+    t_initial.requires_grad = True
 
-    initial_loss_f = f(model, x_raw, t_zero) - f_initial 
+    f_initial = initial_condition(x_raw)
+
+    initial_loss_f = f(model, x_raw, t_initial) - f_initial 
     # initial_loss_df = dfdt(model, x_raw, t_initial, order=1)
 
     # LOSS(x, 0)
@@ -550,7 +549,6 @@ def compute_loss(
     if dims == 2:
         final_loss += weight_i * initial_loss(model, x, t)
         
-
     final_loss += weight_b * boundary_loss(model, x, t, dims=dims)
 
     return final_loss

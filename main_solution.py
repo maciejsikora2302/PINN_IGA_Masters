@@ -112,11 +112,13 @@ if __name__ == "__main__":
 
         # x_raw = torch.linspace(x_domain[0], x_domain[1], steps=general_parameters.n_points_x, requires_grad=True)
         t_raw = torch.linspace(t_domain[0], t_domain[1], steps=general_parameters.n_points_t, requires_grad=True, device=device)
-        grids = torch.meshgrid(x_raw.to(device), t_raw.to(device), indexing="ij")
+        # grids = torch.meshgrid(x_raw.to(device), t_raw.to(device), indexing="ij")
+        
+        # x = grids[0].flatten().reshape(-1, 1).to(device)
+        # t = grids[1].flatten().reshape(-1, 1).to(device)
 
-        x = grids[0].flatten().reshape(-1, 1).to(device)
-        t = grids[1].flatten().reshape(-1, 1).to(device)
-
+        x = x_raw.flatten().reshape(-1, 1).to(device)
+        t = t_raw.flatten().reshape(-1, 1).to(device)
 
     if general_parameters.uneven_distribution:
         x_init = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = general_parameters.n_points_x, density_range=0.2, device=device)

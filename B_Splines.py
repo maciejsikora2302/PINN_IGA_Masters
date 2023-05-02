@@ -135,6 +135,7 @@ class B_Splines(torch.nn.Module):
       """
 
       if mode == 'NN':
+
          tck = (
             self.knot_vector.to(device_cpu).detach(),
             self.knot_vector.to(device_cpu).detach(),
@@ -144,8 +145,8 @@ class B_Splines(torch.nn.Module):
          )
 
          spline_2d = spi.bisplev(
-            x.to(device_cpu),
-            t.to(device_cpu),
+            x.flatten().cpu().detach().numpy(),
+            t.flatten().cpu().detach().numpy(),
             tck
          )
       

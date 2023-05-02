@@ -15,12 +15,9 @@ knot_vector = parameters.knot_vector
 bs = B_Splines(
     knot_vector=knot_vector,
     degree=3,
-    dims=1
+    dims=2
 )
-x=torch.linspace(0, 1, 5)
-t=torch.linspace(0, 1, 5)
-# x = torch.Tensor([0.03, 0.4, 0.5, 0.7, 0.93])
+x=torch.linspace(0,1,100)
+t=torch.linspace(0,1,100)
 
-print(bs.calculate_BSpline_1D_deriv_dxdx(x, mode='NN'))
-print(bs.calculate_BSpline_1D_deriv_dxdx(x, mode='Adam'))
-# print(bs._B(torch.Tensor([0]), 3, 0, knot_vector))
+print(bs.calculate_BSpline_2D(x, t, mode="NN"))
