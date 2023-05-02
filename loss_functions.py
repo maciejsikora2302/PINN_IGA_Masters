@@ -546,5 +546,5 @@ def compute_loss(
         final_loss += weight_i * initial_loss(model, x, t)
         
     final_loss += weight_b * boundary_loss(model, x, t, dims=dims)
-
+    # print(final_loss)
     return final_loss

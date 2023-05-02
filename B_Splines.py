@@ -153,10 +153,10 @@ class B_Splines(torch.nn.Module):
       elif mode == 'Adam':
          n_coeff_sqrt = int(math.sqrt(self.n_coeff))
          
-         splines_x = self.calculate_BSpline_1D(x, mode=mode, return_bs_stacked=True)
-         splines_t = self.calculate_BSpline_1D(t, mode=mode, return_bs_stacked=True)
+         splines_x = self.calculate_BSpline_1D(x, mode=mode, return_bs_stacked=True).to(device)
+         splines_t = self.calculate_BSpline_1D(t, mode=mode, return_bs_stacked=True).to(device)
 
-         spline_2d = splines_x.T @ self.coefs.reshape(n_coeff_sqrt, n_coeff_sqrt) @ splines_t
+         spline_2d = splines_x.T @ self.coefs.reshape(n_coeff_sqrt, n_coeff_sqrt).to(device) @ splines_t
       
       return torch.Tensor(spline_2d)
 
@@ -236,7 +236,7 @@ class B_Splines(torch.nn.Module):
             [p * (p - 1) * ((B_ip(i) / (u[i + p - 1] - u[i]) - B_ip(i+1) / (u[i + p] - u[i + 1])) / (u[i + p] - u[i]) - (B_ip(i+1)/(u[i+p] - u[i+1]) - B_ip(i+2)/(u[i+p+1] - u[i+2])) / (u[i+p+1] - u[i+1]) ) for i in range(n)]
             )
          
-         return torch.matmul(coefs, basis_functions_dxdx) if not return_bs_stacked else basis_functions_dxdx
+         return torch.matmul(coefs.to(device), basis_functions_dxdx.to(device)) if not return_bs_stacked else basis_functions_dxdx
       
       
    
@@ -265,8 +265,8 @@ class B_Splines(torch.nn.Module):
       
       elif mode == 'Adam':
          
-         basis_functions_dx = self.calculate_BSpline_1D_deriv_dx(x, mode=mode, return_bs_stacked=True)
-         basis_functions_t = self.calculate_BSpline_1D(t, mode=mode, return_bs_stacked=True)
+         basis_functions_dx = self.calculate_BSpline_1D_deriv_dx(x, mode=mode, return_bs_stacked=True).to(device)
+         basis_functions_t = self.calculate_BSpline_1D(t, mode=mode, return_bs_stacked=True).to(device)
       
          coefs_dim_1 = basis_functions_dx.shape[0]
          coefs_dim_2 = basis_functions_t.shape[0]
@@ -295,22 +295,22 @@ class B_Splines(torch.nn.Module):
          )
 
          spline_2d = spi.bisplev(
-            x.to(device_cpu),
-            t.to(device_cpu),
+            x.to(device_cpu).detach().numpy(),
+            t.to(device_cpu).detach().numpy(),
             tck,
             dx=2
          )
       
       elif mode == 'Adam':
 
-         basis_functions_dxdx = self.calculate_BSpline_1D_deriv_dxdx(x, mode=mode, return_bs_stacked=True)
-         basis_functions_t = self.calculate_BSpline_1D(t, mode=mode, return_bs_stacked=True)
+         basis_functions_dxdx = self.calculate_BSpline_1D_deriv_dxdx(x, mode=mode, return_bs_stacked=True).to(device)
+         basis_functions_t = self.calculate_BSpline_1D(t, mode=mode, return_bs_stacked=True).to(device)
 
 
          coefs_dim_1 = basis_functions_dxdx.shape[0]
          coefs_dim_2 = basis_functions_t.shape[0]
 
-         spline_2d = basis_functions_dxdx.T @ self.coefs.reshape(coefs_dim_1, coefs_dim_2) @ basis_functions_t
+         spline_2d = basis_functions_dxdx.T @ self.coefs.reshape(coefs_dim_1, coefs_dim_2).to(device) @ basis_functions_t
 
 
       return torch.Tensor(spline_2d)
@@ -333,22 +333,22 @@ class B_Splines(torch.nn.Module):
          )
 
          spline_2d = spi.bisplev(
-            x.to(device_cpu),
-            t.to(device_cpu),
+            x.to(device_cpu).detach().numpy(),
+            t.to(device_cpu).detach().numpy(),
             tck,
             dy=2
          )
       
       elif mode == 'Adam':
 
-         basis_functions = self.calculate_BSpline_1D(x, mode=mode, return_bs_stacked=True)
-         basis_functions_dtdt = self.calculate_BSpline_1D_deriv_dxdx(t, mode=mode, return_bs_stacked=True)
+         basis_functions = self.calculate_BSpline_1D(x, mode=mode, return_bs_stacked=True).to(device)
+         basis_functions_dtdt = self.calculate_BSpline_1D_deriv_dxdx(t, mode=mode, return_bs_stacked=True).to(device)
 
 
          coefs_dim_1 = basis_functions.shape[0]
          coefs_dim_2 = basis_functions_dtdt.shape[0]
 
-         spline_2d = basis_functions.T @ self.coefs.reshape(coefs_dim_1, coefs_dim_2) @ basis_functions_dtdt
+         spline_2d = basis_functions.T @ self.coefs.reshape(coefs_dim_1, coefs_dim_2).to(device) @ basis_functions_dtdt
 
 
       return torch.Tensor(spline_2d)
@@ -370,21 +370,21 @@ class B_Splines(torch.nn.Module):
          )
 
          spline_2d = spi.bisplev(
-            x.to(device_cpu),
-            t.to(device_cpu),
+            x.to(device_cpu).detach().numpy(),
+            t.to(device_cpu).detach().numpy(),
             tck,
             dy=1
          )
       
       elif mode == 'Adam':
          
-         basis_functions_x = self.calculate_BSpline_1D(x, mode=mode, return_bs_stacked=True)
-         basis_functions_dt = self.calculate_BSpline_1D_deriv_dx(t, mode=mode, return_bs_stacked=True)
+         basis_functions_x = self.calculate_BSpline_1D(x, mode=mode, return_bs_stacked=True).to(device)
+         basis_functions_dt = self.calculate_BSpline_1D_deriv_dx(t, mode=mode, return_bs_stacked=True).to(device)
       
          coefs_dim_1 = basis_functions_x.shape[0]
          coefs_dim_2 = basis_functions_dt.shape[0]
 
-         spline_2d = basis_functions_x.T @ self.coefs.reshape(coefs_dim_1, coefs_dim_2) @ basis_functions_dt
+         spline_2d = basis_functions_x.T @ self.coefs.reshape(coefs_dim_1, coefs_dim_2).to(device) @ basis_functions_dt
 
       return torch.Tensor(spline_2d)
    
