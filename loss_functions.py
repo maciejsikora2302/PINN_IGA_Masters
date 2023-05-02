@@ -360,11 +360,25 @@ def interior_loss_weak_and_strong(
 
 
     if not general_parameters.pinn_learns_coeff:
+
+        v =         test_function.calculate_BSpline_1D(x, mode=mode).to(device)          if dims == 1 else test_function.calculate_BSpline_2D(x, t, mode=mode).to(device)
+        v_deriv_x = test_function.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device) if dims == 1 else test_function.calculate_BSpline_2D_deriv_dx(x, t, mode=mode).to(device)
+
         if dims == 1:
 
             dfdx_model = dfdx(model, x, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)
             dfdxdx_model = dfdx(model, x, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dxdx(x, mode=mode).to(device)
             model_value_at_first_point = f(model, x[0].reshape(-1, 1))
+            v_at_first_point = test_function.calculate_BSpline_1D(x[0].reshape(-1, 1), mode=mode)
+
+
+            strong = _get_loss_strong(
+                eps_interior = eps_interior,
+                dfdxdx_model = dfdxdx_model,
+                dfdx_model = dfdx_model,
+                v = v,
+                dims=dims
+            )
 
             weak = _get_loss_weak(
                 eps_interior = eps_interior,
@@ -372,18 +386,12 @@ def interior_loss_weak_and_strong(
                 v_deriv_x = v_deriv_x,
                 v_at_first_point = v_at_first_point,
                 dfdx_model = dfdx_model,
-                model_value_at_first_point = model_value_at_first_point
-            )
-            
-            strong = _get_loss_strong(
-                eps_interior = eps_interior,
-                dfdxdx_model = dfdxdx_model,
-                dfdx_model = dfdx_model,
-                v = v
+                model_value_at_first_point = model_value_at_first_point,
+                dims = dims
             )
 
-            del dfdx_model, dfdxdx_model
-
+            loss = weak.pow(2) + strong.pow(2)
+            loss = loss.mean()
 
 
         elif dims == 2:
@@ -391,22 +399,56 @@ def interior_loss_weak_and_strong(
             n_x = x.shape[0]
             n_t = t.shape[0]
 
-            raise Exception("Implement 2D interior loss weak and strong")
-            
-            dfdt_model = dfdt(model, x, t, order=1).to(device_cpu)
-            dfdx_model = dfdx(model, x, t, order=1).to(device_cpu)
-            # Calculate the loss using the variables above
-            loss = torch.trapezoid(
-                torch.trapezoid(
-                    (dfdt_model * v
-                    + eps_interior*dfdx_model * v_deriv_x
-                    + eps_interior*dfdt_model * v_deriv_t).pow(2),
-                    dx=1/n_x),
-                dx=1/n_t)
-        
-        loss = weak.pow(2) + strong.pow(2)
-        loss = loss.mean()
+            dfdtdt_model = dfdt(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dtdt(x, t, mode=mode).to(device)
+            dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
+            dfdt_model = dfdt(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
+            v_deriv_t = test_function.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
+            dfdt_model = dfdt(model, x, t, order=1).to(device)
+            dfdx_model = dfdx(model, x, t, order=1).to(device)
+            sin_pi_x = initial_condition(x).to(device)
+            cos_pi_x = torch.cos(torch.pi * x).to(device)
 
+            strong = _get_loss_strong(
+                eps_interior = eps_interior,
+                dfdxdx_model = dfdxdx_model,
+                dfdtdt_model = dfdtdt_model,
+                dfdt_model = dfdt_model,
+                v = v,
+                dims = dims
+            )
+
+            weak = _get_loss_weak(
+                eps_interior = eps_interior,
+                v = v,
+                v_deriv_x = v_deriv_x,
+                v_deriv_t = v_deriv_t,
+                dfdx_model = dfdx_model,
+                dfdt_model = dfdt_model,
+                sin_pi_x = sin_pi_x,
+                cos_pi_x = cos_pi_x,
+                dims = dims
+            )
+
+            loss_weak = torch.trapezoid(
+                torch.trapezoid(
+                    weak,
+                    dx=1/n_t
+                ),
+                dx=1/n_x
+            )
+            loss_weak = loss_weak.pow(2)
+            
+            strong = strong.pow(2)
+
+            loss_strong = torch.trapezoid(
+                torch.trapezoid(
+                    strong,
+                    dx = 1/n_x
+                ),
+                dx = 1/n_t
+            )
+
+            loss = loss_weak + loss_strong
 
         return loss
 
