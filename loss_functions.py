@@ -344,7 +344,7 @@ def interior_loss_weak_and_strong(
     ):
 
     assert dims in [1, 2]
-    assert isinstance(model, (PINN, B_Splines, List[PINN]))
+    # assert isinstance(model, (PINN, B_Splines, List[PINN]))
     assert isinstance(test_function, B_Splines) or test_function is None
     assert x is not None
 
@@ -457,12 +457,14 @@ def interior_loss_weak_and_strong(
         models = model
 
         if dims == 1:
+            
+
 
             # splines have to return matrix function vector for all inputs, so we need to return matrix with dimension
             # input_dim x number_of_coeffs
-            sp_value = test_function._get_basis_functions_1D(x, order=0)
-            d_sp_dx = test_function._get_basis_functions_1D(x, order=1)
-            d2_sp_dx2 = test_function._get_basis_functions_1D(x, order=2)
+            sp_value = test_function.calculate_BSpline_1D(x, mode, return_bs_stacked=True)
+            d_sp_dx = test_function.calculate_BSpline_1D_deriv_dx(x, mode, return_bs_stacked=True)
+            d2_sp_dx2 = test_function.calculate_BSpline_1D_deriv_dxdx(x, mode, return_bs_stacked=True)
 
             n_eps = len(general_parameters.epsilon_list)
             n_coeffs = general_parameters.n_coeff
@@ -480,7 +482,7 @@ def interior_loss_weak_and_strong(
                     f(pinn, general_parameters.epsilon_list).flatten().unsqueeze(1)
                 ), dim=1)
 
-            solution = pinn_value @  sp_value
+            solution = pinn_value @ sp_value
             d_solution_dx = pinn_value @ d_sp_dx 
             d2_solution_dx2 = pinn_value @ d2_sp_dx2
             
@@ -607,7 +609,7 @@ def compute_loss(
     """
 
     assert dims in [1, 2], "dims must be 1 or 2"
-    assert isinstance(model, (PINN, B_Splines)), "model must be PINN or B_Splines"
+    # assert isinstance(model, (PINN, B_Splines, list)), "model must be PINN, B_Splines or list of PINNs"
 
     final_loss = \
         weight_f * interior_loss_function(model, x, t, dims=dims, test_function=test_function)
