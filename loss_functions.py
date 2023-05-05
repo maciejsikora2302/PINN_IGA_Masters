@@ -201,14 +201,13 @@ def _get_loss_strong(**kwargs):
     v = kwargs["v"]
     dfdx_model = kwargs["dfdx_model"]
     dfdxdx_model = kwargs["dfdxdx_model"]
-    dims = dims["dims"]
 
-    if dims == 1:
+    if general_parameters.one_dimension == 1:
         strong = (
                 - eps_interior * dfdxdx_model
                 + dfdx_model
                 ) * v
-    elif dims == 2:
+    else:
 
         dfdt_model = kwargs["dfdt_model"]
         dfdtdt_model = kwargs["dfdtdt_model"]
