@@ -87,7 +87,7 @@ def compute_losses_and_plot_solution(
 
 
     if dims == 1:
-        if general_parameters.pinn_is_solution:
+        if general_parameters.pinn_is_solution or general_parameters.splines:
             pinn_values = f(pinn_trained.to(device), x.reshape(-1, 1)).cpu().flatten().detach()
         elif general_parameters.pinn_learns_coeff:
             

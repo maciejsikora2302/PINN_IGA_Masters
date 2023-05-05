@@ -10,7 +10,6 @@ import tqdm
 import os
 
 
-
 def train_model(
     nn_approximator: Union[PINN,B_Splines,List[PINN]],
     loss_fn: Callable,
@@ -21,7 +20,7 @@ def train_model(
 ) -> Tuple[PINN, np.ndarray]:
     
 
-    if isinstance(nn_approximator, PINN):
+    if isinstance(nn_approximator, (PINN, B_Splines)):
         parameters = [{'params': nn_approximator.parameters()}]
     if isinstance(nn_approximator, list):
         parameters = [
@@ -52,6 +51,9 @@ def train_model(
             loss = loss.detach().cpu().numpy()
             loss_values.append(loss)
             
+            if (epoch + 1) % 100 == 0:
+                print(f"Epoch: {epoch + 1} - Loss: {float(loss):>7f}")
+
             if loss_values[-1] < lowest_current_loss:
                 lowest_current_loss = loss_values[-1]
                 if general_parameters.save:
