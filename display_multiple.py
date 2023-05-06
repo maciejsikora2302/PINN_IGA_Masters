@@ -85,6 +85,11 @@ def add_to_loss_plot(ax, loss_values, label, other_parameters):
     ax.plot(loss_values, label=label)
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Loss")
+    # upper_lim = max(loss_values)+1
+    # lower_lim = min(loss_values)-1
+    # if lower_lim < -10:
+    #     lower_lim = -10
+    # ax.set_ylim(lower_lim, upper_lim)
     ax.legend()
     ax.grid()
     title = f"\
@@ -97,7 +102,7 @@ def add_to_solution_plot(ax, data, values, label, other_parameters,time):
     ax.plot(data, values, label=label)
     ax.set_xlabel("X")
     ax.set_ylabel("Values")
-    ax.set_ylim(0, 1)
+    ax.set_ylim(-0.1, 1.2)
     ax.legend()
     ax.grid()
     title = f"\
@@ -124,11 +129,13 @@ if __name__ == "__main__":
     if any(map(lambda x: not os.path.exists(x), paths)):
         raise ValueError("All paths must exist")
     functions = get_all_used_functions(paths[0])
+    fig_loss, axs_loss = create_3x3_grid()
+    fig_solution, axs_solution = create_3x3_grid()
+
     for function in functions:
-        fig_loss, axs_loss = create_3x3_grid()
-        fig_solution, axs_solution = create_3x3_grid()
-        fig_loss.suptitle(f"Loss values for {function} in log10 scale")
-        fig_solution.suptitle(f"Solution profile {function} normalized to [0,1]")
+        # fig_loss.suptitle(f"Loss values for {function} in log10 scale")
+        fig_loss.suptitle(f"Loss values in log10 scale")
+        fig_solution.suptitle(f"Solution profile normalized to [0,1]")
 
         if len(paths) == 6:
             # 3x2 grid by removing last column

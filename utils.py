@@ -142,6 +142,7 @@ def compute_losses_and_plot_solution(
             "layers": general_parameters.layers,
             "neurons": general_parameters.neurons_per_layer,
             "spline_degree": general_parameters.spline_degree,
+            "uneven_distribution": general_parameters.uneven_distribution,
         }
         file.write(json.dumps(dict_to_save))
 

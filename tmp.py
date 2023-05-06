@@ -46,7 +46,7 @@ def get_unequaly_distribution_points(eps: float = 0.1, density_range: float = .2
     range_dr_ep = eps_prim - (density_range * eps)
 
     # Initializing the points as a NumPy array
-    points_np = np.zeros(n, dtype=np.float32)
+    points_np = np.zeros(n)
 
     # Setting the first two points
     points_np[0] = 0.0

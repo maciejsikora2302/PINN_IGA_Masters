@@ -91,6 +91,7 @@ def get_model():
     return pinn, spline, pinn_list
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch.set_default_dtype(torch.float64)
 logger.info(f"Device: {device}")
 
 # parse arguments

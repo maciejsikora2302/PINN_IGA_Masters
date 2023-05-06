@@ -20,26 +20,26 @@ def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: b
 
     linspace = general_parameters.knot_vector
 
-    # if general_parameters.pinn_is_solution:
-    #     x = torch.rand_like(x)
-    #     #sort x
-    #     x = torch.sort(x, dim=0)[0]
-    #     #set first element to 0 and last to 1
-    #     x[0] = 0
-    #     x[-1] = 1
-    #     x = x.unique()
-    #     x.requires_grad_(True)
+    if general_parameters.pinn_is_solution and not general_parameters.uneven_distribution:
+        x = torch.rand_like(x)
+        #sort x
+        x = torch.sort(x, dim=0)[0]
+        #set first element to 0 and last to 1
+        x[0] = 0
+        x[-1] = 1
+        x = x.unique()
+        x.requires_grad_(True)
 
-    #     if dims == 2:
-    #         t = torch.rand_like(t)
+        if dims == 2:
+            t = torch.rand_like(t)
 
-    #         # sort t
-    #         t = torch.sort(t, dim=0)[0]
+            # sort t
+            t = torch.sort(t, dim=0)[0]
 
-    #         t[0] = 0
-    #         t[-1] = 1
-    #         t = t.unique()
-    #         t.requires_grad_(True)
+            t[0] = 0
+            t[-1] = 1
+            t = t.unique()
+            t.requires_grad_(True)
 
     
     test_function = B_Splines(linspace, degree, dims=dims) if generate_test_functions else None
