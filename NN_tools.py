@@ -51,8 +51,8 @@ def train_model(
             loss = loss.detach().cpu().numpy()
             loss_values.append(loss)
             
-            if (epoch + 1) % 100 == 0:
-                print(f"Epoch: {epoch + 1} - Loss: {float(loss):>7f}")
+            # if (epoch + 1) % 100 == 0:
+            #     print(f"Epoch: {epoch + 1} - Loss: {float(loss):>7f}")
 
             if loss_values[-1] < lowest_current_loss:
                 lowest_current_loss = loss_values[-1]
