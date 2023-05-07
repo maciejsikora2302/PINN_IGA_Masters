@@ -70,6 +70,62 @@ def _get_loss_basic(**kwargs):
     return basic
 
 
+def _get_loss_weak(**kwargs):
+    eps_interior = kwargs["eps_interior"]
+    v = kwargs["v"]
+    v_deriv_x = kwargs["v_deriv_x"]
+    dims = kwargs["dims"]
+    dfdx_model = kwargs["dfdx_model"]
+
+    if dims == 1:
+        v_at_first_point = kwargs["v_at_first_point"]
+        model_value_at_first_point = kwargs["model_value_at_first_point"]
+
+        weak = (dfdx_model * v \
+                + eps_interior * dfdx_model * v_deriv_x).mean() \
+                + model_value_at_first_point * v_at_first_point \
+                - v_at_first_point
+    elif dims == 2:
+        dfdt_model = kwargs["dfdt_model"]
+        sin_pi_x = kwargs["sin_pi_x"]
+        cos_pi_x = kwargs["cos_pi_x"]
+        v_deriv_t = kwargs["v_deriv_t"]
+        pi = torch.pi
+
+        b_uv = (eps_interior * (dfdx_model * v_deriv_x + dfdt_model * v_deriv_t) \
+                + dfdt_model * v)
+        
+        I_v = (eps_interior * (sin_pi_x * dfdt_model - pi * cos_pi_x * dfdx_model) \
+               + sin_pi_x * v)
+        
+        weak = b_uv - I_v
+        
+    return weak
+
+def _get_loss_strong(**kwargs):
+    eps_interior = kwargs["eps_interior"]
+    v = kwargs["v"]
+    dfdxdx_model = kwargs["dfdxdx_model"]
+
+    if general_parameters.one_dimension == 1:
+        dfdx_model = kwargs["dfdx_model"]
+
+        strong = (
+                - eps_interior * dfdxdx_model
+                + dfdx_model
+                ) * v
+    else:
+
+        dfdt_model = kwargs["dfdt_model"]
+        dfdtdt_model = kwargs["dfdtdt_model"]
+
+        strong = (
+                - eps_interior * (dfdxdx_model + dfdtdt_model)
+                + dfdt_model
+                ) * v
+        
+    return strong
+
 def interior_loss_basic(
         model,
         x: torch.Tensor, 
@@ -130,38 +186,6 @@ def interior_loss_basic(
         loss = torch.trapezoid(torch.trapezoid(loss, dx=1/n_t), dx=1/n_x)
 
     return loss
-
-def _get_loss_weak(**kwargs):
-    eps_interior = kwargs["eps_interior"]
-    v = kwargs["v"]
-    v_deriv_x = kwargs["v_deriv_x"]
-    dims = kwargs["dims"]
-    dfdx_model = kwargs["dfdx_model"]
-
-    if dims == 1:
-        v_at_first_point = kwargs["v_at_first_point"]
-        model_value_at_first_point = kwargs["model_value_at_first_point"]
-
-        weak = (dfdx_model * v \
-                + eps_interior * dfdx_model * v_deriv_x).mean() \
-                + model_value_at_first_point * v_at_first_point \
-                - v_at_first_point
-    elif dims == 2:
-        dfdt_model = kwargs["dfdt_model"]
-        sin_pi_x = kwargs["sin_pi_x"]
-        cos_pi_x = kwargs["cos_pi_x"]
-        v_deriv_t = kwargs["v_deriv_t"]
-        pi = torch.pi
-
-        b_uv = (eps_interior * (dfdx_model * v_deriv_x + dfdt_model * v_deriv_t) \
-                + dfdt_model * v)
-        
-        I_v = (eps_interior * (sin_pi_x * dfdt_model - pi * cos_pi_x * dfdx_model) \
-               + sin_pi_x * v)
-        
-        weak = b_uv - I_v
-        
-    return weak
 
 def interior_loss_weak(
         model,
@@ -243,29 +267,7 @@ def interior_loss_weak(
     return loss
 
 
-def _get_loss_strong(**kwargs):
-    eps_interior = kwargs["eps_interior"]
-    v = kwargs["v"]
-    dfdxdx_model = kwargs["dfdxdx_model"]
 
-    if general_parameters.one_dimension == 1:
-        dfdx_model = kwargs["dfdx_model"]
-
-        strong = (
-                - eps_interior * dfdxdx_model
-                + dfdx_model
-                ) * v
-    else:
-
-        dfdt_model = kwargs["dfdt_model"]
-        dfdtdt_model = kwargs["dfdtdt_model"]
-
-        strong = (
-                - eps_interior * (dfdxdx_model + dfdtdt_model)
-                + dfdt_model
-                ) * v
-        
-    return strong
 
 def interior_loss_strong(
         model,

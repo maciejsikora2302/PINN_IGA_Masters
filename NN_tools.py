@@ -30,6 +30,7 @@ def train_model(
     if test_function is not None:
         parameters.append({'params': test_function.parameters()})
             
+    path = f"{OUT_DATA_FOLDER}/{loss_fn_name}"
 
     optimizer = torch.optim.Adam(parameters, lr=learning_rate)
             
@@ -57,7 +58,6 @@ def train_model(
             if loss_values[-1] < lowest_current_loss:
                 lowest_current_loss = loss_values[-1]
                 if general_parameters.save:
-                    path = f"{OUT_DATA_FOLDER}/{loss_fn_name}"
                     if not os.path.exists(path):
                         os.makedirs(path)
                     SAVE_PATH = f"{path}/model.pt"
@@ -71,6 +71,8 @@ def train_model(
             logger.info(f"Training interrupted at epoch {Color.RED}{epoch + 1}{Color.RESET}")
             logger.exception(f"Exception occurred: {e}")
             break
+    if general_parameters.save:
+        torch.save(nn_approximator.state_dict(), f"{path}/model_final.pt")
     # print(torch.cuda.memory_summary())
 
     # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")

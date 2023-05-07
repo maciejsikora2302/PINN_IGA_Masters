@@ -30,8 +30,7 @@ class PINN(nn.Module):
 
         self.act = act
 
-    def forward(self, x: torch.Tensor, t: torch.Tensor):
-        
+    def forward(self, x: torch.Tensor, t: torch.Tensor = None):
         x_stack = torch.cat([x], dim=1) if self.dims == 1 else torch.cartesian_prod(torch.flatten(x), torch.flatten(t))
 
         out = self.act(self.layer_in(x_stack))
@@ -49,7 +48,6 @@ class PINN(nn.Module):
         json_repr = {
             "num_hidden": self.num_hidden,
             "dim_hidden": self.dim_hidden,
-            
             "act": str(self.act),
             "pinning": self.pinning,
             "dims": self.dims,
