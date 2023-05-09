@@ -18,3 +18,8 @@ INFO -- ========================================================================
 INFO -- 
 INFO -- Creating [92m1D[0m BSpline
 INFO -- Training model for [93m4000[0m epochs using [93mloss_fn_basic[0m loss function
+INFO -- Training took [92m1809.01[0m seconds
+INFO -- Creating plots and saving to files. Dimensions: 1
+INFO -- Training model for [93m4000[0m epochs using [93mloss_fn_weak[0m loss function
+INFO -- Training took [92m2819.22[0m seconds
+INFO -- Creating plots and saving to files. Dimensions: 1
