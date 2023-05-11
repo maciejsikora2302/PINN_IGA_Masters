@@ -239,9 +239,8 @@ if __name__ == "__main__":
     loss_functions = [
         (loss_fn_basic, 'loss_fn_basic'),
         (loss_fn_weak, 'loss_fn_weak'),
-        # (loss_fn_strong, 'loss_fn_strong'),
-        # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'),
-        # (loss_fn_colocation, 'loss_fn_colocation')
+        (loss_fn_strong, 'loss_fn_strong'),
+        (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong')
     ]
 
     for loss_fn, name in loss_functions:
