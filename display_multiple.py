@@ -181,6 +181,13 @@ if __name__ == "__main__":
     fig_loss_raw, axs_loss_raw = create_3x3_grid()
     fig_solution, axs_solution = create_3x3_grid()
 
+    if len(paths) == 6:
+        # 3x2 grid by removing last column
+        axs_loss = axs_loss[:, :-1]
+        axs_solution = axs_solution[:, :-1]
+        axs_loss_raw = axs_loss_raw[:, :-1]
+
+    axs_loss, axs_loss_raw, axs_solution = axs_loss.flatten(), axs_loss_raw.flatten(), axs_solution.flatten()
 
     for function in functions:
         # fig_loss.suptitle(f"Loss values for {function} in log10 scale")
@@ -188,22 +195,25 @@ if __name__ == "__main__":
         fig_loss_raw.suptitle(f"Loss values in log10 scale")
         fig_solution.suptitle(f"Solution profile normalized to [0,1]")
 
-        if len(paths) == 6:
-            # 3x2 grid by removing last column
-            axs_loss = axs_loss[:, :-1]
-            axs_solution = axs_solution[:, :-1]
 
+        print(
+            len(paths), 
+            len(axs_loss),
+            len(axs_loss_raw), 
+            len(axs_solution)
+            )
 
-        for path, ax_loss, ax_loss_raw, ax_solution in zip(paths, axs_loss.flatten(), axs_loss_raw.flatten(), axs_solution.flatten()):
+        for path, ax_loss, ax_loss_raw, ax_solution in zip(paths, axs_loss, axs_loss_raw, axs_solution):
             other_parameters = load_other_parameters(os.path.join(path, function))
-            model = load_model(os.path.join(path, function))
+            # model = load_model(os.path.join(path, function))
             data = load_data(os.path.join(path, function, "x.txt"))
             # N = other_parameters['n_points_x']
             # x = get_unequaly_distribution_points(eps=other_parameters['eps_interior'], n = N, device=torch.device('cpu')) if ('uneven_distribution' in other_parameters.keys() and other_parameters['uneven_distribution']) else torch.linspace(0, 1, N).reshape(-1, 1)
-            values = get_values_from_model_1d(model, data)
+            # values = get_values_from_model_1d(model, data)
             # print(values)
             # exit()
             pinn_values = load_values(os.path.join(path, function, "pinn_values.txt"))
+            # print(pinn_values)
             # pinn_values = values.detach().numpy()
             loss_values = load_values(os.path.join(path, function, "loss_values.txt"))
             time = load_time(os.path.join(path, function))

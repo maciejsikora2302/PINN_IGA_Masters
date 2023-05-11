@@ -30,12 +30,16 @@ class PINN(nn.Module):
 
         self.act = act
 
+
     def forward(self, x: torch.Tensor, t: torch.Tensor = None):
         x_stack = torch.cat([x], dim=1) if self.dims == 1 else torch.cartesian_prod(torch.flatten(x), torch.flatten(t))
 
         out = self.act(self.layer_in(x_stack))
         for layer in self.middle_layers:
             out = self.act(layer(out))
+
+
+
         logits = self.layer_out(out)
 
         if self.pinning:
