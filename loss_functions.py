@@ -87,18 +87,13 @@ def _get_loss_weak(**kwargs):
                 - v_at_first_point
     elif dims == 2:
         dfdt_model = kwargs["dfdt_model"]
-        sin_pi_x = kwargs["sin_pi_x"]
-        cos_pi_x = kwargs["cos_pi_x"]
         v_deriv_t = kwargs["v_deriv_t"]
-        pi = torch.pi
 
         b_uv = (eps_interior * (dfdx_model * v_deriv_x + dfdt_model * v_deriv_t) \
                 + dfdt_model * v)
         
-        I_v = (eps_interior * (sin_pi_x * dfdt_model - pi * cos_pi_x * dfdx_model) \
-               + sin_pi_x * v)
         
-        weak = b_uv - I_v
+        weak = b_uv
         
     return weak
 
@@ -240,8 +235,6 @@ def interior_loss_weak(
         v_deriv_t = test_function.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
         dfdt_model = dfdt(model, x, t, order=1).to(device)
         dfdx_model = dfdx(model, x, t, order=1).to(device)
-        sin_pi_x = initial_condition(x).to(device)
-        cos_pi_x = torch.cos(torch.pi * x).to(device)
 
         weak = _get_loss_weak(
             eps_interior = eps_interior,
@@ -250,8 +243,6 @@ def interior_loss_weak(
             v_deriv_t = v_deriv_t,
             dfdx_model = dfdx_model,
             dfdt_model = dfdt_model,
-            sin_pi_x = sin_pi_x,
-            cos_pi_x = cos_pi_x,
             dims = dims
         )
 
@@ -406,9 +397,7 @@ def interior_loss_weak_and_strong(
             v_deriv_t = test_function.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
             dfdt_model = dfdt(model, x, t, order=1).to(device)
             dfdx_model = dfdx(model, x, t, order=1).to(device)
-            sin_pi_x = initial_condition(x).to(device)
-            cos_pi_x = torch.cos(torch.pi * x).to(device)
-
+    
             strong = _get_loss_strong(
                 eps_interior = eps_interior,
                 dfdxdx_model = dfdxdx_model,
@@ -425,8 +414,6 @@ def interior_loss_weak_and_strong(
                 v_deriv_t = v_deriv_t,
                 dfdx_model = dfdx_model,
                 dfdt_model = dfdt_model,
-                sin_pi_x = sin_pi_x,
-                cos_pi_x = cos_pi_x,
                 dims = dims
             )
 
