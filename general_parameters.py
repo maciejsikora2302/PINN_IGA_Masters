@@ -2,6 +2,9 @@ import logging
 import datetime
 import os
 import torch
+from additional_utils import get_unequaly_distribution_points
+from B_Splines import B_Splines
+LOG_LEVEL = logging.DEBUG
 LOG_LEVEL = logging.INFO
 
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -21,7 +24,7 @@ formatter = logging.Formatter('%(levelname)s -- %(message)s')
 file_handler = logging.FileHandler(f'{OUT_DATA_FOLDER}/text_log_{TIMESTAMP}.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
-logging.basicConfig(level=LOG_LEVEL, format='%(levelname)s -- %(message)s')
+logging.basicConfig(format='%(levelname)s -- %(message)s')
 
 class Color:
     RED = '\033[91m'
@@ -36,39 +39,47 @@ class Color:
 
 
 class GeneralParameters:
-    def __init__(self, \
-            length = None, \
-            total_time = None, \
-            n_points_x = None, \
-            n_points_t = None, \
-            n_points_init = None, \
-            weight_interior = None, \
-            weight_initial = None, \
-            weight_boundary = None, \
-            layers = None, \
-            neurons_per_layer = None, \
-            epochs = None, \
-            learning_rate = None, \
-            eps_interior = None, \
-            spline_degree = None, \
-            device = None):
-        
-        self.length = 1. if length is None else length
-        self.total_time = 1. if total_time is None else total_time
-        self.n_points_x = 150 if n_points_x is None else n_points_x
-        self.n_points_t = 150 if n_points_t is None else n_points_t
-        self.n_points_init = 300 if n_points_init is None else n_points_init
-        self.weight_interior = 0.5 if weight_interior is None else weight_interior
-        self.weight_initial = 150.0 if weight_initial is None else weight_initial
-        self.weight_boundary = 1.0 if weight_boundary is None else weight_boundary
-        self.layers = 4 if layers is None else layers
-        self.neurons_per_layer = 20 if neurons_per_layer is None else neurons_per_layer
-        self.epochs = 50_000 if epochs is None else epochs
-        self.learning_rate = 0.0025 if learning_rate is None else learning_rate
-        self.eps_interior = 1e-3 if eps_interior is None else eps_interior
-        self.spline_degree = 3 if spline_degree is None else spline_degree
-        self.knot_vector_length = int(20 / self.eps_interior)
-        self.coefs_vector_length = int(self.knot_vector_length - self.spline_degree - 1)
-        self.knot_vector = torch.ones(self.knot_vector_length)
+    def __init__(self, args):
+        if args is None:
+            return
+        self.length = args.length
+        self.total_time = args.total_time
+        self.n_points_x = args.n_points_x
+        self.n_points_t = args.n_points_t
+        self.n_points_init = args.n_points_init
+        self.weight_interior = args.weight_interior
+        self.weight_initial = args.weight_initial
+        self.weight_boundary = args.weight_boundary
+        self.layers = args.layers
+        self.neurons_per_layer = args.neurons_per_layer
+        self.epochs = args.epochs
+        self.learning_rate = args.learning_rate
+        self.eps_interior = args.eps_interior
+        self.spline_degree = args.spline_degree
+        self.save = args.save
+        self.one_dimension = args.one_dimension
+        self.uneven_distribution = args.uneven_distribution
+        self.device = args.device
+        self.splines = args.splines
+        self.pinn_is_solution = args.pinn_is_solution
+        self.pinn_learns_coeff = args.pinn_learns_coeff
+        self.optimize_test_function = args.optimize_test_function
+        self.epsilon_list = args.epsilon_list
+        self.test_function = None
 
-general_parameters = GeneralParameters()
+    def precalculate(self):
+
+        if general_parameters.pinn_is_solution or general_parameters.splines:
+            self.knot_vector = torch.linspace(0, 1, self.n_points_x)
+            self.knot_vector = torch.cat((torch.zeros(self.spline_degree-1), self.knot_vector, torch.ones(self.spline_degree-1)))
+            self.n_coeff = len(self.knot_vector) - self.spline_degree - 1
+
+        if general_parameters.optimize_test_function:
+            self.test_function = B_Splines(
+                    general_parameters.knot_vector,
+                    general_parameters.spline_degree,
+                    dims=1 if general_parameters.one_dimension else 2
+                )
+
+            
+general_parameters = GeneralParameters(None)

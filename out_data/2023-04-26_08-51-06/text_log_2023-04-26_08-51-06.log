@@ -1,0 +1,41 @@
+INFO -- Device: cuda
+INFO -- [92mOne dimentional problem[0m
+INFO -- 
+INFO -- ================================================================================
+INFO -- Learning parameters
+INFO -- Length:                                           [92m1.0[0m
+INFO -- Total time:                                       [92m1.0[0m
+INFO -- Number of points in x:                            [92m100[0m
+INFO -- Number of points in initial condition:            [92m300[0m
+INFO -- Weight for interior loss:                         [92m1.0[0m
+INFO -- Weight for initial condition loss:                [92m0.0[0m
+INFO -- Weight for boundary loss:                         [92m1.0[0m
+INFO -- Layers:                                           [92m4[0m
+INFO -- Neurons per layer:                                [92m20[0m
+INFO -- Epochs:                                           [92m5000[0m
+INFO -- Learning rate:                                    [92m0.00125[0m
+INFO -- ================================================================================
+INFO -- 
+INFO -- Creating [92m1D[0m BSpline
+INFO -- Creating PINN with [92m4[0m layers and [92m20[0m neurons per layer
+INFO -- Training PINN for [93m5000[0m epochs using [93mloss_fn_strong[0m loss function
+INFO -- Training interrupted at epoch [91m1[0m
+ERROR -- Exception occurred: Can't call numpy() on Tensor that requires grad. Use tensor.detach().numpy() instead.
+Traceback (most recent call last):
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\NN_tools.py", line 45, in train_model
+    loss: torch.Tensor = loss_fn(nn_approximator)
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\loss_functions.py", line 424, in compute_loss
+    weight_f * interior_loss_function(model, x, t, dims=dims, test_function=test_function)
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\loss_functions.py", line 158, in interior_loss_strong
+    v = test_function.calculate_BSpline_1D(x, mode=mode).to(device)
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\B_Splines.py", line 116, in calculate_BSpline_1D
+    return torch.Tensor(spi.splev(x.to(device_cpu).detach().numpy(), tck, der=0)).to(device)
+  File "C:\Users\macie\AppData\Local\Programs\Python\Python310\lib\site-packages\scipy\interpolate\_fitpack_py.py", line 371, in splev
+    return _impl.splev(x, tck, der, ext)
+  File "C:\Users\macie\AppData\Local\Programs\Python\Python310\lib\site-packages\scipy\interpolate\_fitpack_impl.py", line 591, in splev
+    y, ier = _fitpack._spl_(x, der, t, c, k, ext)
+  File "C:\Users\macie\AppData\Local\Programs\Python\Python310\lib\site-packages\torch\_tensor.py", line 958, in __array__
+    return self.numpy().astype(dtype, copy=False)
+RuntimeError: Can't call numpy() on Tensor that requires grad. Use tensor.detach().numpy() instead.
+INFO -- Training took [92m0.98[0m seconds
+INFO -- Creating plots and saving to files. Dimensions: 1
