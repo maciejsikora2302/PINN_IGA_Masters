@@ -107,7 +107,6 @@ def compute_losses_and_plot_solution(
     else:
 
         pinn_values = f(pinn_trained.to(device), x.reshape(-1, 1), t.reshape(-1,1))
-        pinn_values = pinn_values.reshape(N_POINTS_X, N_POINTS_T)
 
 
 
@@ -118,12 +117,12 @@ def compute_losses_and_plot_solution(
 
     #save pinn values to file
     torch.save(pinn_values, f"{path}/pinn_values.pt")
-    try:
-        with open(f"{path}/pinn_values.txt", "w") as pinn_values_file:
-            for pinn_value in pinn_values:
-                pinn_values_file.write(f"{pinn_value:.5f},")
-    except:
-        pass
+    # try:
+    with open(f"{path}/pinn_values.txt", "w") as pinn_values_file:
+        for pinn_value in pinn_values:
+            pinn_values_file.write(f"{pinn_value.cpu().detach().numpy()},")
+    # except:
+    #     pass
 
     with open(f"{path}/model_parameters.txt", "w") as file:
         file.write(str(pinn_trained))
@@ -184,6 +183,7 @@ def compute_losses_and_plot_solution(
 
     if dims == 2:
         X, T = np.meshgrid(x.cpu(), t.cpu())
+        pinn_values = pinn_values.reshape(N_POINTS_X, N_POINTS_T)
 
         fig = plt.figure(figsize=(14, 10), dpi=100)
         ax = fig.add_subplot(111, projection='3d')
