@@ -1,4 +1,4 @@
-$epochs = 40000
+$epochs = 2000
 $layers = 4
 $neurons_per_layer = 20
 $learning_rate = 0.00125
@@ -29,6 +29,18 @@ foreach ($eps_interior in $eps_interior_values) {
         #     --pinn_is_solution ```
         #     --save" | Out-String
         # exit 0
+        # python main_solution.py `
+        #     --n_points_x $n_points_x `
+        #     --n_points_t $n_points_x `
+        #     --epochs $epochs `
+        #     --eps_interior $eps_interior `
+        #     --weight_interior $weight_interior `
+        #     --weight_boundary $weight_boundary `
+        #     --weight_initial $weight_initial `
+        #     --learning_rate $learning_rate `
+        #     --spline_degree $spline_degree `
+        #     --splines `
+        #     --save
         python main_solution.py `
             --n_points_x $n_points_x `
             --n_points_t $n_points_x `
@@ -42,6 +54,7 @@ foreach ($eps_interior in $eps_interior_values) {
             --learning_rate $learning_rate `
             --spline_degree $spline_degree `
             --pinn_is_solution `
+            --uneven_distribution `
             --save
             # --optimize_test_function `
     }

@@ -143,8 +143,12 @@ if __name__ == "__main__":
 
 
     if general_parameters.uneven_distribution:
-        x_raw = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = general_parameters.n_points_x, density_range=0.2, device=device)
-        x_raw = x_raw.requires_grad_(True)
+        if general_parameters.one_dimension:
+            x_raw = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = general_parameters.n_points_x, density_range=0.2, device=device)
+            x_raw = x_raw.requires_grad_(True)
+        else:
+            t_raw = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = general_parameters.n_points_x, density_range=0.2, device=device)
+            t_raw = t_raw.requires_grad_(True)
     else:
         x_raw = torch.linspace(x_domain[0], x_domain[1], steps=general_parameters.n_points_x, requires_grad=True)
 
@@ -159,7 +163,8 @@ if __name__ == "__main__":
         t_domain = [0.0, 1.0]
 
         # x_raw = torch.linspace(x_domain[0], x_domain[1], steps=general_parameters.n_points_x, requires_grad=True)
-        t_raw = torch.linspace(t_domain[0], t_domain[1], steps=general_parameters.n_points_t, requires_grad=True, device=device)
+        if not general_parameters.uneven_distribution:
+            t_raw = torch.linspace(t_domain[0], t_domain[1], steps=general_parameters.n_points_t, requires_grad=True, device=device)
         # grids = torch.meshgrid(x_raw.to(device), t_raw.to(device), indexing="ij")
         
         # x = grids[0].flatten().reshape(-1, 1).to(device)

@@ -14,37 +14,8 @@ class B_Splines(torch.nn.Module):
       self.degree = degree
       self.n_coeff = len(self.knot_vector) - self.degree - 1 if dims == 1 else (len(self.knot_vector) - self.degree - 1)**2
       self.coefs = torch.nn.Parameter(torch.rand(self.n_coeff) if coefs is None else coefs)
-      # self.coefs = torch.nn.Parameter(torch.ones(self.n_coeff)) if coefs is None else coefs
       self.dims = dims
       self.losses = []
-   
-   def _get_basis_functions_2D(self, x: torch.Tensor, t: torch.Tensor, order: int = 0) -> torch.Tensor:
-      """
-      Function returns tensor of B-spline basis functions calculated using scipy framework. This method will be helpful to
-      speed up calculations of framework during training PINNs to estimate splines coefficient.
-      """
-
-      raise NotImplementedError("Not implemented yet")
-
-      n_coefs = (len(self.knot_vector) - self.degree - 1)**2
-
-      basis_functions = []
-
-      for idx in range(n_coefs):
-
-         coefs = torch.zeros(n_coefs)
-         coefs[idx] = 1.0
-         tck = (
-            self.knot_vector.to(device_cpu).detach(),
-            self.knot_vector.to(device_cpu).detach(),
-            coefs.to(device_cpu).detach(),
-            self.degree,
-            self.degree
-         )
-         BS = spi.bisplev(x.to(device_cpu).detach(), t.to(device_cpu).detach(), tck)
-         basis_functions.append(BS)
-
-      return torch.Tensor(basis_functions).T.to(device)
 
    def _B(self, x: torch.Tensor, k: int, i: int, t: torch.Tensor) -> torch.Tensor:
       """

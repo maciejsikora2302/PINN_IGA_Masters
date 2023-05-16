@@ -20,5 +20,5 @@ bs = B_Splines(
 x=torch.linspace(0,1,5)
 t=torch.linspace(0,1,5)
 
-print(bs.calculate_BSpline_1D_deriv_dx(x, mode="Adam"))
+print(bs.calculate_BSpline_1zD_deriv_dx(x, mode="Adam"))
 print(bs.calculate_BSpline_1D_deriv_dx(x, mode="NN"))
