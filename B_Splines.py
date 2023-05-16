@@ -7,7 +7,7 @@ device_cpu = torch.device('cpu')
 
 class B_Splines(torch.nn.Module):
 
-   def __init__(self, knot_vector: torch.Tensor, degree: int, coefs: torch.Tensor = None, dims: int = 1):
+   def __init__(self, knot_vector: torch.Tensor, degree: int, coefs: torch.Tensor = None, dims: int = 1, is_test_function: bool = False):
 
       super().__init__()
       self.knot_vector = knot_vector
@@ -15,6 +15,7 @@ class B_Splines(torch.nn.Module):
       self.n_coeff = len(self.knot_vector) - self.degree - 1 if dims == 1 else (len(self.knot_vector) - self.degree - 1)**2
       self.coefs = torch.nn.Parameter(torch.rand(self.n_coeff) if coefs is None else coefs)
       self.dims = dims
+      self.is_test_function = is_test_function
       self.losses = []
 
    def _B(self, x: torch.Tensor, k: int, i: int, t: torch.Tensor) -> torch.Tensor:
@@ -27,11 +28,13 @@ class B_Splines(torch.nn.Module):
          
          mask = torch.logical_and(first_condition, second_condition)
 
-         if i == self.degree:
-            mask[0] = True
+         # We remove splines edges if function is a test function
+         if not self.is_test_function:
+            if i == self.degree:
+               mask[0] = True
 
-         if i == self.n_coeff-1:
-            mask[-1] = True
+            if i == self.n_coeff-1:
+               mask[-1] = True
          
          return mask.float()
       
@@ -67,8 +70,12 @@ class B_Splines(torch.nn.Module):
       else:
 
          tck = (self.knot_vector.detach(), coefs.detach(), self.degree)
+         spline_1D = spi.splev(x.to(device_cpu).detach(), tck, der=0)
          
-         return torch.Tensor(spi.splev(x.to(device_cpu).detach(), tck, der=0)).to(device)
+         if self.is_test_function:
+            spline_1D[0], spline_1D[-1] = 0, 0
+
+         return torch.Tensor(spline_1D).to(device)
    
    def calculate_BSpline_2D(self, x: torch.Tensor, t: torch.Tensor, mode: str = 'NN') -> torch.Tensor:
       """
@@ -90,6 +97,9 @@ class B_Splines(torch.nn.Module):
             t.flatten().cpu().detach().numpy(),
             tck
          )
+
+         if self.is_test_function:
+            spline_2d[:,0], spline_2d[:,-1], spline_2d[0,:], spline_2d[-1,:] = 0, 0, 0, 0
       
       elif mode == 'Adam':
          n_coeff_sqrt = int(math.sqrt(self.n_coeff))
@@ -115,21 +125,18 @@ class B_Splines(torch.nn.Module):
          x = x.to(device_cpu).detach().numpy()
          knot_vector = self.knot_vector
 
-         #repeat and add first and last element of knot_vector twice
-         # knot_vector = torch.cat((knot_vector[0].repeat(2), knot_vector, knot_vector[-1].repeat(2)))
-
-         # tck = (
-         #       knot_vector,
-         #       coefs,
-         #       self.degree
-         #    )
          tck = (
                knot_vector.detach().numpy(),
                coefs.to(device_cpu).detach().numpy(),
                self.degree
             )
          
-         return torch.Tensor(spi.splev(x, tck, der=1)).to(device)
+         spline_1d = spi.splev(x, tck, der=1)
+
+         if self.is_test_function:
+            spline_1d[0], spline_1d[-1] = 0, 0
+
+         return torch.Tensor(spline_1d).to(device)
       
       elif mode == 'Adam':
          x = x.flatten().to(device_cpu)
@@ -140,6 +147,9 @@ class B_Splines(torch.nn.Module):
          B_ip = lambda i: self._B(x, p-1, i, u)
 
          basis_functions = torch.stack([p * (B_ip(i) / (u[i+p] - u[i]) - B_ip(i+1) / (u[i+p+1] - u[i+1])) for i in range(n)])
+
+         if self.is_test_function:
+            basis_functions[0], basis_functions[-1] = 0, 0
 
          return torch.matmul(coefs.to(device_cpu).detach(), basis_functions).to(device) if not return_bs_stacked else basis_functions.to(device)
    
@@ -157,15 +167,13 @@ class B_Splines(torch.nn.Module):
                coefs.detach().to(device_cpu).numpy(),
                self.degree
             )
-         # x = x.to(device_cpu).detach()
-         # knot_vector = self.knot_vector.clone().detach()
-         # tck = (
-         #       knot_vector,
-         #       coefs.detach(),
-         #       self.degree
-         #    )
+         
+         spline_1d = spi.splev(x, tck, der=2) 
 
-         return torch.Tensor(spi.splev(x, tck, der=2)).to(device)
+         if self.is_test_function:
+            spline_1d[0], spline_1d[-1] = 0, 0
+
+         return torch.Tensor(spline_1d).to(device)
       
       elif mode == 'Adam':
 
@@ -178,6 +186,9 @@ class B_Splines(torch.nn.Module):
             [p * (p - 1) * ((B_ip(i) / (u[i + p - 1] - u[i]) - B_ip(i+1) / (u[i + p] - u[i + 1])) / (u[i + p] - u[i]) - (B_ip(i+1)/(u[i+p] - u[i+1]) - B_ip(i+2)/(u[i+p+1] - u[i+2])) / (u[i+p+1] - u[i+1]) ) for i in range(n)]
             )
          
+         if self.is_test_function:
+            basis_functions_dxdx[0], basis_functions_dxdx[-1] = 0, 0
+
          return torch.matmul(coefs.to(device), basis_functions_dxdx.to(device)).to(device) if not return_bs_stacked else basis_functions_dxdx.to(device)
       
       
@@ -204,6 +215,9 @@ class B_Splines(torch.nn.Module):
             tck,
             dx=1
          )
+
+         if self.is_test_function:
+            spline_2d[0,:], spline_2d[:,0], spline_2d[-1,:], spline_2d[:,-1] = 0, 0, 0, 0
       
       elif mode == 'Adam':
          
@@ -242,6 +256,9 @@ class B_Splines(torch.nn.Module):
             tck,
             dx=2
          )
+
+         if self.is_test_function:
+            spline_2d[0,:], spline_2d[:,0], spline_2d[-1,:], spline_2d[:,-1] = 0, 0, 0, 0
       
       elif mode == 'Adam':
 
@@ -280,7 +297,10 @@ class B_Splines(torch.nn.Module):
             tck,
             dy=2
          )
-      
+
+         if self.is_test_function:
+            spline_2d[0,:], spline_2d[:,0], spline_2d[-1,:], spline_2d[:,-1] = 0, 0, 0, 0
+
       elif mode == 'Adam':
 
          basis_functions = self.calculate_BSpline_1D(x, mode=mode, return_bs_stacked=True).to(device)
@@ -317,6 +337,9 @@ class B_Splines(torch.nn.Module):
             tck,
             dy=1
          )
+
+         if self.is_test_function:
+            spline_2d[0,:], spline_2d[:,0], spline_2d[-1,:], spline_2d[:,-1] = 0, 0, 0, 0
       
       elif mode == 'Adam':
          

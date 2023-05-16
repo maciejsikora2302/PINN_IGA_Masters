@@ -15,10 +15,11 @@ knot_vector = parameters.knot_vector
 bs = B_Splines(
     knot_vector=knot_vector,
     degree=3,
-    dims=1
+    dims=2,
+    is_test_function=False
 )
-x=torch.linspace(0,1,5)
-t=torch.linspace(0,1,5)
+x=torch.linspace(0,1,4)
+t=torch.linspace(0,1,4)
 
-print(bs.calculate_BSpline_1zD_deriv_dx(x, mode="Adam"))
-print(bs.calculate_BSpline_1D_deriv_dx(x, mode="NN"))
+print(bs.calculate_BSpline_2D(x, t, mode="Adam"))
+print(bs.calculate_BSpline_2D(x, t, mode="NN"))

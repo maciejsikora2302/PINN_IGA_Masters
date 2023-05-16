@@ -1,4 +1,4 @@
-$epochs = 2000
+$epochs = 40000
 $layers = 4
 $neurons_per_layer = 20
 $learning_rate = 0.00125
