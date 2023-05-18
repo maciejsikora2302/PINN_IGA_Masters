@@ -42,7 +42,7 @@ def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: b
     #         t.requires_grad_(True)
 
     
-    test_function = B_Splines(linspace, degree, dims=dims) if generate_test_functions else None
+    test_function = B_Splines(linspace, degree, dims=dims, is_test_function=True) if generate_test_functions else None
 
     return test_function, x
 
@@ -134,9 +134,6 @@ def interior_loss_basic(
     # assert isinstance(test_function, B_Splines)
     assert x is not None
 
-
-    mode = "Adam" if general_parameters.optimize_test_function else "NN"
-
     eps_interior = general_parameters.eps_interior
     _, x = precalculations(\
                                                 x = x, t = t, \
@@ -145,8 +142,8 @@ def interior_loss_basic(
 
     if dims == 1:
 
-        dfdxdx_model = dfdx(model, x, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dxdx(x, mode=mode).to(device)
-        dfdx_model = dfdx(model, x, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)
+        dfdxdx_model = dfdx(model, x, order=2).to(device)
+        dfdx_model = dfdx(model, x, order=1).to(device)
 
         basic = _get_loss_basic(
             eps_interior = eps_interior,
@@ -164,9 +161,9 @@ def interior_loss_basic(
         n_x = x.shape[0]
         n_t = t.shape[0]
 
-        dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
-        dfdtdt_model = dfdt(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dtdt(x, t, mode=mode).to(device)
-        dfdt_model = dfdt(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
+        dfdxdx_model = dfdx(model, x, t, order=2).to(device)
+        dfdtdt_model = dfdt(model, x, t, order=2).to(device)
+        dfdt_model = dfdt(model, x, t, order=1).to(device)
 
         basic = _get_loss_basic(
             eps_interior = eps_interior,
@@ -286,8 +283,8 @@ def interior_loss_strong(
     if dims == 1:
 
         v = test_function.calculate_BSpline_1D(x, mode=mode).to(device)
-        dfdxdx_model = dfdx(model, x, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dxdx(x, mode=mode).to(device)
-        dfdx_model = dfdx(model, x, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)
+        dfdxdx_model = dfdx(model, x, order=2).to(device)
+        dfdx_model = dfdx(model, x, order=1).to(device)
 
         strong = _get_loss_strong(
             eps_interior = eps_interior,
@@ -307,9 +304,9 @@ def interior_loss_strong(
         n_t = t.shape[0]
 
         v = test_function.calculate_BSpline_2D(x, t, mode=mode).to(device)
-        dfdtdt_model = dfdt(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dtdt(x, t, mode=mode).to(device)
-        dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
-        dfdt_model = dfdt(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
+        dfdtdt_model = dfdt(model, x, t, order=2).to(device)
+        dfdxdx_model = dfdx(model, x, t, order=2).to(device)
+        dfdt_model = dfdt(model, x, t, order=1).to(device)
 
         strong = _get_loss_strong(
             eps_interior = eps_interior,
@@ -391,9 +388,9 @@ def interior_loss_weak_and_strong(
             n_x = x.shape[0]
             n_t = t.shape[0]
 
-            dfdtdt_model = dfdt(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dtdt(x, t, mode=mode).to(device)
-            dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
-            dfdt_model = dfdt(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
+            dfdtdt_model = dfdt(model, x, t, order=2).to(device)
+            dfdxdx_model = dfdx(model, x, t, order=2).to(device)
+            dfdt_model = dfdt(model, x, t, order=1).to(device)
             v_deriv_t = test_function.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
             dfdt_model = dfdt(model, x, t, order=1).to(device)
             dfdx_model = dfdx(model, x, t, order=1).to(device)
@@ -604,7 +601,7 @@ def compute_loss(
 
     if dims == 2:
         final_loss += weight_i * initial_loss(model, x, t)
-        
+    
     final_loss += weight_b * boundary_loss(model, x, t, dims=dims)
 
     return final_loss
