@@ -42,7 +42,7 @@ def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: b
     #         t.requires_grad_(True)
 
     
-    test_function = B_Splines(linspace, degree, dims=dims, is_test_function=True) if generate_test_functions else None
+    test_function = B_Splines(linspace, degree, dims=dims) if generate_test_functions else None
 
     return test_function, x
 
