@@ -78,7 +78,7 @@ def load_values(path):
 def modify_loss_values(loss_values):
     #get max of each of 100 values
     loss_values = np.array(loss_values)
-    loss_values = loss_values.reshape(-1, 1000)
+    loss_values = loss_values.reshape(-1, 100)
     # print(loss_values.shape)
     loss_values = np.mean(loss_values, axis=1)
     #replace values equalt to 0 with 1e-10
@@ -111,7 +111,7 @@ def add_to_loss_plot_moded(ax, loss_values, label, other_parameters):
     x = np.arange(len(loss_values))
     ax.plot(x, loss_values, label=label)
     ax.scatter(idx, loss_values[idx], color="red")
-    ax.set_xlabel("Epoch (in 1000s)")
+    ax.set_xlabel("Epoch (in 100s)")
     ax.set_ylabel("Loss")
     # upper_lim = max(loss_values)+1
     # lower_lim = min(loss_values)-1
@@ -195,13 +195,6 @@ if __name__ == "__main__":
         fig_loss_raw.suptitle(f"Loss values in log10 scale")
         fig_solution.suptitle(f"Solution profile normalized to [0,1]")
 
-
-        print(
-            len(paths), 
-            len(axs_loss),
-            len(axs_loss_raw), 
-            len(axs_solution)
-            )
 
         for path, ax_loss, ax_loss_raw, ax_solution in zip(paths, axs_loss, axs_loss_raw, axs_solution):
             other_parameters = load_other_parameters(os.path.join(path, function))
