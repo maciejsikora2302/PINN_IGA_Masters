@@ -20,26 +20,26 @@ def precalculations(x: torch.Tensor, t: torch.Tensor, generate_test_functions: b
 
     linspace = general_parameters.knot_vector
 
-    if general_parameters.pinn_is_solution and not general_parameters.uneven_distribution:
-        x = torch.rand_like(x)
-        #sort x
-        x = torch.sort(x, dim=0)[0]
-        #set first element to 0 and last to 1
-        x[0] = 0
-        x[-1] = 1
-        x = x.unique()
-        x.requires_grad_(True)
+    # if general_parameters.pinn_is_solution and not general_parameters.uneven_distribution:
+    #     x = torch.rand_like(x)
+    #     #sort x
+    #     x = torch.sort(x, dim=0)[0]
+    #     #set first element to 0 and last to 1
+    #     x[0] = 0
+    #     x[-1] = 1
+    #     x = x.unique()
+    #     x.requires_grad_(True)
 
-        if dims == 2:
-            t = torch.rand_like(t)
+    #     if dims == 2:
+    #         t = torch.rand_like(t)
 
-            # sort t
-            t = torch.sort(t, dim=0)[0]
+    #         # sort t
+    #         t = torch.sort(t, dim=0)[0]
 
-            t[0] = 0
-            t[-1] = 1
-            t = t.unique()
-            t.requires_grad_(True)
+    #         t[0] = 0
+    #         t[-1] = 1
+    #         t = t.unique()
+    #         t.requires_grad_(True)
 
     
     test_function = B_Splines(linspace, degree, dims=dims) if generate_test_functions else None
@@ -87,18 +87,13 @@ def _get_loss_weak(**kwargs):
                 - v_at_first_point
     elif dims == 2:
         dfdt_model = kwargs["dfdt_model"]
-        sin_pi_x = kwargs["sin_pi_x"]
-        cos_pi_x = kwargs["cos_pi_x"]
         v_deriv_t = kwargs["v_deriv_t"]
-        pi = torch.pi
 
         b_uv = (eps_interior * (dfdx_model * v_deriv_x + dfdt_model * v_deriv_t) \
                 + dfdt_model * v)
         
-        I_v = (eps_interior * (sin_pi_x * dfdt_model - pi * cos_pi_x * dfdx_model) \
-               + sin_pi_x * v)
         
-        weak = b_uv - I_v
+        weak = b_uv
         
     return weak
 
@@ -139,9 +134,6 @@ def interior_loss_basic(
     # assert isinstance(test_function, B_Splines)
     assert x is not None
 
-
-    mode = "Adam" if general_parameters.optimize_test_function else "NN"
-
     eps_interior = general_parameters.eps_interior
     _, x = precalculations(\
                                                 x = x, t = t, \
@@ -150,8 +142,8 @@ def interior_loss_basic(
 
     if dims == 1:
 
-        dfdxdx_model = dfdx(model, x, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dxdx(x, mode=mode).to(device)
-        dfdx_model = dfdx(model, x, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)
+        dfdxdx_model = dfdx(model, x, order=2).to(device)
+        dfdx_model = dfdx(model, x, order=1).to(device)
 
         basic = _get_loss_basic(
             eps_interior = eps_interior,
@@ -169,9 +161,9 @@ def interior_loss_basic(
         n_x = x.shape[0]
         n_t = t.shape[0]
 
-        dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
-        dfdtdt_model = dfdt(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dtdt(x, t, mode=mode).to(device)
-        dfdt_model = dfdt(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
+        dfdxdx_model = dfdx(model, x, t, order=2).to(device)
+        dfdtdt_model = dfdt(model, x, t, order=2).to(device)
+        dfdt_model = dfdt(model, x, t, order=1).to(device)
 
         basic = _get_loss_basic(
             eps_interior = eps_interior,
@@ -240,8 +232,6 @@ def interior_loss_weak(
         v_deriv_t = test_function.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
         dfdt_model = dfdt(model, x, t, order=1).to(device)
         dfdx_model = dfdx(model, x, t, order=1).to(device)
-        sin_pi_x = initial_condition(x).to(device)
-        cos_pi_x = torch.cos(torch.pi * x).to(device)
 
         weak = _get_loss_weak(
             eps_interior = eps_interior,
@@ -250,8 +240,6 @@ def interior_loss_weak(
             v_deriv_t = v_deriv_t,
             dfdx_model = dfdx_model,
             dfdt_model = dfdt_model,
-            sin_pi_x = sin_pi_x,
-            cos_pi_x = cos_pi_x,
             dims = dims
         )
 
@@ -295,8 +283,8 @@ def interior_loss_strong(
     if dims == 1:
 
         v = test_function.calculate_BSpline_1D(x, mode=mode).to(device)
-        dfdxdx_model = dfdx(model, x, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dxdx(x, mode=mode).to(device)
-        dfdx_model = dfdx(model, x, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_1D_deriv_dx(x, mode=mode).to(device)
+        dfdxdx_model = dfdx(model, x, order=2).to(device)
+        dfdx_model = dfdx(model, x, order=1).to(device)
 
         strong = _get_loss_strong(
             eps_interior = eps_interior,
@@ -316,9 +304,9 @@ def interior_loss_strong(
         n_t = t.shape[0]
 
         v = test_function.calculate_BSpline_2D(x, t, mode=mode).to(device)
-        dfdtdt_model = dfdt(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dtdt(x, t, mode=mode).to(device)
-        dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
-        dfdt_model = dfdt(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
+        dfdtdt_model = dfdt(model, x, t, order=2).to(device)
+        dfdxdx_model = dfdx(model, x, t, order=2).to(device)
+        dfdt_model = dfdt(model, x, t, order=1).to(device)
 
         strong = _get_loss_strong(
             eps_interior = eps_interior,
@@ -400,15 +388,13 @@ def interior_loss_weak_and_strong(
             n_x = x.shape[0]
             n_t = t.shape[0]
 
-            dfdtdt_model = dfdt(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dtdt(x, t, mode=mode).to(device)
-            dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
-            dfdt_model = dfdt(model, x, t, order=1).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
+            dfdtdt_model = dfdt(model, x, t, order=2).to(device)
+            dfdxdx_model = dfdx(model, x, t, order=2).to(device)
+            dfdt_model = dfdt(model, x, t, order=1).to(device)
             v_deriv_t = test_function.calculate_BSpline_2D_deriv_dt(x, t, mode=mode).to(device)
             dfdt_model = dfdt(model, x, t, order=1).to(device)
             dfdx_model = dfdx(model, x, t, order=1).to(device)
-            sin_pi_x = initial_condition(x).to(device)
-            cos_pi_x = torch.cos(torch.pi * x).to(device)
-
+    
             strong = _get_loss_strong(
                 eps_interior = eps_interior,
                 dfdxdx_model = dfdxdx_model,
@@ -425,8 +411,6 @@ def interior_loss_weak_and_strong(
                 v_deriv_t = v_deriv_t,
                 dfdx_model = dfdx_model,
                 dfdt_model = dfdt_model,
-                sin_pi_x = sin_pi_x,
-                cos_pi_x = cos_pi_x,
                 dims = dims
             )
 
@@ -617,7 +601,7 @@ def compute_loss(
 
     if dims == 2:
         final_loss += weight_i * initial_loss(model, x, t)
-        
+    
     final_loss += weight_b * boundary_loss(model, x, t, dims=dims)
 
     return final_loss
