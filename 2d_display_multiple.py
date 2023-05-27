@@ -13,6 +13,17 @@ torch.set_default_dtype(torch.float64)
 # Paths will be passed in from the command line
 # Get all paths to the files and validate them
 
+IMGS_FOLDER_PATH = "./display_imgs"
+
+def create_folder_to_save(path_to_file_containig_paths:str):
+    path = os.path.join(IMGS_FOLDER_PATH, path_to_file_containig_paths.split("/")[-1].replace(".txt", ""))
+
+    if not os.path.exists(IMGS_FOLDER_PATH):
+        os.mkdir(IMGS_FOLDER_PATH)
+    if not os.path.exists(path):
+        os.mkdir(path)
+    return path
+
 def get_paths(path_to_file_containig_paths: str):
     if not os.path.exists(path_to_file_containig_paths):
         raise ValueError(f"Path {path_to_file_containig_paths} does not exist")
@@ -190,7 +201,11 @@ def create_3x3_3d_grid():
     return fig, np.array(axs[::-1]).reshape(3, 3)
 
 if __name__ == "__main__":
+    sys.argv[1] = sys.argv[1].replace("\\", "/")
     paths = get_paths(sys.argv[1])
+    save_folder = create_folder_to_save(sys.argv[1])
+
+    fig_size = (18.5, 10.5)
 
     if len(paths) == 0:
         raise ValueError("No valid paths found")
@@ -209,6 +224,12 @@ if __name__ == "__main__":
         axs_loss_raw = axs_loss_raw[:, :-1]
 
     axs_loss, axs_loss_raw = axs_loss.flatten(), axs_loss_raw.flatten()
+
+    figs_to_save, axs_to_save = [], []
+    for _ in range(len(paths)):
+        tmp_fig, tmp_ax = plt.subplots(figsize=fig_size)
+        figs_to_save.append(tmp_fig)
+        axs_to_save.append(tmp_ax)
 
     for function in functions:
         fig_solution, axs_solution = create_3x3_3d_grid()
@@ -246,6 +267,14 @@ if __name__ == "__main__":
             add_to_loss_plot_raw(ax_loss_raw, copy(loss_values), function, other_parameters)
             add_to_loss_plot_moded(ax_loss, copy(loss_values), function, other_parameters)
             add_to_solution_plot(ax_solution, X, T, pinn_values, function, other_parameters, time)
+
+    my_dpi = 86 #96
+
+    fig_solution.savefig(f"{save_folder}/solution_grid.png", dpi=my_dpi)
+    fig_loss.savefig(f"{save_folder}/loss_grid.png", dpi=my_dpi)
+    fig_loss_raw.savefig(f"{save_folder}/loss_raw_grid.png", dpi=my_dpi)
+    for i, fig in enumerate(figs_to_save):
+        fig.savefig(f"{save_folder}/fig_{i+1}.png", dpi=my_dpi)
 
     plt.show()
         
