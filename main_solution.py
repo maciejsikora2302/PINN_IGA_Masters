@@ -212,7 +212,7 @@ if __name__ == "__main__":
     logger.info("")
 
 
-    def get_loss_fn(loss_type, x, test_function):
+    def get_loss_fn(loss_type, x):
 
         loss_fn_dict = {
             'basic': interior_loss_basic,
@@ -224,6 +224,7 @@ if __name__ == "__main__":
         if loss_type not in loss_fn_dict.keys():
             raise Exception(f"Loss function {loss_type} not implemented")
         
+        test_function = get_test_function()
 
         return partial(
             compute_loss,
@@ -235,26 +236,24 @@ if __name__ == "__main__":
             interior_loss_function=loss_fn_dict[loss_type],
             dims=1 if general_parameters.one_dimension else 2,
             test_function=test_function
-        )
+        ), test_function
         
     model = get_model()
-    test_function = get_test_function()
 
 
-
-    loss_fn_basic = get_loss_fn('basic', x, test_function=None)
-    loss_fn_weak = get_loss_fn('weak', x, test_function)
-    loss_fn_strong = get_loss_fn('strong', x, test_function)
-    loss_fn_weak_and_strong = get_loss_fn('weak_and_strong', x, test_function)
+    loss_fn_basic, test_function_basic = get_loss_fn('basic', x)
+    loss_fn_weak, test_function_weak = get_loss_fn('weak', x)
+    loss_fn_strong, test_function_strong = get_loss_fn('strong', x)
+    loss_fn_weak_and_strong, test_function_weak_and_strong = get_loss_fn('weak_and_strong', x)
     
 
 
     loss_functions = [
-        (loss_fn_basic, 'loss_fn_basic'),
-        (loss_fn_weak, 'loss_fn_weak'),
-        (loss_fn_strong, 'loss_fn_strong'),
-        (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'),
+        (loss_fn_basic, 'loss_fn_basic', test_function_basic),
+        (loss_fn_weak, 'loss_fn_weak', test_function_weak),
+        (loss_fn_strong, 'loss_fn_strong', test_function_strong),
+        (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong', test_function_weak_and_strong),
     ]
 
-    for loss_fn, name in loss_functions:
+    for loss_fn, name, test_function in loss_functions:
         train_and_plot(model, loss_fn, name, x, x_init, t if not general_parameters.one_dimension else None, test_function)
