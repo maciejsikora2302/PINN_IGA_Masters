@@ -190,7 +190,7 @@ def compute_losses_and_plot_solution(
         ax.set_title("Solution profile")
         ax.plot_surface(X, T, pinn_values.cpu().detach().numpy(), cmap=cm.coolwarm , linewidth=0, antialiased=False)
         ax.set_xlabel("x")
-        ax.set_ylabel("t")
+        ax.set_ylabel("y")
         ax.set_zlabel("u")
         plt.savefig(f"{path}/solution_profile.png")
 
