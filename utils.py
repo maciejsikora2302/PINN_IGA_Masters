@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from NN_tools import f
 from PINN import PINN
 from scipy.interpolate import BSpline
+from B_Splines import B_Splines
 import json
 from matplotlib import cm
 
@@ -26,7 +27,8 @@ def compute_losses_and_plot_solution(
         loss_fn_name: str, 
         training_time: float,
         t: torch.Tensor = None, 
-        dims: int = 2
+        dims: int = 2,
+        test_function: B_Splines = None
     ):
 
 
@@ -109,6 +111,24 @@ def compute_losses_and_plot_solution(
         pinn_values = f(pinn_trained.to(device), x.reshape(-1, 1), t.reshape(-1,1))
 
 
+    if general_parameters.optimize_test_function:
+        mode = "NN"
+
+        if dims == 1:    
+            result = test_function.calculate_BSpline_1D(
+                                                        x=x,
+                                                        mode = mode
+                                                        )
+            test_function_values = torch.Tensor(result)
+
+        elif dims == 2:
+            result = test_function.calculate_BSpline_2D(
+                                                        x=x,
+                                                        t=t,
+                                                        mode = mode
+                                                        )
+            test_function_values = torch.Tensor(result)
+
 
     #save x to file
     with open(f"{path}/x.txt", "w") as x_file:
@@ -123,6 +143,12 @@ def compute_losses_and_plot_solution(
             pinn_values_file.write(f"{pinn_value.cpu().detach().numpy()},")
     # except:
     #     pass
+
+
+    #save test function's values to file
+    with open(f"{path}/test_functions_values.txt", "w") as test_functions_values_file:
+        for test_function_value in test_function_values:
+            test_functions_values_file.write(f"{test_function_value.cpu().detach().numpy()}")
 
     with open(f"{path}/model_parameters.txt", "w") as file:
         file.write(str(pinn_trained))

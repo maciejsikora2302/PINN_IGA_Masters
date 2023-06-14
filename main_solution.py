@@ -42,7 +42,8 @@ def train_and_plot(model, loss_fn, loss_fn_name, x, x_init, t, test_function):
         N_POINTS_T=general_parameters.n_points_t,
         loss_fn_name=loss_fn_name,
         training_time=training_time,
-        dims=1 if general_parameters.one_dimension else 2
+        dims=1 if general_parameters.one_dimension else 2,
+        test_function=test_function
     )
 
 def get_model():
