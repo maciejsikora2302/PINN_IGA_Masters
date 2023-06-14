@@ -97,6 +97,15 @@ def get_model():
     else:
         raise Exception("No model has been chosen")
 
+
+def get_test_function():
+    if general_parameters.optimize_test_function:
+        test_function = B_Splines(general_parameters.knot_vector, degree=general_parameters.spline_degree, dims=1 if general_parameters.one_dimension else 2)
+    else:
+        test_function = None
+    return test_function
+
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_dtype(torch.float64)
 logger.info(f"Device: {device}")
@@ -229,13 +238,9 @@ if __name__ == "__main__":
         )
         
     model = get_model()
+    test_function = get_test_function()
 
-    
 
-    if general_parameters.optimize_test_function:
-        test_function = B_Splines(general_parameters.knot_vector, degree=general_parameters.spline_degree, dims=1 if general_parameters.one_dimension else 2)
-    else:
-        test_function = None
 
     loss_fn_basic = get_loss_fn('basic', x, test_function=None)
     loss_fn_weak = get_loss_fn('weak', x, test_function)
