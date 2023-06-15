@@ -1,0 +1,2 @@
+tensor(0.),tensor(0.1111),tensor(0.2222),tensor(0.3333),tensor(0.4444),tensor(0.5556),tensor(0.6667),tensor(0.7778),tensor(0.8889),tensor(1.)
+tensor(1.0000),tensor(1.2815e-06),tensor(6.2585e-07),tensor(-8.9407e-08),tensor(2.6822e-07),tensor(1.4901e-07),tensor(-5.9605e-08),tensor(8.9407e-08),tensor(2.0862e-07),tensor(2.6822e-07)

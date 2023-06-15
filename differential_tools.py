@@ -19,10 +19,10 @@ def f(model, x: torch.Tensor, t: torch.Tensor = None, mode: str = 'Adam') -> tor
     elif isinstance(model, B_Splines):
 
         if model.dims == 1:
-            value = model(x, mode=mode)
+            value = model.calculate_BSpline_1D(x, mode=mode)
 
         elif model.dims == 2:
-            value = model(x, t, mode=mode)
+            value = model.calculate_BSpline_2D(x, t, mode=mode)
 
     return value
 
@@ -32,11 +32,13 @@ def df(output: torch.Tensor, input: torch.Tensor, order: int = 1) -> torch.Tenso
 
     df_value = output
 
+
     for _ in range(order):
         df_value = torch.autograd.grad(
             df_value,
             input,
-            grad_outputs=torch.ones_like(input),
+            # grad_outputs=torch.ones_like(input),
+            grad_outputs=torch.ones_like(df_value),
             create_graph=True,
             retain_graph=True,
         )[0]

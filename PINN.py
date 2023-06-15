@@ -20,24 +20,26 @@ class PINN(nn.Module):
         self.dim_layer_out = dim_layer_out
         self.pinn_learns_coeff = pinn_learns_coeff
 
-        if dims == 1:
-            self.layer_in = nn.Linear(dims, dim_hidden)
-            self.layer_out = nn.Linear(dim_hidden, dim_layer_out)
-        else:
-            raise NotImplementedError('Only 1D PINNs are implemented at the moment')
+        self.layer_in = nn.Linear(dims, dim_hidden)
+        self.layer_out = nn.Linear(dim_hidden, dim_layer_out)
+
         num_middle = num_hidden - 1
         self.middle_layers = nn.ModuleList(
             [nn.Linear(dim_hidden, dim_hidden) for _ in range(num_middle)]
         )
+
         self.act = act
 
-    def forward(self, x, t):
 
-        x_stack = torch.cat([x], dim=1) if self.dims == 1 else torch.cat([x, t], dim=1)
+    def forward(self, x: torch.Tensor, t: torch.Tensor = None):
+        x_stack = torch.cat([x], dim=1) if self.dims == 1 else torch.cartesian_prod(torch.flatten(x), torch.flatten(t))
 
         out = self.act(self.layer_in(x_stack))
         for layer in self.middle_layers:
             out = self.act(layer(out))
+
+
+
         logits = self.layer_out(out)
 
         if self.pinning:
@@ -50,7 +52,6 @@ class PINN(nn.Module):
         json_repr = {
             "num_hidden": self.num_hidden,
             "dim_hidden": self.dim_hidden,
-            
             "act": str(self.act),
             "pinning": self.pinning,
             "dims": self.dims,

@@ -1,0 +1,44 @@
+INFO -- Device: cuda
+INFO -- [92mTwo dimentional problem[0m
+INFO -- 
+INFO -- ================================================================================
+INFO -- Learning parameters
+INFO -- Length:                                           [92m1.0[0m
+INFO -- Total time:                                       [92m1.0[0m
+INFO -- Number of points in x:                            [92m10[0m
+INFO -- Number of points in t:                            [92m10[0m
+INFO -- Number of points in initial condition:            [92m300[0m
+INFO -- Weight for interior loss:                         [92m1.0[0m
+INFO -- Weight for initial condition loss:                [92m0.0[0m
+INFO -- Weight for boundary loss:                         [92m1.0[0m
+INFO -- Layers:                                           [92m4[0m
+INFO -- Neurons per layer:                                [92m20[0m
+INFO -- Epochs:                                           [92m100[0m
+INFO -- Learning rate:                                    [92m0.00125[0m
+INFO -- ================================================================================
+INFO -- 
+INFO -- Creating [92m2D[0m BSpline
+INFO -- Creating PINN with [92m4[0m layers and [92m20[0m neurons per layer
+INFO -- Training PINN for [93m100[0m epochs using [93mloss_fn_basic[0m loss function
+INFO -- Training interrupted at epoch [91m1[0m
+ERROR -- Exception occurred: Expect a 1D vector, but got shape [100, 1]
+Traceback (most recent call last):
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\NN_tools.py", line 45, in train_model
+    loss: torch.Tensor = loss_fn(nn_approximator)
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\loss_functions.py", line 502, in compute_loss
+    weight_f * interior_loss_function(model, x, t, dims=dims, test_function=test_function)
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\loss_functions.py", line 94, in interior_loss_basic
+    dfdxdx_model = dfdx(model, x, t, order=2).to(device) if isinstance(model, PINN) else model.calculate_BSpline_2D_deriv_dxdx(x, t, mode=mode).to(device)
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\differential_tools.py", line 65, in dfdx
+    f_value = f(model, x, t)
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\differential_tools.py", line 17, in f
+    value = model(x, t)
+  File "C:\Users\macie\AppData\Local\Programs\Python\Python310\lib\site-packages\torch\nn\modules\module.py", line 1194, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "C:\Users\macie\Documents\Studia\Magisterka\PINN_IGA_Masters\PINN.py", line 35, in forward
+    x_stack = torch.cat([x], dim=1) if self.dims == 1 else torch.cartesian_prod(x, t)
+  File "C:\Users\macie\AppData\Local\Programs\Python\Python310\lib\site-packages\torch\functional.py", line 1129, in cartesian_prod
+    return _VF.cartesian_prod(tensors)  # type: ignore[attr-defined]
+RuntimeError: Expect a 1D vector, but got shape [100, 1]
+INFO -- Training took [92m0.32[0m seconds
+INFO -- Creating plots and saving to files. Dimensions: 2

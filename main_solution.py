@@ -14,8 +14,8 @@ from NN_tools import train_model
 from pprint import pprint
 
 
-def train_and_plot(model, loss_fn, loss_fn_name, x, x_init, u_init, test_function):
-    logger.info(f"Training {'PINN' if not general_parameters.splines else 'splines'} for {Color.YELLOW}{general_parameters.epochs}{Color.RESET} epochs using {Color.YELLOW}{loss_fn_name}{Color.RESET} loss function")
+def train_and_plot(model, loss_fn, loss_fn_name, x, x_init, t, test_function):
+    logger.info(f"Training model for {Color.YELLOW}{general_parameters.epochs}{Color.RESET} epochs using {Color.YELLOW}{loss_fn_name}{Color.RESET} loss function")
 
     start_time = time()
     model_trained, loss_values = train_model(
@@ -34,18 +34,80 @@ def train_and_plot(model, loss_fn, loss_fn_name, x, x_init, u_init, test_functio
     compute_losses_and_plot_solution(
         pinn_trained=model_trained,
         x=x,
+        t=t,
         device=device,
         loss_values=loss_values,
         x_init=x_init,
-        u_init=u_init,
         N_POINTS_X=general_parameters.n_points_x,
         N_POINTS_T=general_parameters.n_points_t,
         loss_fn_name=loss_fn_name,
         training_time=training_time,
-        dims=1 if general_parameters.one_dimension else 2
+        dims=1 if general_parameters.one_dimension else 2,
+        test_function=test_function
     )
 
+def get_model():
+
+    if general_parameters.splines:
+        logger.info(f"Creating {Color.GREEN}{'1D' if general_parameters.one_dimension else '2D'}{Color.RESET} BSpline")
+        spline = B_Splines(general_parameters.knot_vector, degree=general_parameters.spline_degree, dims=1 if general_parameters.one_dimension else 2).to(device)
+        return spline
+    
+    elif general_parameters.pinn_is_solution:
+        logger.info(f"Creating PINN with {Color.GREEN}{general_parameters.layers}{Color.RESET} layers and {Color.GREEN}{general_parameters.neurons_per_layer}{Color.RESET} neurons per layer")
+        pinn = PINN(
+            general_parameters.layers, 
+            general_parameters.neurons_per_layer, 
+            pinning=False, 
+            act=nn.Tanh(), 
+            pinn_learns_coeff=general_parameters.pinn_learns_coeff, 
+            dims=1 if general_parameters.one_dimension else 2
+            ).to(device)
+        
+        return pinn
+        
+    elif general_parameters.pinn_learns_coeff:
+        logger.info(f"Creating PINN to learn spline coefficients with {Color.GREEN}{general_parameters.layers}{Color.RESET} layers and {Color.GREEN}{general_parameters.neurons_per_layer}{Color.RESET} neurons per layer")
+        
+        if general_parameters.one_dimension:
+            pinn_list = [
+                PINN(
+                    general_parameters.layers, 
+                    general_parameters.neurons_per_layer, 
+                    pinning=False, 
+                    act=nn.Tanh(), 
+                    dim_layer_in=1, 
+                    dim_layer_out=1
+                ).to(device) for _ in range(general_parameters.n_coeff)
+            ]
+        else:
+            raise Exception("Double check this part of the code")
+            pinn = PINN(
+                general_parameters.layers, 
+                general_parameters.neurons_per_layer, 
+                pinning=False, 
+                act=nn.Tanh(), 
+                dim_layer_in=x.shape[0], # Dim layer in 2D case needs to be modified in future 
+                dim_layer_out=general_parameters.n_coeff,
+                pinn_learns_coeff=general_parameters.pinn_learns_coeff,
+                ).to(device)
+    
+        return pinn_list
+    
+    else:
+        raise Exception("No model has been chosen")
+
+
+def get_test_function():
+    if general_parameters.optimize_test_function:
+        test_function = B_Splines(general_parameters.knot_vector, degree=general_parameters.spline_degree, dims=1 if general_parameters.one_dimension else 2)
+    else:
+        test_function = None
+    return test_function
+
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch.set_default_dtype(torch.float64)
 logger.info(f"Device: {device}")
 
 # parse arguments
@@ -53,9 +115,9 @@ logger.info(f"Device: {device}")
 parser = argparse.ArgumentParser()
 parser.add_argument("--length", type=float, default=1.)
 parser.add_argument("--total_time", type=float, default=1.)
+parser.add_argument("--n_points_init", type=int, default=300)
 parser.add_argument("--n_points_x", type=int, default=100)
 parser.add_argument("--n_points_t", type=int, default=150)
-parser.add_argument("--n_points_init", type=int, default=300)
 parser.add_argument("--weight_interior", '--wi', type=float, default=50.0)
 parser.add_argument("--weight_initial", '--winit', type=float, default=.5)
 parser.add_argument("--weight_boundary", '--wb', type=float, default=5.0)
@@ -91,12 +153,13 @@ if __name__ == "__main__":
 
 
     if general_parameters.uneven_distribution:
-        # FIXME:
-        # ATTENTION, UNEVEN DISTRIBUTION WILL NOT WORK WHEN PINN IS A SOLUTION FLAG IS PROVIDED
-        # SINCE I MADE ASSUMPTION THAT WHEN WE ARE LEARNING SOLUTION WE ARE USING RANDOM POINTS 
-        # FROM ALL OVER THE RANGE THIS IS STILL SUBJECT TO CHANGE
+
         x_raw = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = general_parameters.n_points_x, density_range=0.2, device=device)
         x_raw = x_raw.requires_grad_(True)
+
+        if not general_parameters.one_dimension:
+            t_raw = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = general_parameters.n_points_t, density_range=0.2, device=device)
+            t_raw = t_raw.requires_grad_(True)
     else:
         x_raw = torch.linspace(x_domain[0], x_domain[1], steps=general_parameters.n_points_x, requires_grad=True)
 
@@ -108,29 +171,27 @@ if __name__ == "__main__":
     else:
         logger.info(f"{Color.GREEN}Two dimentional problem{Color.RESET}")
 
-        t_domain = [0.0, general_parameters.total_time]
+        t_domain = [0.0, 1.0]
 
         # x_raw = torch.linspace(x_domain[0], x_domain[1], steps=general_parameters.n_points_x, requires_grad=True)
-        t_raw = torch.linspace(t_domain[0], t_domain[1], steps=general_parameters.n_points_t, requires_grad=True, device=device)
-        grids = torch.meshgrid(x_raw, t_raw, indexing="ij")
 
-        x = grids[0].flatten().reshape(-1, 1).to(device)
-        t = grids[1].flatten().reshape(-1, 1).to(device)
+        if not general_parameters.uneven_distribution:
+            t_raw = torch.linspace(t_domain[0], t_domain[1], steps=general_parameters.n_points_t, requires_grad=True, device=device)
+        # grids = torch.meshgrid(x_raw.to(device), t_raw.to(device), indexing="ij")
+        
+        # x = grids[0].flatten().reshape(-1, 1).to(device)
+        # t = grids[1].flatten().reshape(-1, 1).to(device)
 
+        x = x_raw.flatten().reshape(-1, 1).to(device)
+        t = t_raw.flatten().reshape(-1, 1).to(device)
 
     if general_parameters.uneven_distribution:
         x_init = get_unequaly_distribution_points(eps=general_parameters.eps_interior, n = general_parameters.n_points_x, density_range=0.2, device=device)
     else:
         x_init = torch.linspace(0.0, 1.0, steps=general_parameters.n_points_x)
-    # x_init = 0.5*((x_init-0.5*general_parameters.length)*2)**3 + 0.5
-    # x_init = x_init*general_parameters.length
+
     u_init = initial_condition(x_init)
 
-    # fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
-    # ax.set_title("Initial condition points")
-    # ax.set_xlabel("x")
-    # ax.set_ylabel("u")
-    # ax.scatter(x_init, u_init, s=2)
 
     logger.info("")
     logger.info("="*80)
@@ -151,116 +212,48 @@ if __name__ == "__main__":
     logger.info("")
 
 
+    def get_loss_fn(loss_type, x):
 
+        loss_fn_dict = {
+            'basic': interior_loss_basic,
+            'weak': interior_loss_weak,
+            'strong': interior_loss_strong,
+            'weak_and_strong': interior_loss_weak_and_strong
+        }
 
-    logger.info(f"Creating {Color.GREEN}{'1D' if general_parameters.one_dimension else '2D'}{Color.RESET} BSpline")
-    spline = B_Splines(general_parameters.knot_vector, degree=general_parameters.spline_degree, dims=1 if general_parameters.one_dimension else 2)
-    if general_parameters.optimize_test_function:
-        test_function = B_Splines(general_parameters.knot_vector, degree=general_parameters.spline_degree, dims=1 if general_parameters.one_dimension else 2)
-    else:
-        test_function = None
-    
-    if general_parameters.pinn_learns_coeff:
-        logger.info(f"Creating PINN to learn spline coefficients with {Color.GREEN}{general_parameters.layers}{Color.RESET} layers and {Color.GREEN}{general_parameters.neurons_per_layer}{Color.RESET} neurons per layer")
+        if loss_type not in loss_fn_dict.keys():
+            raise Exception(f"Loss function {loss_type} not implemented")
         
-        if general_parameters.one_dimension:
-            pinn_list = [
-                PINN(
-                    general_parameters.layers, 
-                    general_parameters.neurons_per_layer, 
-                    pinning=False, 
-                    act=nn.Tanh(), 
-                    dim_layer_in=1, 
-                    dim_layer_out=1
-                ).to(device) for _ in range(general_parameters.n_coeff)
-            ]
+        test_function = get_test_function()
 
-        else:
-            raise Exception("Double check this part of the code")
-            pinn = PINN(
-                general_parameters.layers, 
-                general_parameters.neurons_per_layer, 
-                pinning=False, 
-                act=nn.Tanh(), 
-                dim_layer_in=x.shape[0], # Dim layer in 2D case needs to be modified in future 
-                dim_layer_out=general_parameters.n_coeff,
-                pinn_learns_coeff=general_parameters.pinn_learns_coeff,
-                ).to(device)
-    else:
-        
-        logger.info(f"Creating PINN with {Color.GREEN}{general_parameters.layers}{Color.RESET} layers and {Color.GREEN}{general_parameters.neurons_per_layer}{Color.RESET} neurons per layer")
-        pinn = PINN(
-            general_parameters.layers, 
-            general_parameters.neurons_per_layer, 
-            pinning=False, 
-            act=nn.Tanh(), 
-            pinn_learns_coeff=general_parameters.pinn_learns_coeff, 
-            dims=1 if general_parameters.one_dimension else 2
-            ).to(device)
-
-    # assert check_gradient(nn_approximator, x, t)
-    
-
-
-    if general_parameters.pinn_is_solution or general_parameters.splines:
-
-        def get_loss_fn(loss_type, x, test_function):
-
-            loss_fn_dict = {
-                'basic': interior_loss_basic,
-                'weak': interior_loss_weak,
-                'strong': interior_loss_strong,
-                'weak_and_strong': interior_loss_weak_and_strong
-            }
-
-            if loss_type not in loss_fn_dict.keys():
-                raise Exception(f"Loss function {loss_type} not implemented")
-            
-
-            return partial(
-                compute_loss,
-                x=x,
-                weight_f=general_parameters.weight_interior,
-                weight_i=general_parameters.weight_initial,
-                weight_b=general_parameters.weight_boundary,
-                interior_loss_function=loss_fn_dict[loss_type],
-                dims=1 if general_parameters.one_dimension else 2,
-                test_function=test_function
-            )
-
-        loss_fn_basic = get_loss_fn('basic', x, test_function=None)
-        loss_fn_weak = get_loss_fn('weak', x, test_function)
-        loss_fn_strong = get_loss_fn('strong', x, test_function)
-        loss_fn_weak_and_strong = get_loss_fn('weak_and_strong', x, test_function)
-        # loss_fn_colocation = get_loss_fn('colocation', x, test_function)
-
-
-    if general_parameters.pinn_is_solution or general_parameters.splines:
-        loss_functions = [
-            (loss_fn_basic, 'loss_fn_basic')
-            # (loss_fn_weak, 'loss_fn_weak'),
-            # (loss_fn_strong, 'loss_fn_strong'),
-            # (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong'),
-            # (loss_fn_colocation, 'loss_fn_colocation')
-        ]
-
-        for loss_fn, name in loss_functions:
-            model = spline if general_parameters.splines else pinn
-            train_and_plot(model, loss_fn, name, x, x_init, u_init, test_function)
-
-    elif general_parameters.pinn_learns_coeff:
-        loss_fn_weak_and_strong = get_loss_fn('weak_and_strong', x, test_function)
-        loss_fn = partial(
+        return partial(
             compute_loss,
             x=x,
-            spline=spline,
+            t=t if not general_parameters.one_dimension else None,
             weight_f=general_parameters.weight_interior,
+            weight_i=general_parameters.weight_initial,
             weight_b=general_parameters.weight_boundary,
+            interior_loss_function=loss_fn_dict[loss_type],
             dims=1 if general_parameters.one_dimension else 2,
-            test_function=loss_fn_weak_and_strong
-        )
+            test_function=test_function
+        ), test_function
+        
+    model = get_model()
 
-        name = "Prediction of splines coefficients using PINN"
-        model = pinn_list
 
-        train_and_plot(model, loss_fn, name, x, x_init, u_init, loss_fn_weak_and_strong)
+    loss_fn_basic, test_function_basic = get_loss_fn('basic', x)
+    loss_fn_weak, test_function_weak = get_loss_fn('weak', x)
+    loss_fn_strong, test_function_strong = get_loss_fn('strong', x)
+    loss_fn_weak_and_strong, test_function_weak_and_strong = get_loss_fn('weak_and_strong', x)
+    
+
+
+    loss_functions = [
+        (loss_fn_basic, 'loss_fn_basic', test_function_basic),
+        (loss_fn_weak, 'loss_fn_weak', test_function_weak),
+        (loss_fn_strong, 'loss_fn_strong', test_function_strong),
+        (loss_fn_weak_and_strong, 'loss_fn_weak_and_strong', test_function_weak_and_strong),
+    ]
+
+    for loss_fn, name, test_function in loss_functions:
+        train_and_plot(model, loss_fn, name, x, x_init, t if not general_parameters.one_dimension else None, test_function)
