@@ -148,7 +148,7 @@ def compute_losses_and_plot_solution(
     #save test function's values to file
     with open(f"{path}/test_functions_values.txt", "w") as test_functions_values_file:
         for test_function_value in test_function_values:
-            test_functions_values_file.write(f"{test_function_value.cpu().detach().numpy()}")
+            test_functions_values_file.write(f"{test_function_value.cpu().detach().numpy()},")
 
     with open(f"{path}/model_parameters.txt", "w") as file:
         file.write(str(pinn_trained))

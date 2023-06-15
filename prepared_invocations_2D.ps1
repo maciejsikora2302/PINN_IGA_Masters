@@ -7,8 +7,8 @@ $weight_interior = 1.0
 $weight_boundary = 1.0
 $weight_initial = 1.0
 
-$eps_interior_values = @(0.1, 0.01, 0.001)
-$n_points_x_values = @(10, 15, 20)
+$eps_interior_values = @(0.001)
+$n_points_x_values = @(80)
 
 foreach ($eps_interior in $eps_interior_values) {
     foreach ($n_points_x in $n_points_x_values) {
@@ -53,10 +53,10 @@ foreach ($eps_interior in $eps_interior_values) {
             --neurons_per_layer $neurons_per_layer `
             --learning_rate $learning_rate `
             --spline_degree $spline_degree `
-            --splines `
-            --save
+            --pinn_is_solution `
             --uneven_distribution `
-            # --optimize_test_function `
+            --optimize_test_function `
+            --save
             
     }
 }
