@@ -1,0 +1,216 @@
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_basic
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 6.073
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_basic
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 4.318
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_basic
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 1.414
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_basic
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 6.322
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_basic
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 4.580
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_basic
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 1.659
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_basic
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 3.770
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_basic
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 2.309
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_basic
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 1.459
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_strong
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 3.794
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_strong
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 3.434
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_strong
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 1.209
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_strong
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 4.718
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_strong
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 2.435
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_strong
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 1.631
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_strong
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 3.076
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_strong
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 3.032
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_strong
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 1.599
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_weak
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 3.900
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_weak
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 2.895
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_weak
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 1.207
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_weak
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 4.565
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_weak
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 2.441
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_weak
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 1.618
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_weak
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 3.083
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_weak
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 2.495
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_weak
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 1.528
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_weak_and_strong
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 4.123
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_weak_and_strong
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 3.278
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_weak_and_strong
+Epsilon: 0.001
+Uneven:  true
+Metric measure: 1.209
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_weak_and_strong
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 4.311
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_weak_and_strong
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 2.328
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_weak_and_strong
+Epsilon: 0.01
+Uneven:  true
+Metric measure: 1.558
+####################################################
+Points shape: 80^2
+Used loss function: loss_fn_weak_and_strong
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 3.131
+####################################################
+Points shape: 50^2
+Used loss function: loss_fn_weak_and_strong
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 2.815
+####################################################
+Points shape: 10^2
+Used loss function: loss_fn_weak_and_strong
+Epsilon: 0.1
+Uneven:  true
+Metric measure: 1.667
