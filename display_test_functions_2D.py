@@ -10,7 +10,7 @@ if __name__ == '__main__':
     # ]
 
     files_with_display_paths = sys.argv[1:-1]   # these files should be saved in the display_paths folder
-    folder_to_save_images    = sys.argv[-1]
+    folder_to_save_images    = sys.argv[-1]     # this is the folder to save plotted images
 
     for file_with_display_path in files_with_display_paths:
         for loss_name in [
