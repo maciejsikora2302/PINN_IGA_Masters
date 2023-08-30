@@ -5,9 +5,12 @@ import sys
 
 if __name__ == '__main__':
 
-    files_with_display_paths = [
-        "optimal_test_functions.txt"
-    ]
+    # files_with_display_paths = [
+    #     "optimal_test_functions.txt"
+    # ]
+
+    files_with_display_paths = sys.argv[1:-1]   # these files should be saved in the display_paths folder
+    folder_to_save_images    = sys.argv[-1]
 
     for file_with_display_path in files_with_display_paths:
         for loss_name in [
@@ -16,7 +19,7 @@ if __name__ == '__main__':
                 "loss_fn_weak",
                 "loss_fn_weak_and_strong"
             ]:
-            with open(f"./display_paths/{file_with_display_path}") as file1:
+            with open(file_with_display_path) as file1:
                 file = file1.read()
                 
                 file = file.replace("\\","/")
@@ -77,10 +80,8 @@ if __name__ == '__main__':
 
                     # Show the plot
                     plt.show()
-                    # file_with_display_path = file_with_display_path[:-4]
-                    # file_with_display_path = file_with_display_path.replace("\\", "/")
-                    # file_with_display_path = file_with_display_path + "/"
                     print(file_with_display_path)
-                    save_path = os.path.join("C:/Users/patry/OneDrive/Pulpit/Studia_II_stopien/Magisterka/Results/", file_with_display_path[:-4], f"{loss_name}_x{x_values.shape[0]}_eps{par}_time{t}.png")
+                    # save_path = os.path.join("C:/Users/patry/OneDrive/Pulpit/Studia_II_stopien/Magisterka/Results/", file_with_display_path[:-4], f"{loss_name}_x{x_values.shape[0]}_eps{par}_time{t}.png")
+                    save_path = os.path.join(folder_to_save_images, file_with_display_path[:-4], f"{loss_name}_x{x_values.shape[0]}_eps{par}_time{t}.png")
                     fig.savefig(save_path)
 
