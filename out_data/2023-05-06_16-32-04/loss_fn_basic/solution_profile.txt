@@ -1,2 +1,0 @@
-tensor(0., device='cuda:0'),tensor(0.1111, device='cuda:0'),tensor(0.2222, device='cuda:0'),tensor(0.3333, device='cuda:0'),tensor(0.4444, device='cuda:0'),tensor(0.5556, device='cuda:0'),tensor(0.6667, device='cuda:0'),tensor(0.7778, device='cuda:0'),tensor(0.8889, device='cuda:0'),tensor(1., device='cuda:0')
-tensor(1.0000),tensor(-0.0025),tensor(3.3807e-05),tensor(-8.7082e-07),tensor(3.1685e-06),tensor(4.1290e-06),tensor(4.4573e-06),tensor(3.0101e-06),tensor(-1.2181e-07),tensor(1.5594e-08)

@@ -1,1 +1,0 @@
-{"num_hidden": 5, "dim_hidden": 20, "act": "Tanh()", "pinning": false, "dims": 1, "dim_layer_in": 1, "dim_layer_out": 1}
