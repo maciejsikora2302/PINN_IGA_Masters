@@ -11,7 +11,7 @@ torch.set_default_dtype(torch.float64)
 # Paths will be passed in from the command line
 # Get all paths to the files and validate them
 
-IMGS_FOLDER_PATH = "./display_imgs"
+IMGS_FOLDER_PATH = "./display_imgs/publication_imgs/old_renewed"
 
 def create_folder_to_save(path_to_file_containig_paths:str):
     path = os.path.join(IMGS_FOLDER_PATH, path_to_file_containig_paths.split("/")[-1].replace(".txt", ""))
@@ -116,12 +116,12 @@ def load_time(path):
         time = f.read()
     return time
 
-def add_to_loss_plot_moded(ax, loss_values, label, other_parameters):
+def add_to_loss_plot_moded(ax, loss_values, label, other_parameters, line_style='-', linewidth=2):
     #plot in log scale
-    aggregate_number = 100
+    aggregate_number = 1000
     loss_values, idx = modify_loss_values(loss_values, aggregate_number)
     x = np.arange(len(loss_values))
-    ax.plot(x, loss_values, label=label)
+    ax.plot(x, loss_values, label=label, linestyle=line_style, linewidth=linewidth)
     ax.scatter(idx, loss_values[idx], color="red")
     ax.set_xlabel(f"Epoch (in {aggregate_number}s)")
     ax.set_ylabel("Loss")
@@ -130,7 +130,8 @@ def add_to_loss_plot_moded(ax, loss_values, label, other_parameters):
     # if lower_lim < -10:
     #     lower_lim = -10
     # ax.set_ylim(lower_lim, upper_lim)
-    ax.legend()
+    can_not_fit_legend = all([other_parameters['eps_interior'] == 0.001, other_parameters['n_points_x'] == 100])
+    ax.legend(fontsize=14) if not can_not_fit_legend else ax.legend(fontsize=10.5)
     ax.grid()
     title = f"\
     eps={other_parameters['eps_interior']} \
@@ -138,11 +139,11 @@ def add_to_loss_plot_moded(ax, loss_values, label, other_parameters):
     X={other_parameters['n_points_x']}".replace("    ", "")
     ax.title.set_text(title)
 
-def add_to_loss_plot_raw(ax, loss_values, label, other_parameters):
+def add_to_loss_plot_raw(ax, loss_values, label, other_parameters, line_style="-", linewidth=2):
     #plot in log scale
     loss_values = np.array(loss_values)
-    loss_values = np.log10(loss_values)
-    ax.plot(loss_values, label=label)
+    # loss_values = np.log10(loss_values)
+    ax.plot(loss_values, label=label, linestyle=line_style, linewidth=linewidth)
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Loss")
     # upper_lim = max(loss_values)+1
@@ -150,7 +151,7 @@ def add_to_loss_plot_raw(ax, loss_values, label, other_parameters):
     # if lower_lim < -10:
     #     lower_lim = -10
     # ax.set_ylim(lower_lim, upper_lim)
-    ax.legend()
+    ax.legend(fontsize=14)
     ax.grid()
     title = f"\
     eps={other_parameters['eps_interior']} \
@@ -158,12 +159,13 @@ def add_to_loss_plot_raw(ax, loss_values, label, other_parameters):
     X={other_parameters['n_points_x']}".replace("    ", "")
     ax.title.set_text(title)
 
-def add_to_solution_plot(ax, data, values, label, other_parameters,time):
-    ax.plot(data, values, label=label)
+def add_to_solution_plot(ax, data, values, label, other_parameters, time, line_style="-", linewidth=2):
+    ax.plot(data, values, label=label, linestyle=line_style, linewidth=linewidth)
     ax.set_xlabel("X")
     ax.set_ylabel("Values")
     ax.set_ylim(-0.1, 1.2)
-    ax.legend()
+    ax.legend(fontsize=14)
+    # plt.legend(prop = {'size' : 1})
     ax.grid()
     title = f"\
     eps={other_parameters['eps_interior']} \
@@ -180,13 +182,30 @@ def create_3x3_grid():
     
     return fig, axs
 
+def create_3x2_grid():
+    fig, axs = plt.subplots(3, 2, constrained_layout = True, figsize=fig_size)
+    # fig.set_size_inches(18.5, 10.5)
+    # fig.tight_layout(pad=2.5)
+    
+    return fig, axs
+
 if __name__ == "__main__":
     sys.argv[1] = sys.argv[1].replace("\\", "/")
     paths = get_paths(sys.argv[1])
+    paths = [
+        paths[1],
+        paths[2],
+        paths[4],
+        paths[5],
+        paths[7],
+        paths[8],
+    ]
 
     save_folder = create_folder_to_save(sys.argv[1])
 
-    fig_size = (18.5, 10.5)
+    fig_size = (21, 14)
+
+
 
     if len(paths) == 0:
         raise ValueError("No valid paths found")
@@ -195,15 +214,23 @@ if __name__ == "__main__":
     if any(map(lambda x: not os.path.exists(x), paths)):
         raise ValueError("All paths must exist")
     functions = get_all_used_functions(paths[0])
-    fig_loss, axs_loss = create_3x3_grid()
-    fig_loss_raw, axs_loss_raw = create_3x3_grid()
-    fig_solution, axs_solution = create_3x3_grid()
 
-    if len(paths) == 6:
-        # 3x2 grid by removing last column
-        axs_loss = axs_loss[:, :-1]
-        axs_solution = axs_solution[:, :-1]
-        axs_loss_raw = axs_loss_raw[:, :-1]
+    plt.rcParams.update({'font.size': 19})
+
+    # fig_loss, axs_loss = create_3x3_grid()
+    # fig_loss_raw, axs_loss_raw = create_3x3_grid()
+    # fig_solution, axs_solution = create_3x3_grid()
+    fig_loss, axs_loss = create_3x2_grid()
+    fig_loss_raw, axs_loss_raw = create_3x2_grid()
+    fig_solution, axs_solution = create_3x2_grid()
+
+
+
+    # if len(paths) == 6:
+    #     # 3x2 grid by removing last column
+    #     axs_loss = axs_loss[:, :-1]
+    #     axs_solution = axs_solution[:, :-1]
+    #     axs_loss_raw = axs_loss_raw[:, :-1]
 
     axs_loss, axs_loss_raw, axs_solution = axs_loss.flatten(), axs_loss_raw.flatten(), axs_solution.flatten()
 
@@ -213,15 +240,19 @@ if __name__ == "__main__":
         figs_to_save.append(tmp_fig)
         axs_to_save.append(tmp_ax)
 
-    
+    line_styles = ['-', '--', '-.', ':', (0, (5, 1, 1, 1)), (0, (1, 1, 10, 1)), (0, (1, 10)), (0, (1, 1)), 
+               (0, (5, 10)), (0, (5, 5))][1:]
 
-    for function in functions:
+    import matplotlib.pyplot as plt
+
+    # ...
+
+    for i, function in enumerate(functions):
         # fig_loss.suptitle(f"Loss values for {function} in log10 scale")
         fig_loss.suptitle(f"Loss values in log10 scale, red dots are -inf values, each point is mean from 1000 epochs")
         fig_loss_raw.suptitle(f"Loss values in log10 scale")
         fig_solution.suptitle(f"Solution profile normalized to [0,1]")
 
-        
         for path, ax_loss, ax_loss_raw, ax_solution, ax_to_save in zip(paths, axs_loss, axs_loss_raw, axs_solution, axs_to_save):
             other_parameters = load_other_parameters(os.path.join(path, function))
             # model = load_model(os.path.join(path, function))
@@ -237,11 +268,17 @@ if __name__ == "__main__":
             loss_values = load_values(os.path.join(path, function, "loss_values.txt"))
             time = load_time(os.path.join(path, function))
             add_to_loss_plot_raw(ax_loss_raw, copy(loss_values), function, other_parameters)
-            add_to_loss_plot_moded(ax_loss, copy(loss_values), function, other_parameters)
-            add_to_solution_plot(ax_solution, data, pinn_values, function, other_parameters, time)
-            add_to_solution_plot(ax_to_save, data, pinn_values, function, other_parameters, time)
+            add_to_loss_plot_moded(ax_loss, copy(loss_values), function, other_parameters, line_style=line_styles[i])
+            add_to_solution_plot(ax_solution, data, pinn_values, function, other_parameters, time, line_style=line_styles[i])
+            add_to_solution_plot(ax_to_save, data, pinn_values, function, other_parameters, time, line_style=line_styles[i])
+
+    # Reduce the font size for the legend
+    plt.rcParams['legend.fontsize'] = 1
+
+    plt.rcParams.update({'font.size': 19})
 
     my_dpi = 86 #96
+    my_dpi = 300 #96
 
     fig_solution.savefig(f"{save_folder}/solution_grid.png", dpi=my_dpi)
     fig_loss.savefig(f"{save_folder}/loss_grid.png", dpi=my_dpi)
